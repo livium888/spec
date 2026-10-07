@@ -5,7 +5,8 @@
 - **Rejected:** fsrs-rs + flutter_rust_bridge. Needs NDK cross-compile, Rust toolchain in CI, and cannot be verified without an Android device/emulator. Gains the optimizer, which v1 does not use.
 - **Finding (verified against fsrs-rs `inference_v6.rs`):** the Dart package's default weights are py-fsrs defaults with decay `w[20]=0.2`, NOT the spec's 0.1542. We inject fsrs-rs `FSRS6_DEFAULT_PARAMETERS` (decay 0.1542) explicitly.
 - **Known divergences from fsrs-rs** (verify against current docs): the Dart port floors elapsed time to whole days for retrievability and treats `<1 day` as same-day; fsrs-rs uses fractional days. Intervals can differ slightly from Anki's. fsrs-rs main now also ships a v7 model; v1 targets v6.
-- **Revisit if:** the optimizer is needed (engine phase) -> add an `FsrsRsScheduler`; the interface already allows it.
+- **Measured divergence vs fsrs-rs 6.6.2** (12-review sequence incl. two lapses, same weights; reference vectors are in `test/fsrs_scheduler_test.dart`): max stability error 0.99%, max difficulty error 0.037. Cause: the Dart port clamps D0(4) inside the difficulty mean-reversion step; fsrs-rs uses it unclamped (about -4.79 with default weights). Effect on intervals is within ~3%. Accepted for v1; it matters if/when parameters are optimised with fsrs-rs, because they would be fitted to slightly different dynamics.
+- **Revisit if:** the optimizer is needed (engine phase) -> add an `FsrsRsScheduler`, or replace the port with a ~100-line own implementation of the published FSRS-6 formulas validated against the same vectors; the interface already allows both.
 
 ## D2 — Deterministic fuzz
 Library fuzz uses `Random()`, which breaks "replay == live". Library fuzz is disabled; the adapter applies fuzz seeded by `(cardId, reps_before)`.
