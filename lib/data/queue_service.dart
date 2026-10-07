@@ -2,7 +2,6 @@ import 'dart:convert';
 
 import 'package:drift/drift.dart';
 
-import '../domain/models.dart';
 import '../domain/study_card.dart';
 import 'db/database.dart';
 import 'review_service.dart';
@@ -83,6 +82,16 @@ class QueueService {
       newIntroducedToday: introduced,
       nextLearningDue: nextLearning,
     );
+  }
+
+  /// Fetch one card with its note (used by undo to re-show the undone card).
+  Future<StudyCard?> cardById(int id) async {
+    final q = db.select(db.cards).join([
+      innerJoin(db.notes, db.notes.id.equalsExp(db.cards.noteId)),
+    ])
+      ..where(db.cards.id.equals(id));
+    final r = await q.getSingleOrNull();
+    return r == null ? null : _study(r.readTable(db.cards), r.readTable(db.notes));
   }
 
   Future<int> _introducedToday(int dayStart, int? domainId) async {

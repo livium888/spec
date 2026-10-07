@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:drift/drift.dart';
 import 'package:sqlite3/sqlite3.dart' as sql;
@@ -30,13 +29,13 @@ class DbFingerprint {
   const DbFingerprint(this.cards, this.reviews, this.notes, this.dueSum, this.dueMax);
   final int cards, reviews, notes, dueSum, dueMax;
   @override
-  bool operator ==(Object o) =>
-      o is DbFingerprint &&
-      o.cards == cards &&
-      o.reviews == reviews &&
-      o.notes == notes &&
-      o.dueSum == dueSum &&
-      o.dueMax == dueMax;
+  bool operator ==(Object other) =>
+      other is DbFingerprint &&
+      other.cards == cards &&
+      other.reviews == reviews &&
+      other.notes == notes &&
+      other.dueSum == dueSum &&
+      other.dueMax == dueMax;
   @override
   int get hashCode => Object.hash(cards, reviews, notes, dueSum, dueMax);
   @override
@@ -147,7 +146,7 @@ class BackupService {
     } on sql.SqliteException catch (e) {
       throw BackupException('Not a valid backup: ${e.message}');
     } finally {
-      d.dispose();
+      d.close();
     }
   }
 

@@ -1,0 +1,46 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../data/backup/backup_service.dart';
+import '../data/db/database.dart';
+import '../data/engine_service.dart';
+import '../data/import_service.dart';
+import '../data/params_repo.dart';
+import '../data/queue_service.dart';
+import '../data/review_service.dart';
+import '../data/settings_repo.dart';
+import 'bootstrap.dart';
+
+final bootstrapProvider = Provider<Bootstrap>((_) => throw UnimplementedError('override in main'));
+
+/// Holds the live database. Replaced after a restore so every dependent rebuilds.
+class DbNotifier extends Notifier<AppDatabase> {
+  @override
+  AppDatabase build() => ref.watch(bootstrapProvider).db;
+  void replace(AppDatabase db) => state = db;
+}
+
+final dbProvider = NotifierProvider<DbNotifier, AppDatabase>(DbNotifier.new);
+
+final settingsRepoProvider = Provider((ref) => SettingsRepo(ref.watch(dbProvider)));
+final paramsRepoProvider =
+    Provider((ref) => ParamsRepo(ref.watch(dbProvider), ref.watch(settingsRepoProvider)));
+final reviewServiceProvider = Provider((ref) => ReviewService(
+    ref.watch(dbProvider), ref.watch(settingsRepoProvider), ref.watch(paramsRepoProvider)));
+final queueServiceProvider =
+    Provider((ref) => QueueService(ref.watch(dbProvider), ref.watch(settingsRepoProvider)));
+final importServiceProvider = Provider((ref) => ImportService(ref.watch(dbProvider)));
+final promptServiceProvider = Provider((ref) => PromptService(ref.watch(dbProvider)));
+final interestServiceProvider = Provider((ref) => InterestService(ref.watch(dbProvider)));
+final featuresServiceProvider = Provider(
+    (ref) => EngineFeaturesService(ref.watch(dbProvider), ref.watch(settingsRepoProvider)));
+final backupServiceProvider =
+    Provider((ref) => BackupService(ref.watch(dbProvider), ref.watch(settingsRepoProvider)));
+
+/// Bumped after any write so read-only screens refresh.
+class Refresh extends Notifier<int> {
+  @override
+  int build() => 0;
+  void bump() => state++;
+}
+
+final refreshProvider = NotifierProvider<Refresh, int>(Refresh.new);

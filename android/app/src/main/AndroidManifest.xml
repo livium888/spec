@@ -1,6 +1,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <application
-        android:label="daily_learning"
+        android:allowBackup="false"
+        android:fullBackupContent="false"
+        android:label="Daily Learning"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

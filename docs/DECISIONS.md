@@ -27,3 +27,18 @@ Single SQLite file via `VACUUM INTO` (consistent snapshot, no WAL leftovers), na
 - Restore: untrusted file. Open read-only, check `PRAGMA user_version`, `PRAGMA integrity_check`, required tables present, before replacing the live DB; keep the previous DB as `.pre-restore` until success.
 - SAF: only the user-picked tree URI with persisted permission; no broad storage permissions.
 - Backups are unencrypted (offline, user-owned folder). Revisit if the folder is cloud-synced.
+
+## D8 — Where use cases live
+Pure logic (scheduler interface, `applyRating`, queue ordering math, import validation, prompt rendering, engine contracts) is in `lib/domain` with no Flutter/Drift imports. Use cases that must run SQL (`ReviewService`, `QueueService`, `ImportService`, `BackupService`, `EngineFeaturesService`) live in `lib/data` rather than behind repository interfaces: a second abstraction layer over Drift would double the code for no swap-ability we need in v1. Revisit if a second storage backend appears.
+
+## D9 — Spec ambiguities resolved (change if you meant otherwise)
+- "Every session start: write an interest_log prompt": implemented as a one-tap, skippable dialog at the END of a session, per domain touched; a row is written only when you tap.
+- `cards_surviving_30d`: cards first answered >30 days ago that are now in `review` and not suspended.
+- `retention_30d`: share of review/relearning-state answers rated Hard/Good/Easy.
+- Import rule "no card without a quote or URL" applies to `quote`/`url` source types; `model_memory` cards are allowed without one but are tagged `unverified`.
+- Manual "Add card" reuses the import pipeline (source "manual entry").
+- A new card's `due` equals its note's `created_at`; replay depends on this.
+- Android Auto Backup is disabled (`allowBackup=false`) so no data leaves the phone except your SAF folder.
+
+## D10 — Not verified in this environment (verify on device)
+Android SDK downloads are blocked in the build container, so the APK build, SAF folder picker/writer, WorkManager weekly job and release signing are untested here. Host-side tests cover the logic: replay==live, undo, queue, import, backup/restore acceptance (export, wipe, restore, identical counts/dues/review count).
