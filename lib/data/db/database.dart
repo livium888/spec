@@ -176,6 +176,8 @@ class AppDatabase extends _$AppDatabase {
         },
         beforeOpen: (details) async {
           await customStatement('PRAGMA foreign_keys = ON');
+          // Foreground app and the WorkManager isolate may both open the file.
+          await customStatement('PRAGMA busy_timeout = 5000');
         },
       );
 }
