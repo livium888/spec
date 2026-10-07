@@ -1,8 +1,8 @@
 name: Build signed APK
 
+# Manual only for now: add the 4 signing secrets first, then run this from the
+# Actions tab. Re-enable the push trigger once secrets exist.
 on:
-  push:
-    branches: [main, 'ccr-**']
   workflow_dispatch:
 
 permissions:
