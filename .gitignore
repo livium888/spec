@@ -46,3 +46,10 @@ app.*.map.json
 
 # Widget Preview related
 .widget_preview/
+
+# Signing material must never be committed
+*.jks
+*.keystore
+key.properties
+keystore.b64
+SIGNING-SECRETS.txt
