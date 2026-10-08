@@ -55,7 +55,7 @@ class GuideScreen extends StatelessWidget {
               'keeps every card, and schedules each review at the moment you are about to forget. Everything stays on your phone; '
               'the app never goes online.'),
           heading('Every day: two things'),
-          step(1, 'Tap the big button on Today (it says Review, or Keep going if you have started). A few minutes. This is what makes things stick.'),
+          step(1, 'Tap the big button on Today (it says Start review, or Keep going once you have started). A few minutes. This is what makes things stick.'),
           step(2, 'When you have the energy, tap "Learn something new". The app picks the subject and topic for you, '
               'and tells you why. You never have to choose.'),
           para('Tired, or a busy day? Do only the reviews. The app tells you when it is a good time to add more and when to stop.'),
