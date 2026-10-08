@@ -122,14 +122,7 @@ class PromptService {
       syl = (await (db.select(db.syllabusItems)..where((s) => s.id.equals(syllabusItemId))).getSingle()).title;
     }
 
-    final notes = await (db.select(db.notes)
-          ..where((x) => x.domainId.equals(domainId))
-          ..orderBy([(x) => OrderingTerm.desc(x.createdAt), (x) => OrderingTerm.desc(x.id)])
-          ..limit(40))
-        .get();
-    final titles = [
-      for (final n in notes) _short(_title(n)),
-    ];
+    final titles = await _recentTitles(domainId, syllabusItemId);
 
     final text = renderPrompt(
         domain: dom.name, syllabusItem: syl, n: n, recentTitles: titles, sourceText: sourceText);
@@ -148,6 +141,38 @@ class PromptService {
           cardsRequested: n,
         ));
     return (logId: id, text: text);
+  }
+
+  /// Titles the LLM must not repeat: this topic's cards first (up to 60),
+  /// then the domain's most recent cards, 80 in total.
+  Future<List<String>> _recentTitles(int domainId, int? syllabusItemId) async {
+    final out = <String>[];
+    final seen = <String>{};
+    void add(Iterable<Note> ns, int cap) {
+      for (final n in ns) {
+        if (out.length >= cap) return;
+        final t = _short(_title(n));
+        if (seen.add(t)) out.add(t);
+      }
+    }
+
+    if (syllabusItemId != null) {
+      add(
+          await (db.select(db.notes)
+                ..where((x) => x.syllabusItemId.equals(syllabusItemId))
+                ..orderBy([(x) => OrderingTerm.desc(x.createdAt), (x) => OrderingTerm.desc(x.id)])
+                ..limit(60))
+              .get(),
+          60);
+    }
+    add(
+        await (db.select(db.notes)
+              ..where((x) => x.domainId.equals(domainId))
+              ..orderBy([(x) => OrderingTerm.desc(x.createdAt), (x) => OrderingTerm.desc(x.id)])
+              ..limit(40))
+            .get(),
+        80);
+    return out;
   }
 
   String _title(Note n) {

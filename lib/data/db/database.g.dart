@@ -370,6 +370,30 @@ class $SyllabusItemsTable extends SyllabusItems
     requiredDuringInsert: false,
     defaultValue: const Constant('todo'),
   );
+  static const VerificationMeta _targetCardsMeta = const VerificationMeta(
+    'targetCards',
+  );
+  @override
+  late final GeneratedColumn<int> targetCards = GeneratedColumn<int>(
+    'target_cards',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(10),
+  );
+  static const VerificationMeta _descriptionMeta = const VerificationMeta(
+    'description',
+  );
+  @override
+  late final GeneratedColumn<String> description = GeneratedColumn<String>(
+    'description',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -378,6 +402,8 @@ class $SyllabusItemsTable extends SyllabusItems
     level,
     position,
     status,
+    targetCards,
+    description,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -428,6 +454,24 @@ class $SyllabusItemsTable extends SyllabusItems
         status.isAcceptableOrUnknown(data['status']!, _statusMeta),
       );
     }
+    if (data.containsKey('target_cards')) {
+      context.handle(
+        _targetCardsMeta,
+        targetCards.isAcceptableOrUnknown(
+          data['target_cards']!,
+          _targetCardsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('description')) {
+      context.handle(
+        _descriptionMeta,
+        description.isAcceptableOrUnknown(
+          data['description']!,
+          _descriptionMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -461,6 +505,14 @@ class $SyllabusItemsTable extends SyllabusItems
         DriftSqlType.string,
         data['${effectivePrefix}status'],
       )!,
+      targetCards: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}target_cards'],
+      )!,
+      description: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}description'],
+      )!,
     );
   }
 
@@ -477,6 +529,8 @@ class SyllabusItem extends DataClass implements Insertable<SyllabusItem> {
   final int level;
   final int position;
   final String status;
+  final int targetCards;
+  final String description;
   const SyllabusItem({
     required this.id,
     required this.domainId,
@@ -484,6 +538,8 @@ class SyllabusItem extends DataClass implements Insertable<SyllabusItem> {
     required this.level,
     required this.position,
     required this.status,
+    required this.targetCards,
+    required this.description,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -494,6 +550,8 @@ class SyllabusItem extends DataClass implements Insertable<SyllabusItem> {
     map['level'] = Variable<int>(level);
     map['position'] = Variable<int>(position);
     map['status'] = Variable<String>(status);
+    map['target_cards'] = Variable<int>(targetCards);
+    map['description'] = Variable<String>(description);
     return map;
   }
 
@@ -505,6 +563,8 @@ class SyllabusItem extends DataClass implements Insertable<SyllabusItem> {
       level: Value(level),
       position: Value(position),
       status: Value(status),
+      targetCards: Value(targetCards),
+      description: Value(description),
     );
   }
 
@@ -520,6 +580,8 @@ class SyllabusItem extends DataClass implements Insertable<SyllabusItem> {
       level: serializer.fromJson<int>(json['level']),
       position: serializer.fromJson<int>(json['position']),
       status: serializer.fromJson<String>(json['status']),
+      targetCards: serializer.fromJson<int>(json['targetCards']),
+      description: serializer.fromJson<String>(json['description']),
     );
   }
   @override
@@ -532,6 +594,8 @@ class SyllabusItem extends DataClass implements Insertable<SyllabusItem> {
       'level': serializer.toJson<int>(level),
       'position': serializer.toJson<int>(position),
       'status': serializer.toJson<String>(status),
+      'targetCards': serializer.toJson<int>(targetCards),
+      'description': serializer.toJson<String>(description),
     };
   }
 
@@ -542,6 +606,8 @@ class SyllabusItem extends DataClass implements Insertable<SyllabusItem> {
     int? level,
     int? position,
     String? status,
+    int? targetCards,
+    String? description,
   }) => SyllabusItem(
     id: id ?? this.id,
     domainId: domainId ?? this.domainId,
@@ -549,6 +615,8 @@ class SyllabusItem extends DataClass implements Insertable<SyllabusItem> {
     level: level ?? this.level,
     position: position ?? this.position,
     status: status ?? this.status,
+    targetCards: targetCards ?? this.targetCards,
+    description: description ?? this.description,
   );
   SyllabusItem copyWithCompanion(SyllabusItemsCompanion data) {
     return SyllabusItem(
@@ -558,6 +626,12 @@ class SyllabusItem extends DataClass implements Insertable<SyllabusItem> {
       level: data.level.present ? data.level.value : this.level,
       position: data.position.present ? data.position.value : this.position,
       status: data.status.present ? data.status.value : this.status,
+      targetCards: data.targetCards.present
+          ? data.targetCards.value
+          : this.targetCards,
+      description: data.description.present
+          ? data.description.value
+          : this.description,
     );
   }
 
@@ -569,13 +643,24 @@ class SyllabusItem extends DataClass implements Insertable<SyllabusItem> {
           ..write('title: $title, ')
           ..write('level: $level, ')
           ..write('position: $position, ')
-          ..write('status: $status')
+          ..write('status: $status, ')
+          ..write('targetCards: $targetCards, ')
+          ..write('description: $description')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, domainId, title, level, position, status);
+  int get hashCode => Object.hash(
+    id,
+    domainId,
+    title,
+    level,
+    position,
+    status,
+    targetCards,
+    description,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -585,7 +670,9 @@ class SyllabusItem extends DataClass implements Insertable<SyllabusItem> {
           other.title == this.title &&
           other.level == this.level &&
           other.position == this.position &&
-          other.status == this.status);
+          other.status == this.status &&
+          other.targetCards == this.targetCards &&
+          other.description == this.description);
 }
 
 class SyllabusItemsCompanion extends UpdateCompanion<SyllabusItem> {
@@ -595,6 +682,8 @@ class SyllabusItemsCompanion extends UpdateCompanion<SyllabusItem> {
   final Value<int> level;
   final Value<int> position;
   final Value<String> status;
+  final Value<int> targetCards;
+  final Value<String> description;
   const SyllabusItemsCompanion({
     this.id = const Value.absent(),
     this.domainId = const Value.absent(),
@@ -602,6 +691,8 @@ class SyllabusItemsCompanion extends UpdateCompanion<SyllabusItem> {
     this.level = const Value.absent(),
     this.position = const Value.absent(),
     this.status = const Value.absent(),
+    this.targetCards = const Value.absent(),
+    this.description = const Value.absent(),
   });
   SyllabusItemsCompanion.insert({
     this.id = const Value.absent(),
@@ -610,6 +701,8 @@ class SyllabusItemsCompanion extends UpdateCompanion<SyllabusItem> {
     this.level = const Value.absent(),
     this.position = const Value.absent(),
     this.status = const Value.absent(),
+    this.targetCards = const Value.absent(),
+    this.description = const Value.absent(),
   }) : domainId = Value(domainId),
        title = Value(title);
   static Insertable<SyllabusItem> custom({
@@ -619,6 +712,8 @@ class SyllabusItemsCompanion extends UpdateCompanion<SyllabusItem> {
     Expression<int>? level,
     Expression<int>? position,
     Expression<String>? status,
+    Expression<int>? targetCards,
+    Expression<String>? description,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -627,6 +722,8 @@ class SyllabusItemsCompanion extends UpdateCompanion<SyllabusItem> {
       if (level != null) 'level': level,
       if (position != null) 'position': position,
       if (status != null) 'status': status,
+      if (targetCards != null) 'target_cards': targetCards,
+      if (description != null) 'description': description,
     });
   }
 
@@ -637,6 +734,8 @@ class SyllabusItemsCompanion extends UpdateCompanion<SyllabusItem> {
     Value<int>? level,
     Value<int>? position,
     Value<String>? status,
+    Value<int>? targetCards,
+    Value<String>? description,
   }) {
     return SyllabusItemsCompanion(
       id: id ?? this.id,
@@ -645,6 +744,8 @@ class SyllabusItemsCompanion extends UpdateCompanion<SyllabusItem> {
       level: level ?? this.level,
       position: position ?? this.position,
       status: status ?? this.status,
+      targetCards: targetCards ?? this.targetCards,
+      description: description ?? this.description,
     );
   }
 
@@ -669,6 +770,12 @@ class SyllabusItemsCompanion extends UpdateCompanion<SyllabusItem> {
     if (status.present) {
       map['status'] = Variable<String>(status.value);
     }
+    if (targetCards.present) {
+      map['target_cards'] = Variable<int>(targetCards.value);
+    }
+    if (description.present) {
+      map['description'] = Variable<String>(description.value);
+    }
     return map;
   }
 
@@ -680,7 +787,230 @@ class SyllabusItemsCompanion extends UpdateCompanion<SyllabusItem> {
           ..write('title: $title, ')
           ..write('level: $level, ')
           ..write('position: $position, ')
-          ..write('status: $status')
+          ..write('status: $status, ')
+          ..write('targetCards: $targetCards, ')
+          ..write('description: $description')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $SyllabusPrereqsTable extends SyllabusPrereqs
+    with TableInfo<$SyllabusPrereqsTable, SyllabusPrereq> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $SyllabusPrereqsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _itemIdMeta = const VerificationMeta('itemId');
+  @override
+  late final GeneratedColumn<int> itemId = GeneratedColumn<int>(
+    'item_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES syllabus_item (id)',
+    ),
+  );
+  static const VerificationMeta _prereqIdMeta = const VerificationMeta(
+    'prereqId',
+  );
+  @override
+  late final GeneratedColumn<int> prereqId = GeneratedColumn<int>(
+    'prereq_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES syllabus_item (id)',
+    ),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [itemId, prereqId];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'syllabus_prereq';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<SyllabusPrereq> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('item_id')) {
+      context.handle(
+        _itemIdMeta,
+        itemId.isAcceptableOrUnknown(data['item_id']!, _itemIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_itemIdMeta);
+    }
+    if (data.containsKey('prereq_id')) {
+      context.handle(
+        _prereqIdMeta,
+        prereqId.isAcceptableOrUnknown(data['prereq_id']!, _prereqIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_prereqIdMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {itemId, prereqId};
+  @override
+  SyllabusPrereq map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return SyllabusPrereq(
+      itemId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}item_id'],
+      )!,
+      prereqId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}prereq_id'],
+      )!,
+    );
+  }
+
+  @override
+  $SyllabusPrereqsTable createAlias(String alias) {
+    return $SyllabusPrereqsTable(attachedDatabase, alias);
+  }
+}
+
+class SyllabusPrereq extends DataClass implements Insertable<SyllabusPrereq> {
+  final int itemId;
+  final int prereqId;
+  const SyllabusPrereq({required this.itemId, required this.prereqId});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['item_id'] = Variable<int>(itemId);
+    map['prereq_id'] = Variable<int>(prereqId);
+    return map;
+  }
+
+  SyllabusPrereqsCompanion toCompanion(bool nullToAbsent) {
+    return SyllabusPrereqsCompanion(
+      itemId: Value(itemId),
+      prereqId: Value(prereqId),
+    );
+  }
+
+  factory SyllabusPrereq.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return SyllabusPrereq(
+      itemId: serializer.fromJson<int>(json['itemId']),
+      prereqId: serializer.fromJson<int>(json['prereqId']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'itemId': serializer.toJson<int>(itemId),
+      'prereqId': serializer.toJson<int>(prereqId),
+    };
+  }
+
+  SyllabusPrereq copyWith({int? itemId, int? prereqId}) => SyllabusPrereq(
+    itemId: itemId ?? this.itemId,
+    prereqId: prereqId ?? this.prereqId,
+  );
+  SyllabusPrereq copyWithCompanion(SyllabusPrereqsCompanion data) {
+    return SyllabusPrereq(
+      itemId: data.itemId.present ? data.itemId.value : this.itemId,
+      prereqId: data.prereqId.present ? data.prereqId.value : this.prereqId,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SyllabusPrereq(')
+          ..write('itemId: $itemId, ')
+          ..write('prereqId: $prereqId')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(itemId, prereqId);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is SyllabusPrereq &&
+          other.itemId == this.itemId &&
+          other.prereqId == this.prereqId);
+}
+
+class SyllabusPrereqsCompanion extends UpdateCompanion<SyllabusPrereq> {
+  final Value<int> itemId;
+  final Value<int> prereqId;
+  final Value<int> rowid;
+  const SyllabusPrereqsCompanion({
+    this.itemId = const Value.absent(),
+    this.prereqId = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  SyllabusPrereqsCompanion.insert({
+    required int itemId,
+    required int prereqId,
+    this.rowid = const Value.absent(),
+  }) : itemId = Value(itemId),
+       prereqId = Value(prereqId);
+  static Insertable<SyllabusPrereq> custom({
+    Expression<int>? itemId,
+    Expression<int>? prereqId,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (itemId != null) 'item_id': itemId,
+      if (prereqId != null) 'prereq_id': prereqId,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  SyllabusPrereqsCompanion copyWith({
+    Value<int>? itemId,
+    Value<int>? prereqId,
+    Value<int>? rowid,
+  }) {
+    return SyllabusPrereqsCompanion(
+      itemId: itemId ?? this.itemId,
+      prereqId: prereqId ?? this.prereqId,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (itemId.present) {
+      map['item_id'] = Variable<int>(itemId.value);
+    }
+    if (prereqId.present) {
+      map['prereq_id'] = Variable<int>(prereqId.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SyllabusPrereqsCompanion(')
+          ..write('itemId: $itemId, ')
+          ..write('prereqId: $prereqId, ')
+          ..write('rowid: $rowid')
           ..write(')'))
         .toString();
   }
@@ -5193,6 +5523,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
   late final $DomainsTable domains = $DomainsTable(this);
   late final $SyllabusItemsTable syllabusItems = $SyllabusItemsTable(this);
+  late final $SyllabusPrereqsTable syllabusPrereqs = $SyllabusPrereqsTable(
+    this,
+  );
   late final $NotesTable notes = $NotesTable(this);
   late final $CardsTable cards = $CardsTable(this);
   late final $FsrsParamsTableTable fsrsParamsTable = $FsrsParamsTableTable(
@@ -5229,6 +5562,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   List<DatabaseSchemaEntity> get allSchemaEntities => [
     domains,
     syllabusItems,
+    syllabusPrereqs,
     notes,
     cards,
     fsrsParamsTable,
@@ -5810,6 +6144,8 @@ typedef $$SyllabusItemsTableCreateCompanionBuilder =
       Value<int> level,
       Value<int> position,
       Value<String> status,
+      Value<int> targetCards,
+      Value<String> description,
     });
 typedef $$SyllabusItemsTableUpdateCompanionBuilder =
     SyllabusItemsCompanion Function({
@@ -5819,6 +6155,8 @@ typedef $$SyllabusItemsTableUpdateCompanionBuilder =
       Value<int> level,
       Value<int> position,
       Value<String> status,
+      Value<int> targetCards,
+      Value<String> description,
     });
 
 final class $$SyllabusItemsTableReferences
@@ -5915,6 +6253,16 @@ class $$SyllabusItemsTableFilterComposer
 
   ColumnFilters<String> get status => $composableBuilder(
     column: $table.status,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get targetCards => $composableBuilder(
+    column: $table.targetCards,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get description => $composableBuilder(
+    column: $table.description,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -6026,6 +6374,16 @@ class $$SyllabusItemsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get targetCards => $composableBuilder(
+    column: $table.targetCards,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get description => $composableBuilder(
+    column: $table.description,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$DomainsTableOrderingComposer get domainId {
     final $$DomainsTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -6073,6 +6431,16 @@ class $$SyllabusItemsTableAnnotationComposer
 
   GeneratedColumn<String> get status =>
       $composableBuilder(column: $table.status, builder: (column) => column);
+
+  GeneratedColumn<int> get targetCards => $composableBuilder(
+    column: $table.targetCards,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get description => $composableBuilder(
+    column: $table.description,
+    builder: (column) => column,
+  );
 
   $$DomainsTableAnnotationComposer get domainId {
     final $$DomainsTableAnnotationComposer composer = $composerBuilder(
@@ -6186,6 +6554,8 @@ class $$SyllabusItemsTableTableManager
                 Value<int> level = const Value.absent(),
                 Value<int> position = const Value.absent(),
                 Value<String> status = const Value.absent(),
+                Value<int> targetCards = const Value.absent(),
+                Value<String> description = const Value.absent(),
               }) => SyllabusItemsCompanion(
                 id: id,
                 domainId: domainId,
@@ -6193,6 +6563,8 @@ class $$SyllabusItemsTableTableManager
                 level: level,
                 position: position,
                 status: status,
+                targetCards: targetCards,
+                description: description,
               ),
           createCompanionCallback:
               ({
@@ -6202,6 +6574,8 @@ class $$SyllabusItemsTableTableManager
                 Value<int> level = const Value.absent(),
                 Value<int> position = const Value.absent(),
                 Value<String> status = const Value.absent(),
+                Value<int> targetCards = const Value.absent(),
+                Value<String> description = const Value.absent(),
               }) => SyllabusItemsCompanion.insert(
                 id: id,
                 domainId: domainId,
@@ -6209,6 +6583,8 @@ class $$SyllabusItemsTableTableManager
                 level: level,
                 position: position,
                 status: status,
+                targetCards: targetCards,
+                description: description,
               ),
           withReferenceMapper: (p0) => p0
               .map(
@@ -6325,6 +6701,356 @@ typedef $$SyllabusItemsTableProcessedTableManager =
         bool notesRefs,
         bool promptLogsRefs,
       })
+    >;
+typedef $$SyllabusPrereqsTableCreateCompanionBuilder =
+    SyllabusPrereqsCompanion Function({
+      required int itemId,
+      required int prereqId,
+      Value<int> rowid,
+    });
+typedef $$SyllabusPrereqsTableUpdateCompanionBuilder =
+    SyllabusPrereqsCompanion Function({
+      Value<int> itemId,
+      Value<int> prereqId,
+      Value<int> rowid,
+    });
+
+final class $$SyllabusPrereqsTableReferences
+    extends
+        BaseReferences<_$AppDatabase, $SyllabusPrereqsTable, SyllabusPrereq> {
+  $$SyllabusPrereqsTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $SyllabusItemsTable _itemIdTable(_$AppDatabase db) => db.syllabusItems
+      .createAlias('syllabus_prereq__item_id__syllabus_item__id');
+
+  $$SyllabusItemsTableProcessedTableManager get itemId {
+    final $_column = $_itemColumn<int>('item_id')!;
+
+    final manager = $$SyllabusItemsTableTableManager(
+      $_db,
+      $_db.syllabusItems,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_itemIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static $SyllabusItemsTable _prereqIdTable(_$AppDatabase db) => db
+      .syllabusItems
+      .createAlias('syllabus_prereq__prereq_id__syllabus_item__id');
+
+  $$SyllabusItemsTableProcessedTableManager get prereqId {
+    final $_column = $_itemColumn<int>('prereq_id')!;
+
+    final manager = $$SyllabusItemsTableTableManager(
+      $_db,
+      $_db.syllabusItems,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_prereqIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$SyllabusPrereqsTableFilterComposer
+    extends Composer<_$AppDatabase, $SyllabusPrereqsTable> {
+  $$SyllabusPrereqsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  $$SyllabusItemsTableFilterComposer get itemId {
+    final $$SyllabusItemsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.itemId,
+      referencedTable: $db.syllabusItems,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SyllabusItemsTableFilterComposer(
+            $db: $db,
+            $table: $db.syllabusItems,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$SyllabusItemsTableFilterComposer get prereqId {
+    final $$SyllabusItemsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.prereqId,
+      referencedTable: $db.syllabusItems,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SyllabusItemsTableFilterComposer(
+            $db: $db,
+            $table: $db.syllabusItems,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$SyllabusPrereqsTableOrderingComposer
+    extends Composer<_$AppDatabase, $SyllabusPrereqsTable> {
+  $$SyllabusPrereqsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  $$SyllabusItemsTableOrderingComposer get itemId {
+    final $$SyllabusItemsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.itemId,
+      referencedTable: $db.syllabusItems,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SyllabusItemsTableOrderingComposer(
+            $db: $db,
+            $table: $db.syllabusItems,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$SyllabusItemsTableOrderingComposer get prereqId {
+    final $$SyllabusItemsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.prereqId,
+      referencedTable: $db.syllabusItems,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SyllabusItemsTableOrderingComposer(
+            $db: $db,
+            $table: $db.syllabusItems,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$SyllabusPrereqsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $SyllabusPrereqsTable> {
+  $$SyllabusPrereqsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  $$SyllabusItemsTableAnnotationComposer get itemId {
+    final $$SyllabusItemsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.itemId,
+      referencedTable: $db.syllabusItems,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SyllabusItemsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.syllabusItems,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$SyllabusItemsTableAnnotationComposer get prereqId {
+    final $$SyllabusItemsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.prereqId,
+      referencedTable: $db.syllabusItems,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SyllabusItemsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.syllabusItems,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$SyllabusPrereqsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $SyllabusPrereqsTable,
+          SyllabusPrereq,
+          $$SyllabusPrereqsTableFilterComposer,
+          $$SyllabusPrereqsTableOrderingComposer,
+          $$SyllabusPrereqsTableAnnotationComposer,
+          $$SyllabusPrereqsTableCreateCompanionBuilder,
+          $$SyllabusPrereqsTableUpdateCompanionBuilder,
+          (SyllabusPrereq, $$SyllabusPrereqsTableReferences),
+          SyllabusPrereq,
+          PrefetchHooks Function({bool itemId, bool prereqId})
+        > {
+  $$SyllabusPrereqsTableTableManager(
+    _$AppDatabase db,
+    $SyllabusPrereqsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$SyllabusPrereqsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$SyllabusPrereqsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$SyllabusPrereqsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> itemId = const Value.absent(),
+                Value<int> prereqId = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => SyllabusPrereqsCompanion(
+                itemId: itemId,
+                prereqId: prereqId,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required int itemId,
+                required int prereqId,
+                Value<int> rowid = const Value.absent(),
+              }) => SyllabusPrereqsCompanion.insert(
+                itemId: itemId,
+                prereqId: prereqId,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$SyllabusPrereqsTable, SyllabusPrereq>(table),
+                  $$SyllabusPrereqsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({itemId = false, prereqId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (itemId) {
+                      state = state.withJoin(
+                        currentTable: table,
+                        currentColumn: table.itemId,
+                        referencedTable: $$SyllabusPrereqsTableReferences
+                            ._itemIdTable(db),
+                        referencedColumn: $$SyllabusPrereqsTableReferences
+                            ._itemIdTable(db)
+                            .id,
+                      ) as T;
+                    }
+                    if (prereqId) {
+                      state = state.withJoin(
+                        currentTable: table,
+                        currentColumn: table.prereqId,
+                        referencedTable: $$SyllabusPrereqsTableReferences
+                            ._prereqIdTable(db),
+                        referencedColumn: $$SyllabusPrereqsTableReferences
+                            ._prereqIdTable(db)
+                            .id,
+                      ) as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$SyllabusPrereqsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $SyllabusPrereqsTable,
+      SyllabusPrereq,
+      $$SyllabusPrereqsTableFilterComposer,
+      $$SyllabusPrereqsTableOrderingComposer,
+      $$SyllabusPrereqsTableAnnotationComposer,
+      $$SyllabusPrereqsTableCreateCompanionBuilder,
+      $$SyllabusPrereqsTableUpdateCompanionBuilder,
+      (SyllabusPrereq, $$SyllabusPrereqsTableReferences),
+      SyllabusPrereq,
+      PrefetchHooks Function({bool itemId, bool prereqId})
     >;
 typedef $$NotesTableCreateCompanionBuilder = NotesCompanion Function({
   Value<int> id,
@@ -9743,6 +10469,8 @@ class $AppDatabaseManager {
       $$DomainsTableTableManager(_db, _db.domains);
   $$SyllabusItemsTableTableManager get syllabusItems =>
       $$SyllabusItemsTableTableManager(_db, _db.syllabusItems);
+  $$SyllabusPrereqsTableTableManager get syllabusPrereqs =>
+      $$SyllabusPrereqsTableTableManager(_db, _db.syllabusPrereqs);
   $$NotesTableTableManager get notes =>
       $$NotesTableTableManager(_db, _db.notes);
   $$CardsTableTableManager get cards =>

@@ -62,17 +62,7 @@ class ImportService {
       final domainId = dom?.id ??
           await db.into(db.domains).insert(DomainsCompanion.insert(name: p.domain, createdAt: t));
 
-      int? sylId;
-      if (p.syllabusItem != null) {
-        final s = await (db.select(db.syllabusItems)
-              ..where((x) => x.domainId.equals(domainId) & x.title.equals(p.syllabusItem!)))
-            .getSingleOrNull();
-        sylId = s?.id ??
-            await db.into(db.syllabusItems).insert(SyllabusItemsCompanion.insert(
-                  domainId: domainId,
-                  title: p.syllabusItem!,
-                ));
-      }
+      final sylId = await _resolveSyllabusItem(domainId, p.syllabusItem);
 
       var notes = 0, cards = 0;
       for (final c in p.importable) {
@@ -110,6 +100,32 @@ class ImportService {
       if (notes > 0) await _updatePromptLog(domainId, sylId, notes);
       return ImportSummary(notes: notes, cards: cards, domainId: domainId);
     });
+  }
+
+  /// Which syllabus topic do these cards belong to?
+  /// 1) exact/normalised title match, 2) the topic the latest unimported prompt
+  /// asked for (LLMs rephrase titles), 3) a new topic, only if a title was given.
+  Future<int?> _resolveSyllabusItem(int domainId, String? title) async {
+    final items = await (db.select(db.syllabusItems)..where((x) => x.domainId.equals(domainId))).get();
+    if (title != null) {
+      final key = normalizeText(title);
+      for (final it in items) {
+        if (normalizeText(it.title) == key) return it.id;
+      }
+    }
+    final pending = await (db.select(db.promptLogs)
+          ..where((p) =>
+              p.domainId.equals(domainId) & p.status.equals('issued') & p.syllabusItemId.isNotNull())
+          ..orderBy([(p) => OrderingTerm.desc(p.createdAt), (p) => OrderingTerm.desc(p.id)])
+          ..limit(1))
+        .getSingleOrNull();
+    if (pending?.syllabusItemId != null) return pending!.syllabusItemId;
+    if (title == null) return null;
+    return db.into(db.syllabusItems).insert(SyllabusItemsCompanion.insert(
+          domainId: domainId,
+          title: title,
+          position: Value(items.length + 1),
+        ));
   }
 
   Future<Domain?> _findDomain(String name) => (db.select(db.domains)

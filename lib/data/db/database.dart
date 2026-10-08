@@ -4,7 +4,7 @@ part 'database.g.dart';
 
 /// Bump together with a migration step in [AppDatabase.migration].
 /// Also checked by RestoreBackup against `PRAGMA user_version` of a backup file.
-const int kSchemaVersion = 1;
+const int kSchemaVersion = 2;
 
 class Domains extends Table {
   @override
@@ -24,6 +24,19 @@ class SyllabusItems extends Table {
   IntColumn get level => integer().withDefault(const Constant(1))(); // 1-3
   IntColumn get position => integer().withDefault(const Constant(0))();
   TextColumn get status => text().withDefault(const Constant('todo'))(); // todo|active|done
+  // v2: how many cards make this topic "covered", and a one-line scope note.
+  IntColumn get targetCards => integer().withDefault(const Constant(10))();
+  TextColumn get description => text().withDefault(const Constant(''))();
+}
+
+/// v2: item `itemId` should come after `prereqId`.
+class SyllabusPrereqs extends Table {
+  @override
+  String get tableName => 'syllabus_prereq';
+  IntColumn get itemId => integer().references(SyllabusItems, #id)();
+  IntColumn get prereqId => integer().references(SyllabusItems, #id)();
+  @override
+  Set<Column> get primaryKey => {itemId, prereqId};
 }
 
 class Notes extends Table {
@@ -152,6 +165,7 @@ class Settings extends Table {
 @DriftDatabase(tables: [
   Domains,
   SyllabusItems,
+  SyllabusPrereqs,
   Notes,
   Cards,
   FsrsParamsTable,
@@ -172,7 +186,11 @@ class AppDatabase extends _$AppDatabase {
   MigrationStrategy get migration => MigrationStrategy(
         onCreate: (m) => m.createAll(),
         onUpgrade: (m, from, to) async {
-          // Migrations from day one: add `if (from < 2) {...}` steps here.
+          if (from < 2) {
+            await m.addColumn(syllabusItems, syllabusItems.targetCards);
+            await m.addColumn(syllabusItems, syllabusItems.description);
+            await m.createTable(syllabusPrereqs);
+          }
         },
         beforeOpen: (details) async {
           await customStatement('PRAGMA foreign_keys = ON');

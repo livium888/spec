@@ -4,6 +4,8 @@ import '../data/backup/backup_service.dart';
 import '../data/db/database.dart';
 import '../data/engine_service.dart';
 import '../data/import_service.dart';
+import '../data/learn_service.dart';
+import '../data/outline_service.dart';
 import '../data/params_repo.dart';
 import '../data/queue_service.dart';
 import '../data/review_service.dart';
@@ -29,6 +31,9 @@ final reviewServiceProvider = Provider((ref) => ReviewService(
 final queueServiceProvider =
     Provider((ref) => QueueService(ref.watch(dbProvider), ref.watch(settingsRepoProvider)));
 final importServiceProvider = Provider((ref) => ImportService(ref.watch(dbProvider)));
+final outlineServiceProvider = Provider((ref) => OutlineService(ref.watch(dbProvider)));
+final learnServiceProvider = Provider((ref) => LearnService(
+    ref.watch(dbProvider), ref.watch(settingsRepoProvider), ref.watch(queueServiceProvider)));
 final promptServiceProvider = Provider((ref) => PromptService(ref.watch(dbProvider)));
 final interestServiceProvider = Provider((ref) => InterestService(ref.watch(dbProvider)));
 final featuresServiceProvider = Provider(
