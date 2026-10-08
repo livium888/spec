@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../app/providers.dart';
 import '../data/learn_service.dart';
+import '../domain/growth.dart';
 import '../domain/learn_planner.dart';
 import '../domain/study_advisor.dart';
 import 'advice_card.dart';
@@ -57,7 +58,14 @@ class _LearnScreenState extends ConsumerState<LearnScreen> {
             prompt: GeneratedPrompt(p.id, p.text, what), advice: v.advice, wasPending: true));
         return;
       }
-      if (v.plan.options.isEmpty) return; // empty-state UI explains why
+      if (v.plan.options.isEmpty) {
+        // Nothing left to teach right now: grow the library instead of asking the learner
+        // to choose a subject. Under "wait" / "stop" advice, show the advice and let them decide.
+        final g = v.growth;
+        if (g == null || _holdBack(v.advice)) return;
+        await _generateGrowth(g, v);
+        return;
+      }
 
       final top = v.plan.options.first;
       final adv = v.advice;
@@ -68,6 +76,24 @@ class _LearnScreenState extends ConsumerState<LearnScreen> {
       await _generate(top, v, count: fixing ? top.count : _cap(top.count, adv));
     } catch (e) {
       if (mounted) setState(() => _error = '$e');
+    }
+  }
+
+  bool _holdBack(Advice a) => a.level == AdviceLevel.wait || a.level == AdviceLevel.stop;
+
+  Future<void> _generateGrowth(GrowthOption g, LearnView v) async {
+    if (_busy) return;
+    setState(() => _busy = true);
+    try {
+      final learn = ref.read(learnServiceProvider);
+      if (v.pending != null) await learn.abandonPending(v.pending!.id);
+      final prompt = await learn.chooseGrowth(g, v);
+      await _replaceWith(PromptResultScreen(prompt: prompt, view: v, advice: v.advice));
+    } catch (e) {
+      if (mounted) {
+        setState(() => _busy = false);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Could not build the prompt: $e')));
+      }
     }
   }
 
@@ -146,6 +172,7 @@ class _LearnScreenState extends ConsumerState<LearnScreen> {
     // On the automatic path a prompt is being generated: show progress, not a list.
     if (!widget.showOptions && v.pending != null) return _working();
     if (!widget.showOptions && plan.options.isNotEmpty && !gated) return _working();
+    if (!widget.showOptions && plan.options.isEmpty && v.growth != null && !_holdBack(adv)) return _working();
 
     return ListView(padding: const EdgeInsets.all(16), children: [
       AdviceCard(adv),
@@ -165,12 +192,18 @@ class _LearnScreenState extends ConsumerState<LearnScreen> {
       ],
       if (!gated) ...[
         const SizedBox(height: 8),
-        if (plan.options.isEmpty)
+        if (plan.options.isEmpty && v.growth == null)
           _empty(context, plan)
+        else if (plan.options.isEmpty)
+          _growthCard(context, v.growth!, v)
         else ...[
           Text(plan.options.length == 1 ? 'Suggested for today' : 'Pick one', style: t.titleMedium),
           const SizedBox(height: 8),
           for (final o in plan.options) _optionCard(context, o, v),
+          if (v.growth != null && widget.showOptions) ...[
+            const SizedBox(height: 8),
+            _growthCard(context, v.growth!, v),
+          ],
         ],
         const SizedBox(height: 16),
         Wrap(spacing: 8, runSpacing: 8, children: [
@@ -221,6 +254,33 @@ class _LearnScreenState extends ConsumerState<LearnScreen> {
             style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(52)),
             onPressed: _busy ? null : () => _generate(o, v, count: count),
             child: const Text('Use this'),
+          ),
+        ]),
+      ),
+    );
+  }
+
+  Widget _growthCard(BuildContext context, GrowthOption g, LearnView v) {
+    final t = Theme.of(context).textTheme;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Wrap(spacing: 8, children: [
+            Chip(label: Text(g.kind == GrowthKind.discover ? 'New subject' : 'Grow your library')),
+          ]),
+          const SizedBox(height: 8),
+          Text(g.headline, style: t.titleMedium),
+          const SizedBox(height: 4),
+          for (final r in g.reasons) Text(r, style: t.bodyMedium),
+          const SizedBox(height: 4),
+          Text('You will get a prompt for an outline; paste your LLM\'s answer back and new topics appear.',
+              style: t.bodySmall),
+          const SizedBox(height: 12),
+          FilledButton(
+            style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(52)),
+            onPressed: _busy ? null : () => _generateGrowth(g, v),
+            child: const Text('Get this prompt'),
           ),
         ]),
       ),

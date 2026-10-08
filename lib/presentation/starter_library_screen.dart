@@ -108,8 +108,9 @@ class _StarterLibraryScreenState extends ConsumerState<StarterLibraryScreen> {
                 ? const Center(child: CircularProgressIndicator())
                 : ListView(padding: const EdgeInsets.all(16), children: [
                     const Text('Pick subjects to start with. Each adds an ordered list of topics; '
-                        '"Learn something new" then decides which to teach you next, and you can add '
-                        'more subjects at any time. Nothing limits how many.'),
+                        '"Learn something new" then decides which to teach you next. These are only the '
+                        'starting topics: when you finish them the app asks your LLM for more, and it '
+                        'will start new subjects on its own, so the library never runs out.'),
                     const SizedBox(height: 12),
                     for (final o in _all!)
                       Card(
@@ -119,7 +120,7 @@ class _StarterLibraryScreenState extends ConsumerState<StarterLibraryScreen> {
                             Expanded(
                               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                                 Text(o.askName ? 'Language course (you name it)' : o.domain, style: t.titleMedium),
-                                Text('${o.topics} topics · about ${o.cards} cards', style: t.bodyMedium),
+                                Text('Starts with ${o.topics} topics', style: t.bodyMedium),
                               ]),
                             ),
                             const SizedBox(width: 8),

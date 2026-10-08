@@ -88,6 +88,26 @@ void main() {
     await done(t, db);
   });
 
+  testWidgets('when every topic is covered, ONE press still ends at a prompt (more topics), never at a chooser', (t) async {
+    final db = await boot(t, seed: true);
+    await t.runAsync(() async {
+      for (final it in await db.select(db.syllabusItems).get()) {
+        await db.update(db.syllabusItems).replace(it.copyWith(status: 'skipped'));
+      }
+    });
+    await t.tap(find.text('Learn something new'));
+    await until(t, find.text('Your prompt'));
+    await settle(t);
+
+    expect(find.text('Your prompt'), findsOneWidget);
+    expect(find.text('More topics for Bio'), findsOneWidget);
+    expect(find.textContaining('Pick one'), findsNothing);
+    expect(find.text('Copy prompt'), findsOneWidget);
+    final logs = await t.runAsync(() => db.select(db.promptLogs).get());
+    expect(logs!.single.templateVersion, startsWith('outline-'));
+    await done(t, db);
+  });
+
   testWidgets('the very first press on a fresh install sets up subjects and goes straight to a prompt', (t) async {
     final db = await boot(t);
     await t.tap(find.text('Learn something new'));

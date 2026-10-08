@@ -152,3 +152,12 @@ Fields by kind (basic: Question, Answer; cloze: Text with gaps, Answer extra) pl
 | Not found (deleted elsewhere) | "This card no longer exists." |
 | Invalid | red messages, fields kept |
 | Saved / Deleted | pops with a result; the caller reloads |
+
+## Learn something new: growth states (added)
+| Situation | What the one press does |
+|---|---|
+| Topics available | prompt for the best topic (unchanged) |
+| Everything covered or resting | outline prompt: "More topics for X", or "A new subject: Y" every third time; reasons shown |
+| A subject has no outline yet | the outline prompt is shown again |
+| Advice says wait / stop and nothing to teach | advice card plus a "Grow your library" card with a "Get this prompt" button |
+| Nothing can grow (no subjects usable and catalog exhausted) | the old empty state with Starter library / New subject |

@@ -71,7 +71,9 @@ class _SubjectsScreenState extends ConsumerState<SubjectsScreen> {
                 : ListView(padding: const EdgeInsets.all(16), children: [
                     const Text('Choose how often each subject comes up in "Learn something new". '
                         'Nothing is ever used up: finished topics return after a rest, with new cards that go deeper, '
-                        'weeks, months or years later (the rest doubles each time). Cards you already have are never repeated.'),
+                        'weeks, months or years later (the rest doubles each time). Cards you already have are never repeated. '
+                        'And when a subject runs out of topics, the app asks your LLM for more, or starts a new subject, '
+                        'so there is no ceiling.'),
                     const SizedBox(height: 12),
                     if (_subjects!.isEmpty)
                       const Card(child: ListTile(title: Text('No subjects yet. Add some from the starter library.'))),

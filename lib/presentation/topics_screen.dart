@@ -180,7 +180,7 @@ class _TopicsScreenState extends ConsumerState<TopicsScreen> {
                               title: Text(r.item.title),
                               subtitle: Text(
                                 '${switch (r.item.status) { 'done' => 'Covered', 'active' => 'In progress', 'skipped' => 'Skipped by you', _ => 'Not started' }}'
-                                ' · ${r.cards} of ${r.item.targetCards} cards'
+                                ' · ${r.cards} card${r.cards == 1 ? '' : 's'} so far'
                                 '${r.item.rounds > 1 ? ' · round ${r.item.rounds}' : ''}'
                                 '${r.returnsIn == null ? '' : '\n${_returns(r.returnsIn!)}'}'
                                 '${r.prereqs.isEmpty ? '' : '\nAfter: ${r.prereqs.join(', ')}'}',

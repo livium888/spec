@@ -322,7 +322,7 @@ void main() {
       final g = await learn.outlinePrompt('Spanish', goal: 'travel conversation', now: d1);
       expect(g.text, contains('learning outline for the subject "Spanish"'));
       expect(g.text, contains('travel conversation'));
-      expect((await db.select(db.promptLogs).getSingle()).templateVersion, 'outline-v1');
+      expect((await db.select(db.promptLogs).getSingle()).templateVersion, 'outline-v2');
       expect((await learn.view(now: d1)).pending?.isOutline, isTrue);
 
       final p = await out.preview(outline([topic('Greetings'), topic('Numbers')], domain: 'spanish'));

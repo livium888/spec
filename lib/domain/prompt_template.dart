@@ -154,7 +154,11 @@ const kMaxProfileChars = 300;
 // ---------------------------------------------------------------------------
 // Outline prompt (bootstrap a subject / add topics). Version-tagged separately.
 // ---------------------------------------------------------------------------
-const kOutlineTemplateVersion = 'outline-v1';
+const kOutlineTemplateVersion = 'outline-v2';
+
+/// Existing topic titles listed in an outline prompt (the newest ones). A lifelong
+/// subject can hold thousands; the rest is protected by duplicate checks on import.
+const kMaxExistingTitlesInPrompt = 100;
 
 const kOutlineTemplateV1 = '''
 You are a curriculum designer. Produce an ordered learning outline for the subject "{domain}"{goal_clause}.
@@ -165,7 +169,7 @@ RULES
 3. "prerequisites" lists the titles (copied exactly) of earlier topics that must be understood first. Use [] when there are none. No loops, no self-references.
 4. "level": 1 = foundation, 2 = core, 3 = advanced.
 5. "target_cards": how many flashcards (3-30) would cover the topic well.
-6. Do NOT repeat or rename any of these existing topics (you may list them as prerequisites):
+6. These topics already exist. Do NOT repeat, rename or split them (you may list them as prerequisites). Cover DIFFERENT ground; go wider or deeper, not over the same ground:
 {existing_titles}
 7. Output JSON ONLY. No prose, no markdown fences. Match this schema exactly:
 
@@ -192,8 +196,16 @@ String renderOutlinePrompt({
   final values = {
     'domain': domain,
     'goal_clause': g == null || g.isEmpty ? '' : ' (learner goal: $g)',
-    'existing_titles':
-        existingTitles.isEmpty ? '(none yet)' : existingTitles.map((t) => '- $t').join('\n'),
+    'existing_titles': existingTitles.isEmpty
+        ? '(none yet)'
+        : [
+            if (existingTitles.length > kMaxExistingTitlesInPrompt)
+              '(${existingTitles.length - kMaxExistingTitlesInPrompt} earlier topics not listed; avoid anything an introduction would already cover)',
+            for (final t in existingTitles.length > kMaxExistingTitlesInPrompt
+                ? existingTitles.sublist(existingTitles.length - kMaxExistingTitlesInPrompt)
+                : existingTitles)
+              '- $t',
+          ].join('\n'),
   };
   return kOutlineTemplateV1.replaceAllMapped(
     RegExp(r'\{(domain|goal_clause|existing_titles)\}'),

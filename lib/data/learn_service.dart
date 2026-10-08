@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:drift/drift.dart';
 import 'package:flutter/services.dart' show AssetBundle;
 
+import '../domain/growth.dart';
 import '../domain/learn_planner.dart';
 import '../domain/prompt_template.dart';
 import '../domain/study_advisor.dart';
@@ -31,13 +32,17 @@ class PendingPrompt {
 }
 
 class LearnView {
-  const LearnView(this.plan, this.pending, this.seed, this.advice);
+  const LearnView(this.plan, this.pending, this.seed, this.advice, {this.growth});
   final LearnPlan plan;
   final PendingPrompt? pending;
   final int seed;
 
   /// Should you add new material now, and why.
   final Advice advice;
+
+  /// How the library itself would grow (more topics, or a new subject). Used when
+  /// there is nothing left to teach, and offered under "See all options".
+  final GrowthOption? growth;
 }
 
 class GeneratedPrompt {
@@ -52,11 +57,13 @@ class GeneratedPrompt {
 /// "Learn something new": gathers facts from the DB, runs the pure
 /// [LearnPlanner], and turns the user's choice into a logged prompt.
 class LearnService {
-  LearnService(this.db, this.settings, this.queue, {this.planner = const LearnPlanner()});
+  LearnService(this.db, this.settings, this.queue,
+      {this.planner = const LearnPlanner(), this.growth = const GrowthPlanner()});
   final AppDatabase db;
   final SettingsRepo settings;
   final QueueService queue;
   final LearnPlanner planner;
+  final GrowthPlanner growth;
 
   Future<LearnView> view({DateTime? now}) async {
     final t = (now ?? DateTime.now()).toUtc();
@@ -69,7 +76,42 @@ class LearnService {
       capacity: await _capacity(t),
       seed: seed,
     );
-    return LearnView(plan, await pending(now: t), seed, await advice(now: t));
+    return LearnView(plan, await pending(now: t), seed, await advice(now: t),
+        growth: await growthOption(seed: seed, now: t));
+  }
+
+  /// What would extend the library: more topics for a subject you have used up, a brand-new
+  /// subject, or a subject whose outline never arrived. Null only if nothing can grow.
+  Future<GrowthOption?> growthOption({required int seed, DateTime? now}) async {
+    final t = (now ?? DateTime.now()).toUtc();
+    final names = [for (final d in await db.select(db.domains).get()) d.name];
+    final steps = (await db.customSelect(
+            "SELECT COUNT(*) AS n FROM prompt_log WHERE template_version LIKE 'outline-%'").getSingle())
+        .read<int>('n');
+    final per = await db.customSelect(
+        "SELECT domain_id, COUNT(*) AS n FROM prompt_log WHERE template_version LIKE 'outline-%' GROUP BY domain_id").get();
+    return growth.plan(
+      domains: await _domains(t),
+      allSubjectNames: names.toSet(),
+      growthSteps: steps,
+      expansions: {for (final r in per) r.read<int>('domain_id'): r.read<int>('n')},
+      seed: seed,
+    );
+  }
+
+  /// Turn a growth step into an outline prompt (creating the subject if it is new) and log why.
+  Future<GeneratedPrompt> chooseGrowth(GrowthOption g, LearnView view, {DateTime? now}) async {
+    final t = (now ?? DateTime.now()).toUtc();
+    final out = await outlinePrompt(g.domainName, goal: g.goal, now: t);
+    await db.into(db.engineDecisions).insert(EngineDecisionsCompanion.insert(
+          ts: t.millisecondsSinceEpoch,
+          engineVersion: GrowthPlanner.version,
+          seed: view.seed,
+          featuresJson: jsonEncode({'growth': true, 'domain': g.domainName, 'category': g.category}),
+          scoresJson: '{}',
+          chosenJson: jsonEncode({'key': g.key, 'kind': g.kind.name, 'prompt_log_id': out.logId}),
+        ));
+    return GeneratedPrompt(out.logId, out.text, g.headline, reasons: g.reasons);
   }
 
   /// First use: add every bundled subject (except name-it-yourself templates) so the
