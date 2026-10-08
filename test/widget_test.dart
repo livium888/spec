@@ -24,6 +24,7 @@ void main() {
     expect(find.textContaining('Nothing here yet'), findsOneWidget);
     expect(find.textContaining('Backups not set up'), findsOneWidget);
     expect(find.text('Learn something new'), findsOneWidget);
+    expect(find.textContaining('Good time to learn'), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
     await tester.runAsync(db.close);
   });

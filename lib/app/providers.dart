@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart' show AssetBundle, rootBundle;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/backup/backup_service.dart';
@@ -11,6 +12,9 @@ import '../data/queue_service.dart';
 import '../data/review_service.dart';
 import '../data/settings_repo.dart';
 import 'bootstrap.dart';
+
+/// Where bundled starter subjects are read from (overridden in tests).
+final assetBundleProvider = Provider<AssetBundle>((_) => rootBundle);
 
 final bootstrapProvider = Provider<Bootstrap>((_) => throw UnimplementedError('override in main'));
 

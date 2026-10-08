@@ -7,6 +7,11 @@ on:
     branches: [main, 'ccr-**']
   workflow_dispatch:
 
+# A newer push cancels an older build still running, so only the latest one finishes.
+concurrency:
+  group: build-apk-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: write   # to publish the APK as a release asset
 
@@ -67,7 +72,11 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           cp build/app/outputs/flutter-apk/app-release.apk daily-learning.apk
-          gh release delete latest-apk --cleanup-tag --yes || true
-          gh release create latest-apk daily-learning.apk --prerelease \
-            --title "Build ${{ github.run_number }}" \
+          # Never delete the release (a cancelled run would leave nothing to download):
+          # create it once, then replace the file and the title.
+          gh release view latest-apk >/dev/null 2>&1 || \
+            gh release create latest-apk --prerelease --title "Build ${{ github.run_number }}" \
+              --notes "Rolling build. Install over the previous version; same signing key."
+          gh release upload latest-apk daily-learning.apk --clobber
+          gh release edit latest-apk --prerelease --title "Build ${{ github.run_number }}" \
             --notes "Commit ${{ github.sha }}. Install over the previous version; same signing key."

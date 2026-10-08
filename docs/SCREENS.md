@@ -89,3 +89,16 @@ List of bundled subjects (name, topics, about N cards) with **Add**. A "Language
 Per subject: name, "x of y topics covered", *Off / Low / Normal / High* (paused text when Off), switch *Bring finished topics back later*, button *Topics*. Button to add subjects from the starter library.
 Topics screen additions: statuses in words (Covered / In progress / Skipped by you / Not started), "round n", "Comes back in about N months" / "Due for a deeper pass now"; tap menu: make cards / go deeper now, skip or include again, mark done / reopen.
 Learn screen additions: option kind "Revisit" with the reason "You last added cards to X 4 months ago (round 1)"; empty state "Everything is covered for now" with when the next revisit is due; "All your subjects are paused".
+
+## Advice card (Home, prompt screen, end of review session, Learn gate)
+Icon + label + headline + reasons; label is one of "Good time", "Go gently", "Hold off", "Done for today" (words and icon, never colour alone). Compact form shows one reason and a "Why?" expander.
+
+## Learn something new (current behaviour)
+| State | Behaviour |
+|---|---|
+| first ever press | "Setting up your starter subjects..." then straight to the prompt |
+| advice go / gently | spinner "Picking something for you..." then prompt screen with "Why this one", the advice, copy/paste steps, "Try something else", "See all options" |
+| unimported prompt < 24 h | that prompt, flagged "You asked for this earlier...", with "Discard and pick again" |
+| advice hold off / done | advice card with reasons; "OK, reviews first" / "OK, I will stop here"; "Add just 3 cards anyway" |
+| nothing to offer | explanation (all covered with when the next revisit is due, all subjects paused, no topics) and buttons to the library / new subject |
+| error | message + Retry |

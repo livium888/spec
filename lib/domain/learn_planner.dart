@@ -102,6 +102,10 @@ class LearnOption {
   final bool explore;
   final int problemCount; // remediate: how many cards need rewriting
 
+  LearnOption withCount(int n) => LearnOption(
+      action: action, item: item, score: score, reasons: reasons, count: n,
+      explore: explore, problemCount: problemCount);
+
   String get key => '${action.name}:${item.id}';
 
   String get headline => switch (action) {

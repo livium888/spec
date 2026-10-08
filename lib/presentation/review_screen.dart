@@ -6,6 +6,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../app/providers.dart';
 import '../domain/models.dart';
 import '../domain/study_card.dart';
+import '../domain/study_advisor.dart';
+import 'advice_card.dart';
 import 'format.dart';
 
 class ReviewScreen extends ConsumerStatefulWidget {
@@ -28,6 +30,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
   int _totalMs = 0;
   Timer? _poll;
   bool _sessionEnded = false;
+  Advice? _advice;
 
   @override
   void initState() {
@@ -52,7 +55,10 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
         pv = sched.preview(next.snapshot, DateTime.now().toUtc());
       }
       if (!mounted) return;
+      final adv = next == null ? await ref.read(learnServiceProvider).advice() : null;
+      if (!mounted) return;
       setState(() {
+        _advice = adv;
         _queue = q;
         _current = next;
         _preview = pv;
@@ -311,6 +317,10 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
           if (_answered > 0) ...[
             const SizedBox(height: 8),
             Text('$_answered answered in ${(_totalMs / 60000).toStringAsFixed(1)} min'),
+          ],
+          if (_advice != null) ...[
+            const SizedBox(height: 12),
+            AdviceCard(_advice!),
           ],
           const SizedBox(height: 16),
           FilledButton(onPressed: () => Navigator.pop(context), child: const Text('Back to home')),

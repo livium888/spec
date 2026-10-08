@@ -6,7 +6,9 @@ import '../app/providers.dart';
 import '../data/backup/backup_service.dart';
 import '../data/backup/backup_storage.dart';
 import '../data/settings_repo.dart';
+import '../domain/study_advisor.dart';
 import '../domain/study_card.dart';
+import 'advice_card.dart';
 import 'add_card_screen.dart';
 import 'import_screen.dart';
 import 'learn_screen.dart';
@@ -23,11 +25,12 @@ class DomainRow {
 }
 
 class HomeData {
-  const HomeData(this.domains, this.queue, this.lastBackupMs, this.folderSet);
+  const HomeData(this.domains, this.queue, this.lastBackupMs, this.folderSet, this.advice);
   final List<DomainRow> domains;
   final DailyQueue queue;
   final int lastBackupMs; // 0 = never
   final bool folderSet;
+  final Advice advice;
 }
 
 final homeDataProvider = FutureProvider.autoDispose<HomeData>((ref) async {
@@ -49,6 +52,7 @@ final homeDataProvider = FutureProvider.autoDispose<HomeData>((ref) async {
     await queues.build(),
     await settings.getInt(BackupService.lastSuccessKey, 0),
     await settings.get(SettingsRepo.backupTreeUri) != null,
+    await ref.watch(learnServiceProvider).advice(),
   );
 });
 
@@ -121,14 +125,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       padding: const EdgeInsets.all(16),
       children: [
         _BackupBanner(d, onTap: () => _go(const SettingsScreen())),
-        const SizedBox(height: 16),
+        const SizedBox(height: 8),
+        AdviceCard(d.advice, compact: true),
+        const SizedBox(height: 8),
         if (d.domains.isEmpty)
           Card(
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Text(
-                'Nothing here yet. Tap "Learn something new": the app writes a prompt, you paste it into '
-                'your LLM, then paste the JSON answer back to import.',
+                'Nothing here yet. Tap "Learn something new": the app picks what to teach you next and writes a '
+                'prompt. Paste it into your LLM, then paste the JSON answer back to import.',
                 style: Theme.of(context).textTheme.bodyLarge,
               ),
             ),

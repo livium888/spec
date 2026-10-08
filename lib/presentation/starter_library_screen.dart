@@ -25,7 +25,7 @@ class _StarterLibraryScreenState extends ConsumerState<StarterLibraryScreen> {
 
   Future<void> _load() async {
     try {
-      final all = await StarterLibrary.load();
+      final all = await StarterLibrary.load(ref.read(assetBundleProvider));
       final svc = ref.read(outlineServiceProvider);
       final added = <String>{};
       for (final o in all) {

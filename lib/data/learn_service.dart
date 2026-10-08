@@ -1,12 +1,16 @@
 import 'dart:convert';
 
 import 'package:drift/drift.dart';
+import 'package:flutter/services.dart' show AssetBundle;
 
 import '../domain/learn_planner.dart';
 import '../domain/prompt_template.dart';
+import '../domain/study_advisor.dart';
 import 'db/database.dart';
 import 'engine_service.dart';
+import 'outline_service.dart';
 import 'queue_service.dart';
+import 'starter_library.dart';
 import 'settings_repo.dart';
 
 const _day = 86400000;
@@ -27,16 +31,22 @@ class PendingPrompt {
 }
 
 class LearnView {
-  const LearnView(this.plan, this.pending, this.seed);
+  const LearnView(this.plan, this.pending, this.seed, this.advice);
   final LearnPlan plan;
   final PendingPrompt? pending;
   final int seed;
+
+  /// Should you add new material now, and why.
+  final Advice advice;
 }
 
 class GeneratedPrompt {
-  const GeneratedPrompt(this.logId, this.text, this.headline);
+  const GeneratedPrompt(this.logId, this.text, this.headline, {this.reasons = const []});
   final int logId;
   final String text, headline;
+
+  /// Why the app picked this, in plain words.
+  final List<String> reasons;
 }
 
 /// "Learn something new": gathers facts from the DB, runs the pure
@@ -59,7 +69,23 @@ class LearnService {
       capacity: await _capacity(t),
       seed: seed,
     );
-    return LearnView(plan, await pending(now: t), seed);
+    return LearnView(plan, await pending(now: t), seed, await advice(now: t));
+  }
+
+  /// First use: add every bundled subject (except name-it-yourself templates) so the
+  /// very first press of "Learn something new" has something to pick from.
+  /// Returns how many subjects were added. Safe to call repeatedly.
+  Future<int> ensureStarterSubjects({AssetBundle? bundle}) async {
+    final svc = OutlineService(db);
+    var added = 0;
+    for (final o in await StarterLibrary.load(bundle)) {
+      if (o.askName) continue;
+      final p = await svc.preview(o.raw);
+      if (p.hasFatal || p.importable.isEmpty) continue;
+      await svc.commit(p);
+      added++;
+    }
+    return added;
   }
 
   /// Persist todo -> active -> done transitions derived from card counts.
@@ -188,7 +214,7 @@ class LearnService {
     }
 
     await _logDecision(view, option, logId, manual: manual, now: t);
-    return GeneratedPrompt(logId, text, option.headline);
+    return GeneratedPrompt(logId, text, option.headline, reasons: option.reasons);
   }
 
   /// Outline prompt for a new subject, or to add topics to an existing one.
@@ -291,20 +317,72 @@ class LearnService {
     ];
   }
 
-  Future<Capacity> _capacity(DateTime t) async {
-    final q = await queue.build(now: t);
-    final due = q.learning.length + q.reviews.length;
+  /// Mean seconds per review over 30 days (12 s until 20 reviews exist).
+  Future<double> _avgSeconds(DateTime t) async {
     final avg = await db.customSelect(
         'SELECT AVG(duration_ms) AS a, COUNT(*) AS n FROM review_log '
         'WHERE revoked_at IS NULL AND duration_ms BETWEEN 500 AND 120000 AND reviewed_at >= ?',
         variables: [Variable.withInt(t.millisecondsSinceEpoch - 30 * _day)]).getSingle();
     final n = avg.read<int>('n');
-    final sec = n >= 20 ? ((avg.data['a'] as num).toDouble() / 1000).clamp(4.0, 60.0) : 12.0;
+    return n >= 20 ? ((avg.data['a'] as num).toDouble() / 1000).clamp(4.0, 60.0) : 12.0;
+  }
+
+  Future<Capacity> _capacity(DateTime t) async {
+    final q = await queue.build(now: t);
     return Capacity(
-      dueReviews: due,
-      avgSecondsPerReview: sec,
+      dueReviews: q.learning.length + q.reviews.length,
+      avgSecondsPerReview: await _avgSeconds(t),
       budgetMinutes: await settings.getInt(SettingsRepo.dailyMinutes, 20),
     );
+  }
+
+  /// Whether to add new material now: go / go gently / hold off / done for today.
+  Future<Advice> advice({DateTime? now}) async {
+    final t = (now ?? DateTime.now()).toUtc();
+    final nowMs = t.millisecondsSinceEpoch;
+    final clock = await settings.dayClock();
+    final dayStart = clock.dayStartMs(t);
+    final dayEnd = clock.dayEndMs(t);
+    final q = await queue.build(now: t);
+
+    Future<Map<String, Object?>> one(String sql, List<Variable> v) async =>
+        (await db.customSelect(sql, variables: v).getSingle()).data;
+
+    final spent = await one(
+        'SELECT COALESCE(SUM(duration_ms), 0) AS ms FROM review_log WHERE revoked_at IS NULL AND reviewed_at >= ?',
+        [Variable.withInt(dayStart)]);
+    final upcoming = await one(
+        "SELECT COUNT(*) AS n FROM card WHERE state = 'review' AND suspended = 0 AND due >= ? AND due < ?",
+        [Variable.withInt(dayEnd), Variable.withInt(dayEnd + 7 * _day)]);
+    final since = nowMs - 30 * _day;
+    final r = await one('''
+      SELECT SUM(CASE WHEN state_before IN ('review','relearning') THEN 1 ELSE 0 END) AS answers,
+             SUM(CASE WHEN state_before IN ('review','relearning') AND rating > 1 THEN 1 ELSE 0 END) AS passed,
+             SUM(CASE WHEN state_before = 'review' THEN 1 ELSE 0 END) AS revonly,
+             SUM(CASE WHEN state_before = 'review' AND rating = 1 THEN 1 ELSE 0 END) AS lapsed,
+             MAX(reviewed_at) AS last_at
+      FROM review_log WHERE revoked_at IS NULL AND reviewed_at >= ?''', [Variable.withInt(since)]);
+    final last = await one('SELECT MAX(reviewed_at) AS m FROM review_log WHERE revoked_at IS NULL', const []);
+    final leech = await one('SELECT COUNT(*) AS n FROM card WHERE lapses >= 8', const []);
+    int i(Object? v) => (v as num?)?.toInt() ?? 0;
+    final answers = i(r['answers']);
+    final lastMs = last['m'] as int?;
+
+    return const StudyAdvisor().advise(AdviceInput(
+      dueToday: q.learning.length + q.reviews.length,
+      avgSecondsPerReview: await _avgSeconds(t),
+      budgetMinutes: await settings.getInt(SettingsRepo.dailyMinutes, 20),
+      spentSecondsToday: i(spent['ms']) / 1000,
+      newIntroducedToday: q.newIntroducedToday,
+      newLimit: q.newLimit,
+      upcoming7dReviews: i(upcoming['n']),
+      desiredRetention: await settings.getDouble(SettingsRepo.desiredRetention, 0.90),
+      retention30d: answers == 0 ? null : i(r['passed']) / answers,
+      answers30d: answers,
+      lapseRate30d: i(r['revonly']) == 0 ? null : i(r['lapsed']) / i(r['revonly']),
+      leechCount: i(leech['n']),
+      daysSinceLastSession: lastMs == null ? null : (nowMs - lastMs) / _day,
+    ));
   }
 
   Future<List<({String front, String back})>> _problemCards(int itemId, int limit) async {

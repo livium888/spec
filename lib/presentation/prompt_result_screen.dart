@@ -1,23 +1,71 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../app/providers.dart';
 import '../data/learn_service.dart';
+import '../domain/learn_planner.dart';
+import '../domain/study_advisor.dart';
+import 'advice_card.dart';
 import 'import_screen.dart';
+import 'learn_screen.dart';
 
-/// Shows a generated prompt with the copy -> LLM -> paste back steps.
-class PromptResultScreen extends StatelessWidget {
-  const PromptResultScreen({super.key, required this.prompt});
+/// The prompt to copy into an LLM, with the reasons it was chosen.
+class PromptResultScreen extends ConsumerWidget {
+  const PromptResultScreen({
+    super.key,
+    required this.prompt,
+    this.view,
+    this.alternative,
+    this.advice,
+    this.wasPending = false,
+  });
   final GeneratedPrompt prompt;
 
+  /// The plan this came from (for logging a switch to the alternative).
+  final LearnView? view;
+
+  /// Runner-up, offered as "Try something else". Null: nothing else to offer.
+  final LearnOption? alternative;
+  final Advice? advice;
+
+  /// True when this is an earlier prompt that was never imported.
+  final bool wasPending;
+
+  Future<void> _tryAlternative(BuildContext context, WidgetRef ref) async {
+    final learn = ref.read(learnServiceProvider);
+    final alt = alternative!;
+    final cap = advice == null ? alt.count : alt.count.clamp(1, advice!.recommendedNewCards < 1 ? 3 : advice!.recommendedNewCards);
+    await learn.abandonPending(prompt.logId); // the first prompt will not be used
+    final g = await learn.choose(alt.action == LearnAction.remediate ? alt : alt.withCount(cap), view!);
+    if (!context.mounted) return;
+    await Navigator.of(context).pushReplacement(MaterialPageRoute<void>(
+        builder: (_) => PromptResultScreen(prompt: g, view: view, advice: advice)));
+  }
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final t = Theme.of(context).textTheme;
     return Scaffold(
       appBar: AppBar(title: const Text('Your prompt')),
       body: SafeArea(
         child: ListView(padding: const EdgeInsets.all(16), children: [
           Text(prompt.headline, style: t.titleLarge),
-          const SizedBox(height: 12),
+          if (wasPending)
+            const Padding(
+              padding: EdgeInsets.only(top: 8),
+              child: Text('You asked for this earlier and have not imported the answer yet.'),
+            ),
+          if (prompt.reasons.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text('Why this one', style: t.labelLarge),
+            for (final r in prompt.reasons) Text('• $r'),
+          ],
+          if (advice != null) ...[
+            const SizedBox(height: 8),
+            AdviceCard(advice!, compact: true),
+          ],
+          const SizedBox(height: 8),
           const Text('1. Copy the prompt.\n'
               '2. Paste it into Claude, Gemini, ChatGPT, DeepSeek or any LLM.\n'
               '3. Copy the JSON it answers with.\n'
@@ -43,7 +91,30 @@ class PromptResultScreen extends StatelessWidget {
             onPressed: () => Navigator.of(context)
                 .pushReplacement(MaterialPageRoute<void>(builder: (_) => const ImportScreen())),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 8),
+          Wrap(spacing: 8, children: [
+            if (wasPending)
+              TextButton(
+                onPressed: () async {
+                  await ref.read(learnServiceProvider).abandonPending(prompt.logId);
+                  if (!context.mounted) return;
+                  await Navigator.of(context)
+                      .pushReplacement(MaterialPageRoute<void>(builder: (_) => const LearnScreen()));
+                },
+                child: const Text('Discard and pick again'),
+              ),
+            if (alternative != null && view != null)
+              TextButton(
+                onPressed: () => _tryAlternative(context, ref),
+                child: const Text('Try something else'),
+              ),
+            TextButton(
+              onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(builder: (_) => const LearnScreen(showOptions: true))),
+              child: const Text('See all options'),
+            ),
+          ]),
+          const SizedBox(height: 8),
           ExpansionTile(
             title: const Text('See the prompt'),
             children: [

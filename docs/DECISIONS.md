@@ -77,3 +77,21 @@ Restore refuses only backups from a NEWER schema; older files are migrated by Dr
 - **Rejected:** fixed "every N days" repetition of the same prompt (would produce duplicate cards); randomly resurfacing finished topics (unpredictable, ignores how long it has been). The doubling rest mirrors how spaced repetition itself treats cards.
 - **Revisit if:** the rest feels too long or short (change the base months), or reviews pile up (lower retention or pause subjects; cards never disappear on their own).
 - **Lifelong load, honestly:** the app has no card limit, but reviews do not shrink on their own. Mature cards have long intervals, so the daily load grows slowly with the collection; "Learn something new" already limits new cards to the study-time budget left after due reviews.
+
+## D16 — Study advisor: when to add more, when to stop, and why
+- **Verdicts:** *Good time* (go), *Go gently* (small batch, max 5), *Hold off* (wait), *Done for today* (stop). Each carries plain-language reasons, shown on Home (compact, "Why?" expands), on the prompt screen, after a review session, and as the gate when you press "Learn something new" while it advises against.
+- **Inputs:** reviews due today and their time; minutes already studied today (logged durations) against the daily budget; new cards already added vs today's limit (which shrinks with backlog); reviews already scheduled for the next 7 days; retention over 30 days vs target (only with >= 50 answers); leech count; days since the last session.
+- **Rules (hand-set heuristics, not fitted):**
+  - stop: today's new-card limit is reached (or 0); or the budget is used up with nothing due; or too little time is left for even a few cards.
+  - hold off: due reviews alone are > 90% of the budget; or retention is more than 7 points below target; or the next 7 days already hold >= 80% of the budget in reviews.
+  - go gently: retention 3-7 points below target; >= 8 leeches; away more than 10 days.
+  - otherwise go: up to `min(time left / (3 reviews x avg seconds), what next week can absorb / 3, new-card limit left, 10)` new cards, and the reason names the constraint that binds.
+- **Why a 7-day look-ahead:** new cards cost most of their reviews in the first week, so judging only today's time says "yes" right up to the point where next week becomes impossible. 3 reviews per new card in week one is an assumption; the logged data can replace it.
+- **Autonomy:** the app never refuses. When the advice is hold off or stop, pressing the button shows the reasons and offers "Add just 3 cards anyway". Fixing hard cards (remediation) is still offered when the advice is "hold off", because it reduces load; it is not offered when the advice is "stop".
+- **Revisit if:** the thresholds feel wrong in daily use. They are constants in `StudyAdvisor`.
+
+## D17 — One press, no choosing
+"Learn something new" picks the top-ranked topic and shows its prompt immediately (count capped by the advisor), with the reasons. Choice stays optional: "Try something else" (runner-up), "See all options", and a manual topic picker. The first press on a fresh install adds all bundled subjects (15; the name-it-yourself language template is excluded) so there is always something to pick; each can be turned off in Settings -> Subjects and topics. An unimported prompt from the last 24 h is shown again instead of generating a new one. This replaces the earlier "show two options" screen, at the user's request.
+
+## D18 — Release pipeline
+New pushes cancel older builds (`concurrency`), and the rolling `latest-apk` release is updated in place (`gh release upload --clobber`) instead of deleted and recreated, so a cancelled run cannot leave the release empty.
