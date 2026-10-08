@@ -17,6 +17,7 @@ class SettingsRepo {
   static const lastSessionDomains = 'last_session_domains';
   static const revisitMonths = 'revisit_months'; // first revisit delay; doubles each round
   static const learnerProfile = 'learner_profile'; // optional "about you" text used in prompts
+  static const guideSeen = 'guide_seen'; // the first-run "how it works" card was opened or dismissed
   static const dailyMinutes = 'daily_minutes'; // study-time budget used by "Learn something new"
 
   Future<String?> get(String key) async {

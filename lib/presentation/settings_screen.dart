@@ -11,6 +11,7 @@ import '../data/backup/backup_service.dart';
 import '../data/backup/backup_storage.dart';
 import '../data/settings_repo.dart';
 import '../domain/prompt_template.dart' show kMaxProfileChars;
+import 'guide_screen.dart';
 import 'home_screen.dart' show pickBackupFolder;
 import 'subjects_screen.dart';
 
@@ -224,6 +225,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         child: !_loaded
             ? const Center(child: CircularProgressIndicator())
             : ListView(padding: const EdgeInsets.all(16), children: [
+                OutlinedButton.icon(
+                  icon: const Icon(Icons.help_outline),
+                  label: const Text('How the app works'),
+                  onPressed: () => Navigator.of(context)
+                      .push(MaterialPageRoute<void>(builder: (_) => const GuideScreen())),
+                ),
+                const SizedBox(height: 16),
                 Text('Backup', style: t.titleLarge),
                 const SizedBox(height: 8),
                 Text(_folder == null ? 'No folder chosen.' : 'Folder chosen. Weekly in the background, and on open if older than 7 days.'),

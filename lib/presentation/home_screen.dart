@@ -17,11 +17,13 @@ import 'theme/app_theme.dart';
 import 'theme/subject_style.dart';
 import 'theme/tokens.dart';
 import 'topics_screen.dart';
+import 'guide_screen.dart';
 import 'widgets/progress_ring.dart';
 import 'widgets/soft_card.dart';
 
 class HomeData {
-  const HomeData(this.queue, this.lastBackupMs, this.folderSet, this.advice, this.stats);
+  const HomeData(this.queue, this.lastBackupMs, this.folderSet, this.advice, this.stats, {this.guideSeen = true});
+  final bool guideSeen;
   final DailyQueue queue;
   final int lastBackupMs; // 0 = never
   final bool folderSet;
@@ -38,6 +40,7 @@ final homeDataProvider = FutureProvider.autoDispose<HomeData>((ref) async {
     await settings.get(SettingsRepo.backupTreeUri) != null,
     await ref.watch(learnServiceProvider).advice(),
     await ref.watch(statsServiceProvider).compute(),
+    guideSeen: await settings.get(SettingsRepo.guideSeen) != null,
   );
 });
 
@@ -98,6 +101,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
+  Future<void> _openGuide() async {
+    await ref.read(settingsRepoProvider).set(SettingsRepo.guideSeen, '1');
+    if (!mounted) return;
+    await Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const GuideScreen()));
+    if (mounted) ref.read(refreshProvider.notifier).bump();
+  }
+
+  Future<void> _dismissGuide() async {
+    await ref.read(settingsRepoProvider).set(SettingsRepo.guideSeen, '1');
+    if (mounted) ref.read(refreshProvider.notifier).bump();
+  }
+
   Widget _body(BuildContext context, HomeData d) {
     final t = Theme.of(context).textTheme;
     final now = DateTime.now();
@@ -113,11 +128,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             ]),
           ),
           IconButton(
+            tooltip: 'How it works',
+            icon: const Icon(Icons.help_outline),
+            onPressed: _openGuide,
+          ),
+          IconButton(
             tooltip: 'Settings and backup',
             icon: const Icon(Icons.settings_outlined),
             onPressed: () => _go(const SettingsScreen()),
           ),
         ]),
+        if (!d.guideSeen) ...[
+          const SizedBox(height: Sp.m),
+          _GuideCard(onOpen: _openGuide, onDismiss: _dismissGuide),
+        ],
         const SizedBox(height: Sp.l),
         _TodayCard(d, onReview: () => _go(const ReviewScreen()), onLearn: () => _go(const LearnScreen())),
         const SizedBox(height: Sp.m),
@@ -143,6 +167,30 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         const SizedBox(height: Sp.xl),
         _BackupBanner(d, onTap: () => _go(const SettingsScreen())),
       ],
+    );
+  }
+}
+
+class _GuideCard extends StatelessWidget {
+  const _GuideCard({required this.onOpen, required this.onDismiss});
+  final VoidCallback onOpen, onDismiss;
+  @override
+  Widget build(BuildContext context) {
+    final t = Theme.of(context).textTheme;
+    return SoftCard(
+      color: AppColors.of(context).accentTint,
+      borderColor: Colors.transparent,
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text('New here?', style: t.titleSmall),
+        const SizedBox(height: 4),
+        Text('A two-minute guide to how the app works and what to do each day.', style: t.bodyMedium),
+        const SizedBox(height: 8),
+        Row(children: [
+          FilledButton(onPressed: onOpen, child: const Text('Show me')),
+          const SizedBox(width: 8),
+          TextButton(onPressed: onDismiss, child: const Text('Not now')),
+        ]),
+      ]),
     );
   }
 }

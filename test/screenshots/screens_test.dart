@@ -183,6 +183,16 @@ void main() {
     final key = GlobalKey();
     await boot(t, db!, key);
 
+    await shot(t, key, '12_today_first_run');
+    await t.tap(find.text('Show me'));
+    await settle(t);
+    await shot(t, key, '13_guide_top');
+    await t.drag(find.byType(ListView).first, const Offset(0, -700));
+    await settle(t);
+    await shot(t, key, '14_guide_middle');
+    await t.pageBack();
+    await settle(t);
+
     await t.tap(find.byTooltip('Settings and backup'));
     await settle(t);
     await shot(t, key, '09_settings');

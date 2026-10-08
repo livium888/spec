@@ -192,7 +192,7 @@ void main() {
     test('commit updates prompt_log', () async {
       final d = await e.db.into(e.db.domains).insert(DomainsCompanion.insert(name: 'Bio', createdAt: 1));
       await e.db.into(e.db.promptLogs).insert(PromptLogsCompanion.insert(
-          createdAt: 5, domainId: d, templateVersion: 'v1', promptText: 'p', cardsRequested: 5));
+          createdAt: 5, domainId: Value(d), templateVersion: 'v1', promptText: 'p', cardsRequested: 5));
       await e.addBasic(3);
       final row = await e.db.select(e.db.promptLogs).getSingle();
       expect(row.cardsImported, 3);

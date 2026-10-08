@@ -2,6 +2,7 @@ import 'package:drift/drift.dart';
 
 import '../domain/import_parser.dart' show normalizeText;
 import '../domain/outline_parser.dart';
+import '../domain/plan_parser.dart';
 import 'db/database.dart';
 
 class OutlineException implements Exception {
@@ -21,8 +22,42 @@ class OutlineService {
   OutlineService(this.db);
   final AppDatabase db;
 
-  Future<OutlinePreview> preview(String raw) async {
-    final p = parseOutlineJson(raw);
+  Future<OutlinePreview> preview(String raw) async => annotate(parseOutlineJson(raw));
+
+  /// Several subjects from one paste (the "map" prompt's answer). Nothing is saved.
+  Future<PlanPreview> previewPlan(String raw) async {
+    final plan = parsePlanJson(raw);
+    for (final s in plan.subjects) {
+      await annotate(s.outline);
+    }
+    return plan;
+  }
+
+  /// Save the chosen subjects (indexes into [PlanPreview.subjects]) in one transaction:
+  /// all of them or none. Returns subjects added and topics added.
+  Future<({int subjects, int topics})> commitPlan(PlanPreview plan, Set<int> selected, {DateTime? now}) {
+    return db.transaction(() async {
+      var subjects = 0, topics = 0;
+      for (final s in plan.subjects) {
+        if (!selected.contains(s.index) || !s.valid) continue;
+        final r = await commit(s.outline, now: now);
+        if (r.items > 0) subjects++;
+        topics += r.items;
+      }
+      final row = await (db.select(db.promptLogs)
+            ..where((x) => x.status.equals('issued') & x.templateVersion.like('map-%'))
+            ..orderBy([(x) => OrderingTerm.desc(x.createdAt), (x) => OrderingTerm.desc(x.id)])
+            ..limit(1))
+          .getSingleOrNull();
+      if (row != null) {
+        await (db.update(db.promptLogs)..where((x) => x.id.equals(row.id)))
+            .write(const PromptLogsCompanion(status: Value('imported')));
+      }
+      return (subjects: subjects, topics: topics);
+    });
+  }
+
+  Future<OutlinePreview> annotate(OutlinePreview p) async {
     if (p.hasFatal) return p;
     final dom = await _findDomain(p.domain);
     p.newDomain = dom == null;

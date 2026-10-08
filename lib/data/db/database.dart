@@ -4,7 +4,7 @@ part 'database.g.dart';
 
 /// Bump together with a migration step in [AppDatabase.migration].
 /// Also checked by RestoreBackup against `PRAGMA user_version` of a backup file.
-const int kSchemaVersion = 4;
+const int kSchemaVersion = 5;
 
 class Domains extends Table {
   @override
@@ -128,7 +128,9 @@ class PromptLogs extends Table {
   String get tableName => 'prompt_log';
   IntColumn get id => integer().autoIncrement()();
   IntColumn get createdAt => integer()();
-  IntColumn get domainId => integer().references(Domains, #id)();
+
+  /// Null for prompts that are about the whole library (the "new subjects" map prompt).
+  IntColumn get domainId => integer().nullable().references(Domains, #id)();
   IntColumn get syllabusItemId => integer().nullable().references(SyllabusItems, #id)();
   TextColumn get templateVersion => text()();
   TextColumn get promptText => text()();
@@ -216,6 +218,9 @@ class AppDatabase extends _$AppDatabase {
           }
           if (from < 4) {
             await m.createTable(activityBuckets); // filled lazily from review_log on first use
+          }
+          if (from < 5) {
+            await m.alterTable(TableMigration(promptLogs)); // domain_id becomes nullable
           }
         },
         beforeOpen: (details) async {

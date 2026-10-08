@@ -6,6 +6,7 @@ import '../app/providers.dart';
 import '../data/outline_service.dart' show OutlineException;
 import '../domain/import_parser.dart';
 import '../domain/outline_parser.dart';
+import '../domain/plan_parser.dart';
 
 class ImportScreen extends ConsumerStatefulWidget {
   const ImportScreen({super.key});
@@ -16,6 +17,8 @@ class ImportScreen extends ConsumerStatefulWidget {
 class _ImportScreenState extends ConsumerState<ImportScreen> {
   ImportPreview? _preview;
   OutlinePreview? _outline;
+  PlanPreview? _plan;
+  final _planSel = <int>{};
   final _selected = <int>{};
   bool _busy = false;
   String? _message;
@@ -30,11 +33,25 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
         setState(() => _message = 'The clipboard is empty. Copy the LLM\'s JSON answer first.');
         return;
       }
-      if (detectPayloadKind(text) == 'outline') {
+      final kind = detectPayloadKind(text);
+      if (kind == 'plan') {
+        final pl = await ref.read(outlineServiceProvider).previewPlan(text);
+        setState(() {
+          _plan = pl;
+          _outline = null;
+          _preview = null;
+          _planSel
+            ..clear()
+            ..addAll(pl.importable.map((s) => s.index));
+        });
+        return;
+      }
+      if (kind == 'outline') {
         final o = await ref.read(outlineServiceProvider).preview(text);
         setState(() {
           _outline = o;
           _preview = null;
+          _plan = null;
         });
         return;
       }
@@ -42,6 +59,7 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
       setState(() {
         _preview = p;
         _outline = null;
+        _plan = null;
         _selected
           ..clear()
           ..addAll(p.importable.map((c) => c.index));
@@ -91,6 +109,68 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
     } finally {
       if (mounted) setState(() => _busy = false);
     }
+  }
+
+  Future<void> _commitPlan() async {
+    final pl = _plan!;
+    setState(() => _busy = true);
+    try {
+      final r = await ref.read(outlineServiceProvider).commitPlan(pl, Set.of(_planSel));
+      ref.read(refreshProvider.notifier).bump();
+      if (!mounted) return;
+      setState(() {
+        _plan = null;
+        _message = 'Added ${r.subjects} subject${r.subjects == 1 ? '' : 's'} with ${r.topics} topic${r.topics == 1 ? '' : 's'}. '
+            'Tap "Learn something new" to start.';
+      });
+    } on OutlineException catch (e) {
+      setState(() => _message = e.message);
+    } catch (e) {
+      setState(() => _message = 'Import failed, nothing was saved: $e');
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Widget _planList(BuildContext context, PlanPreview pl) {
+    final t = Theme.of(context).textTheme;
+    if (pl.hasFatal) {
+      return ListView(padding: const EdgeInsets.all(16), children: [
+        Text('This can\'t be imported:', style: t.titleMedium),
+        const SizedBox(height: 8),
+        for (final e in pl.fatalErrors) ListTile(leading: const Icon(Icons.error_outline), title: Text(e)),
+      ]);
+    }
+    return ListView(padding: const EdgeInsets.symmetric(horizontal: 16), children: [
+      Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: Text('Tick the subjects you want. Nothing is saved until you tap the button.', style: t.bodyMedium),
+      ),
+      for (final s in pl.subjects)
+        Card(
+          child: s.valid && s.outline.importable.isNotEmpty
+              ? CheckboxListTile(
+                  value: _planSel.contains(s.index),
+                  onChanged: (v) => setState(() => v == true ? _planSel.add(s.index) : _planSel.remove(s.index)),
+                  title: Text(s.name),
+                  subtitle: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    if (s.why.isNotEmpty) Text(s.why),
+                    Text(
+                        '${s.outline.importable.length} topic${s.outline.importable.length == 1 ? '' : 's'}'
+                        '${s.outline.newDomain ? ' · new subject' : ' · added to a subject you have'}'
+                        ': ${s.outline.importable.take(3).map((i) => i.title).join(', ')}…',
+                        style: t.bodySmall),
+                    if (s.outline.items.any((i) => !i.valid))
+                      Text('Some topics have problems and will be skipped.', style: t.bodySmall),
+                  ]),
+                )
+              : ListTile(
+                  leading: const Icon(Icons.error_outline),
+                  title: Text(s.name.isEmpty ? 'Subject ${s.index + 1}' : s.name),
+                  subtitle: Text(s.valid ? 'Nothing new to add (all topics exist already).' : s.outline.fatalErrors.join('\n')),
+                ),
+        ),
+    ]);
   }
 
   Widget _outlineList(BuildContext context, OutlinePreview o) {
@@ -148,19 +228,31 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
                   padding: const EdgeInsets.only(top: 12),
                   child: Text(_message!, style: Theme.of(context).textTheme.bodyLarge),
                 ),
-              if (p == null && o == null && _message == null)
+              if (p == null && o == null && _plan == null && _message == null)
                 const Padding(
                   padding: EdgeInsets.only(top: 12),
-                  child: Text('Copy the JSON your LLM returned (cards or an outline), then tap the button. '
+                  child: Text('Copy the JSON your LLM returned (cards, a list of topics, or several new subjects), then tap the button. '
                       'You will see a preview before anything is saved.'),
                 ),
             ]),
           ),
           if (p != null) Expanded(child: _previewList(context, p)),
           if (o != null) Expanded(child: _outlineList(context, o)),
+          if (_plan != null) Expanded(child: _planList(context, _plan!)),
         ]),
       ),
-      bottomNavigationBar: o != null && !o.hasFatal
+      bottomNavigationBar: _plan != null && !_plan!.hasFatal
+          ? SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: FilledButton(
+                  style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(56)),
+                  onPressed: _busy || _planSel.isEmpty ? null : _commitPlan,
+                  child: Text('Add ${_planSel.length} subject${_planSel.length == 1 ? '' : 's'}'),
+                ),
+              ),
+            )
+          : o != null && !o.hasFatal
           ? SafeArea(
               child: Padding(
                 padding: const EdgeInsets.all(12),

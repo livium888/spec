@@ -7,6 +7,7 @@ import '../data/learn_service.dart';
 import '../domain/learn_planner.dart';
 import '../domain/study_advisor.dart';
 import 'advice_card.dart';
+import 'guide_screen.dart';
 import 'import_screen.dart';
 import 'theme/tokens.dart';
 import 'widgets/soft_card.dart';
@@ -77,11 +78,15 @@ class PromptResultScreen extends ConsumerWidget {
           const SizedBox(height: Sp.l),
           SoftCard(
             child: Column(children: [
-              for (final (i, step) in const [
+              for (final (i, step) in [
                 'Copy the prompt.',
                 'Paste it into Claude, Gemini, ChatGPT, DeepSeek or any LLM.',
-                'Copy the JSON it answers with.',
-                'Come back and tap "Paste the answer".',
+                switch (prompt.kind) {
+                  PromptKind.cards => 'Copy the JSON it answers with: a set of cards.',
+                  PromptKind.outline => 'Copy the JSON it answers with: a list of topics.',
+                  PromptKind.plan => 'Copy the JSON it answers with: several new subjects, each with topics.',
+                },
+                'Come back and tap "Paste the answer". You see a preview and choose what to keep.',
               ].indexed)
                 Padding(
                   padding: EdgeInsets.only(bottom: i == 3 ? 0 : 10),
@@ -141,6 +146,10 @@ class PromptResultScreen extends ConsumerWidget {
               onPressed: () => Navigator.of(context).push(
                   MaterialPageRoute<void>(builder: (_) => const LearnScreen(showOptions: true))),
               child: const Text('See all options'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const GuideScreen())),
+              child: const Text('How does this work?'),
             ),
           ]),
           const SizedBox(height: 8),

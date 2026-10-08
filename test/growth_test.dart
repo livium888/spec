@@ -7,6 +7,7 @@ import 'package:daily_learning/data/starter_library.dart';
 import 'package:daily_learning/domain/growth.dart';
 import 'package:daily_learning/domain/import_parser.dart' show normalizeText;
 import 'package:daily_learning/domain/learn_planner.dart';
+import 'package:daily_learning/domain/map_prompt.dart';
 import 'package:daily_learning/domain/prompt_template.dart';
 import 'package:daily_learning/domain/subject_catalog.dart';
 import 'package:drift/native.dart';
@@ -45,25 +46,20 @@ void main() {
       expect(plan(d)!.reasons.join(' '), contains('Biology'));
     });
 
-    test('every third step starts a brand-new subject that does not exist yet', () {
+    test('every third step asks the LLM for new subjects, steering it to untouched areas', () {
       final d = [dom(1, 'Biology'), dom(2, 'Music Theory Basics')];
       final kinds = [for (var s = 0; s < 6; s++) plan(d, steps: s)!.kind];
-      expect(kinds, [GrowthKind.expand, GrowthKind.expand, GrowthKind.discover, GrowthKind.expand, GrowthKind.expand, GrowthKind.discover]);
+      expect(kinds, [GrowthKind.expand, GrowthKind.expand, GrowthKind.map, GrowthKind.expand, GrowthKind.expand, GrowthKind.map]);
       final g = plan(d, steps: 2)!;
-      expect(g.domainName, isNot('Music Theory Basics'));
-      expect(kSubjectCatalog.map((c) => c.name), contains(g.domainName));
+      expect(g.ideas, isNotEmpty);
+      expect(g.ideas, isNot(contains('Music Theory Basics'))); // already have it
+      expect(g.ideas.every((n) => kSubjectCatalog.any((c) => c.name == n)), isTrue);
     });
 
-    test('discovery rotates through categories instead of sticking to one', () {
-      final seen = <String>{};
-      var names = <String>{};
-      for (var s = 0; s < 40; s++) {
-        final g = plan([dom(1, 'Biology')], names: names.union({'Biology'}), steps: s * 3 + 2, seed: s)!;
-        names.add(g.domainName);
-        seen.add(g.category!);
-      }
-      expect(seen.length, greaterThanOrEqualTo(8));
-      expect(names.length, 40); // never the same subject twice
+    test('ideas are spread over many areas, not one', () {
+      final g = plan([dom(1, 'Biology')], steps: 2)!;
+      final cats = {for (final n in g.ideas) kSubjectCatalog.firstWhere((c) => c.name == n).category};
+      expect(cats.length, greaterThanOrEqualTo(10));
     });
 
     test('same inputs and seed give the same answer', () {
@@ -84,12 +80,12 @@ void main() {
       expect(g.domainName, 'Astronomy and Cosmology');
     });
 
-    test('nothing to grow from and nothing new to start -> null (never a crash)', () {
-      expect(plan([], names: {for (final c in kSubjectCatalog) c.name}), isNull);
+    test('everything switched off on purpose -> nothing is proposed', () {
+      expect(plan([dom(1, 'A', weight: 0), dom(2, 'B', weight: 0)]), isNull);
     });
 
-    test('with no subjects at all, a new one is started', () {
-      expect(plan([], names: {})!.kind, GrowthKind.discover);
+    test('with no subjects at all, new subjects are requested', () {
+      expect(plan([], names: {})!.kind, GrowthKind.map);
     });
   });
 
@@ -140,23 +136,41 @@ void main() {
       expect(v.plan.options.first.item.title, anyOf('Proteins', 'Enzymes', 'Membranes'));
     });
 
-    test('third growth step starts a new subject, which is re-offered if its outline never arrives', () async {
-      await addOutline('Biology', ['Cells']);
+    test('third growth step is the map prompt: whole-library summary, no cards, logged without a subject', () async {
+      await addOutline('Biology', ['Cells', 'Genes']);
+      await addOutline('Music Theory Basics', ['Pitch']);
       for (final it in await db.select(db.syllabusItems).get()) {
         await learn.setTopicSkipped(it.id, true);
       }
       GrowthKind? kind;
+      late GeneratedPrompt p;
       for (var i = 0; i < 3; i++) {
         final v = await learn.view();
         kind = v.growth!.kind;
-        await learn.chooseGrowth(v.growth!, v);
+        p = await learn.chooseGrowth(v.growth!, v);
       }
-      expect(kind, GrowthKind.discover);
-      final names = (await db.select(db.domains).get()).map((d) => d.name).toList();
-      expect(names.length, 2);
+      expect(kind, GrowthKind.map);
+      expect(p.text, contains('- Biology (2 topics, 0 cards'));
+      expect(p.text, contains('Cells'));
+      expect(p.text, contains('"subjects"'));
+      expect(p.text, isNot(contains('"front"'))); // never asks for or contains cards
+      final log = (await db.select(db.promptLogs).get()).last;
+      expect(log.domainId, isNull);
+      expect(log.templateVersion, kMapTemplateVersion);
+      final pend = (await learn.pending())!;
+      expect(pend.isMap, isTrue);
+      expect(pend.domainName, 'Your whole library');
+    });
+
+    test('a subject whose outline never arrived is asked for again', () async {
+      await addOutline('Biology', ['Cells']);
+      for (final it in await db.select(db.syllabusItems).get()) {
+        await learn.setTopicSkipped(it.id, true);
+      }
+      await learn.outlinePrompt('Astronomy'); // started, never answered
       final v = await learn.view();
       expect(v.growth!.kind, GrowthKind.resume);
-      expect(v.growth!.domainName, names.last);
+      expect(v.growth!.domainName, 'Astronomy');
     });
   });
 }

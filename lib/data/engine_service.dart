@@ -139,7 +139,7 @@ class PromptService {
 
     final id = await db.into(db.promptLogs).insert(PromptLogsCompanion.insert(
           createdAt: t,
-          domainId: domainId,
+          domainId: Value(domainId),
           syllabusItemId: Value(syllabusItemId),
           templateVersion: round > 1 ? '$kPromptTemplateVersion+deeper' : kPromptTemplateVersion,
           promptText: text,

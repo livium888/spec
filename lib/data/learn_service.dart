@@ -5,6 +5,7 @@ import 'package:flutter/services.dart' show AssetBundle;
 
 import '../domain/growth.dart';
 import '../domain/learn_planner.dart';
+import '../domain/map_prompt.dart';
 import '../domain/prompt_template.dart';
 import '../domain/study_advisor.dart';
 import 'db/database.dart';
@@ -29,6 +30,8 @@ class PendingPrompt {
   final String text, templateVersion, domainName;
   final String? itemTitle;
   bool get isOutline => templateVersion.startsWith('outline');
+  bool get isMap => templateVersion.startsWith('map');
+  PromptKind get kind => isMap ? PromptKind.plan : (isOutline ? PromptKind.outline : PromptKind.cards);
 }
 
 class LearnView {
@@ -45,8 +48,13 @@ class LearnView {
   final GrowthOption? growth;
 }
 
+/// What the LLM's answer to a prompt should contain.
+enum PromptKind { cards, outline, plan }
+
 class GeneratedPrompt {
-  const GeneratedPrompt(this.logId, this.text, this.headline, {this.reasons = const []});
+  const GeneratedPrompt(this.logId, this.text, this.headline,
+      {this.reasons = const [], this.kind = PromptKind.cards});
+  final PromptKind kind;
   final int logId;
   final String text, headline;
 
@@ -99,19 +107,83 @@ class LearnService {
     );
   }
 
-  /// Turn a growth step into an outline prompt (creating the subject if it is new) and log why.
+  /// Turn a growth step into a prompt (outline for one subject, or the library-wide map prompt) and log why.
   Future<GeneratedPrompt> chooseGrowth(GrowthOption g, LearnView view, {DateTime? now}) async {
     final t = (now ?? DateTime.now()).toUtc();
-    final out = await outlinePrompt(g.domainName, goal: g.goal, now: t);
+    final GeneratedPrompt out;
+    if (g.kind == GrowthKind.map) {
+      final text = renderMapPrompt(
+        subjects: await appMap(t),
+        ideas: g.ideas,
+        learnerProfile: await settings.get(SettingsRepo.learnerProfile),
+      );
+      final id = await db.into(db.promptLogs).insert(PromptLogsCompanion.insert(
+            createdAt: t.millisecondsSinceEpoch,
+            templateVersion: kMapTemplateVersion,
+            promptText: text,
+            cardsRequested: 0,
+          ));
+      out = GeneratedPrompt(id, text, g.headline, kind: PromptKind.plan);
+    } else {
+      out = await outlinePrompt(g.domainName, goal: g.goal, now: t);
+    }
     await db.into(db.engineDecisions).insert(EngineDecisionsCompanion.insert(
           ts: t.millisecondsSinceEpoch,
           engineVersion: GrowthPlanner.version,
           seed: view.seed,
-          featuresJson: jsonEncode({'growth': true, 'domain': g.domainName, 'category': g.category}),
+          featuresJson: jsonEncode({'growth': true, 'domain': g.domainName, 'ideas': g.ideas}),
           scoresJson: '{}',
           chosenJson: jsonEncode({'key': g.key, 'kind': g.kind.name, 'prompt_log_id': out.logId}),
         ));
-    return GeneratedPrompt(out.logId, out.text, g.headline, reasons: g.reasons);
+    return GeneratedPrompt(out.logId, out.text, g.headline, reasons: g.reasons, kind: out.kind);
+  }
+
+  /// Bounded summary of the whole library for the map prompt: subjects, counts, newest
+  /// topic titles. Most recently active subjects first. Never includes cards.
+  Future<List<MapSubject>> appMap(DateTime t) async {
+    final topics = {
+      for (final r in await db.customSelect(
+          'SELECT domain_id AS d, COUNT(*) AS n FROM syllabus_item GROUP BY domain_id').get())
+        r.read<int>('d'): r.read<int>('n')
+    };
+    final cards = {
+      for (final r in await db.customSelect(
+          'SELECT n.domain_id AS d, COUNT(*) AS c FROM card c JOIN note n ON n.id = c.note_id GROUP BY n.domain_id').get())
+        r.read<int>('d'): r.read<int>('c')
+    };
+    final interest = {
+      for (final r in await db.customSelect('SELECT domain_id AS d, AVG(value) AS a FROM interest_log GROUP BY domain_id').get())
+        r.read<int>('d'): (r.data['a'] as num?)?.toDouble()
+    };
+    final active = {
+      for (final r in await db.customSelect(
+          'SELECT domain_id AS d, MAX(created_at) AS m FROM note GROUP BY domain_id').get())
+        r.read<int>('d'): r.read<int?>('m') ?? 0
+    };
+    final doms = await db.select(db.domains).get()
+      ..sort((a, b) => (active[b.id] ?? b.createdAt).compareTo(active[a.id] ?? a.createdAt));
+    final out = <MapSubject>[];
+    for (var i = 0; i < doms.length; i++) {
+      final d = doms[i];
+      // Titles only for the subjects that will be shown in detail; the rest are listed by name.
+      final titles = i >= kMapDetailedSubjects + 40
+          ? const <String>[]
+          : [
+              for (final r in await db.customSelect(
+                  'SELECT title FROM syllabus_item WHERE domain_id = ? ORDER BY id DESC LIMIT ?',
+                  variables: [Variable.withInt(d.id), Variable.withInt(kMapTitlesDetailed)]).get())
+                r.read<String>('title')
+            ];
+      out.add(MapSubject(
+        name: d.name,
+        topics: topics[d.id] ?? 0,
+        cards: cards[d.id] ?? 0,
+        interest: interest[d.id],
+        paused: !d.active || d.learnWeight == 0,
+        recentTitles: titles,
+      ));
+    }
+    return out;
   }
 
   /// First use: add every bundled subject (except name-it-yourself templates) so the
@@ -204,14 +276,16 @@ class LearnService {
           ..limit(1))
         .getSingleOrNull();
     if (row == null) return null;
-    final dom = await (db.select(db.domains)..where((d) => d.id.equals(row.domainId))).getSingle();
+    final dom = row.domainId == null
+        ? null
+        : await (db.select(db.domains)..where((d) => d.id.equals(row.domainId!))).getSingle();
     String? title;
     if (row.syllabusItemId != null) {
       title = (await (db.select(db.syllabusItems)..where((s) => s.id.equals(row.syllabusItemId!))).getSingle()).title;
     }
     return PendingPrompt(
         id: row.id, text: row.promptText, templateVersion: row.templateVersion,
-        domainName: dom.name, itemTitle: title, createdAt: row.createdAt);
+        domainName: dom?.name ?? 'Your whole library', itemTitle: title, createdAt: row.createdAt);
   }
 
   Future<void> abandonPending(int promptId) =>
@@ -236,7 +310,7 @@ class LearnService {
       text = renderRemediatePrompt(domain: it.domainName, syllabusItem: it.title, problems: problems);
       logId = await db.into(db.promptLogs).insert(PromptLogsCompanion.insert(
             createdAt: t.millisecondsSinceEpoch,
-            domainId: it.domainId,
+            domainId: Value(it.domainId),
             syllabusItemId: Value(it.id),
             templateVersion: kRemediateTemplateVersion,
             promptText: text,
@@ -284,12 +358,12 @@ class LearnService {
         domain: dom?.name ?? name, goal: goal, existingTitles: [for (final e in existing) e.title]);
     final logId = await db.into(db.promptLogs).insert(PromptLogsCompanion.insert(
           createdAt: t,
-          domainId: domainId,
+          domainId: Value(domainId),
           templateVersion: kOutlineTemplateVersion,
           promptText: text,
           cardsRequested: 0,
         ));
-    return GeneratedPrompt(logId, text, 'Outline for $name');
+    return GeneratedPrompt(logId, text, 'Outline for $name', kind: PromptKind.outline);
   }
 
   // ---- internals -----------------------------------------------------------

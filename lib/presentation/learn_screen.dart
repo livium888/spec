@@ -51,11 +51,13 @@ class _LearnScreenState extends ConsumerState<LearnScreen> {
       // An earlier prompt that was never imported comes first (same day, same answer).
       if (v.pending != null) {
         final p = v.pending!;
-        final what = p.isOutline
+        final what = p.isMap
+            ? 'New subjects, chosen for you'
+            : p.isOutline
             ? 'Outline for ${p.domainName}'
             : '${p.domainName}${p.itemTitle == null ? '' : ': ${p.itemTitle}'}';
         await _replaceWith(PromptResultScreen(
-            prompt: GeneratedPrompt(p.id, p.text, what), advice: v.advice, wasPending: true));
+            prompt: GeneratedPrompt(p.id, p.text, what, kind: p.kind), advice: v.advice, wasPending: true));
         return;
       }
       if (v.plan.options.isEmpty) {
@@ -267,14 +269,16 @@ class _LearnScreenState extends ConsumerState<LearnScreen> {
         padding: const EdgeInsets.all(16),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Wrap(spacing: 8, children: [
-            Chip(label: Text(g.kind == GrowthKind.discover ? 'New subject' : 'Grow your library')),
+            Chip(label: Text(g.kind == GrowthKind.map ? 'New subjects' : 'Grow your library')),
           ]),
           const SizedBox(height: 8),
           Text(g.headline, style: t.titleMedium),
           const SizedBox(height: 4),
           for (final r in g.reasons) Text(r, style: t.bodyMedium),
           const SizedBox(height: 4),
-          Text('You will get a prompt for an outline; paste your LLM\'s answer back and new topics appear.',
+          Text(g.kind == GrowthKind.map
+                  ? 'You will get a prompt that asks your LLM for several new subjects. Paste its answer back and tick the ones you want.'
+                  : 'You will get a prompt for an outline; paste your LLM\'s answer back and new topics appear.',
               style: t.bodySmall),
           const SizedBox(height: 12),
           FilledButton(

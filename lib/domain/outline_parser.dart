@@ -45,10 +45,11 @@ class OutlinePreview {
       items.where((i) => i.valid && !alreadyExists.contains(i.index));
 }
 
-/// 'outline' if the JSON has an `items` array and no `cards`; otherwise 'cards'.
+/// 'plan' (several subjects), 'outline' (one subject's topics) or 'cards'.
 String detectPayloadKind(String raw) {
   try {
     final d = jsonDecode(stripCodeFence(raw));
+    if (d is Map && d.containsKey('subjects') && !d.containsKey('cards')) return 'plan';
     if (d is Map && d.containsKey('items') && !d.containsKey('cards')) return 'outline';
   } catch (_) {}
   return 'cards';

@@ -8,6 +8,7 @@ import 'package:daily_learning/data/import_service.dart';
 import 'package:daily_learning/data/outline_service.dart';
 import 'package:daily_learning/data/settings_repo.dart';
 import 'package:daily_learning/main.dart';
+import 'package:drift/drift.dart' show Value;
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -68,6 +69,7 @@ Future<void> done(WidgetTester t, AppDatabase db) async {
 
 void main() {
   editDeleteWidgetTests();
+  guideWidgetTests();
   testWidgets('ONE press: Home -> prompt screen, no choosing, with the reasons and the advice', (t) async {
     final db = await boot(t, seed: true);
     expect(find.textContaining('Good time to learn'), findsOneWidget); // advice on Home
@@ -254,6 +256,53 @@ void editDeleteWidgetTests() {
     await until(t, find.text('No cards yet.'));
     await settle(t);
     expect(find.text('No cards yet.'), findsOneWidget);
+    await done(t, db);
+  });
+}
+
+void guideWidgetTests() {
+  testWidgets('first run shows a guide card once; the guide opens from Today and from Settings', (t) async {
+    final db = await boot(t);
+    expect(find.text('New here?'), findsOneWidget);
+    await t.tap(find.text('Show me'));
+    await settle(t);
+    expect(find.text('How it works'), findsWidgets);
+    expect(find.textContaining('Three kinds of prompt'), findsOneWidget);
+    await t.pageBack();
+    await settle(t);
+    expect(find.text('New here?'), findsNothing); // seen: the card does not come back
+
+    await t.tap(find.byTooltip('How it works'));
+    await settle(t);
+    expect(find.textContaining('The idea'), findsOneWidget);
+    await done(t, db);
+  });
+
+  testWidgets('"Not now" dismisses the card for good', (t) async {
+    final db = await boot(t);
+    await t.tap(find.text('Not now'));
+    await settle(t);
+    expect(find.text('New here?'), findsNothing);
+    await done(t, db);
+  });
+
+  testWidgets('with a full library the map prompt is reached by ONE press and says what answer to bring back', (t) async {
+    final db = await boot(t, seed: true, settings: {'guide_seen': '1'});
+    await t.runAsync(() async {
+      // Two earlier outline prompts so the next growth step is the third: "new subjects".
+      for (final i in [1, 2]) {
+        await db.into(db.promptLogs).insert(PromptLogsCompanion.insert(
+            createdAt: i, domainId: const Value(1), templateVersion: 'outline-v2', promptText: 'x', cardsRequested: 0, status: const Value('imported')));
+      }
+      for (final it in await db.select(db.syllabusItems).get()) {
+        await db.update(db.syllabusItems).replace(it.copyWith(status: 'skipped'));
+      }
+    });
+    await t.tap(find.text('Learn something new'));
+    await until(t, find.text('Your prompt'));
+    await settle(t);
+    expect(find.text('New subjects, chosen for you'), findsOneWidget);
+    expect(find.textContaining('several new subjects'), findsOneWidget);
     await done(t, db);
   });
 }

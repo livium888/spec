@@ -161,3 +161,9 @@ Fields by kind (basic: Question, Answer; cloze: Text with gaps, Answer extra) pl
 | A subject has no outline yet | the outline prompt is shown again |
 | Advice says wait / stop and nothing to teach | advice card plus a "Grow your library" card with a "Get this prompt" button |
 | Nothing can grow (no subjects usable and catalog exhausted) | the old empty state with Starter library / New subject |
+
+## How it works (guide)
+Scrolling page, section headings (semantic headers): The idea; Every day; Learn something new step by step (numbered); Three kinds of prompt (cards, topics, new subjects) with what the answer starts with; How the library grows; Fixing and removing cards; Making cards fit you; Backups; If pasting fails; Privacy. Opened from the ? in the Today header, Settings, the prompt screen, and the one-time "New here?" card (Show me / Not now; either marks it seen, stored in `setting` so it travels in backups).
+
+## Import: several subjects (plan)
+Preview lists each proposed subject with a tick-box, its "why", topic count, whether it is new or extends one you have, and the first topics. Invalid subjects show their errors and cannot be ticked. Button: "Add N subjects" (disabled at 0). States: parse error (list of fatal problems), preview, saved message ("Added N subjects with M topics").

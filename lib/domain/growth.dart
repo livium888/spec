@@ -7,7 +7,7 @@ import 'import_parser.dart' show normalizeText;
 import 'learn_planner.dart' show DomainInfo, unitFromSeed;
 import 'subject_catalog.dart';
 
-enum GrowthKind { expand, discover, resume }
+enum GrowthKind { expand, map, resume }
 
 /// Different angles, used in turn, so successive batches for one subject differ.
 const kExpansionAngles = [
@@ -27,7 +27,7 @@ class GrowthOption {
     required this.headline,
     this.domainId,
     this.goal,
-    this.category,
+    this.ideas = const [],
   });
   final GrowthKind kind;
   final String domainName, headline;
@@ -35,7 +35,9 @@ class GrowthOption {
 
   /// Passed to the outline prompt as the learner goal (the angle for this batch).
   final String? goal;
-  final String? category;
+
+  /// For [GrowthKind.map]: untouched areas offered to the LLM as optional inspiration.
+  final List<String> ideas;
   final List<String> reasons;
   String get key => '${kind.name}:${domainId ?? domainName}';
 }
@@ -44,7 +46,7 @@ class GrowthPlanner {
   const GrowthPlanner({this.catalog = kSubjectCatalog, this.discoverEvery = 3});
   final List<CatalogSubject> catalog;
 
-  /// Every Nth growth step starts a new subject; the rest deepen one you already have.
+  /// Every Nth growth step asks the LLM for new subjects; the rest deepen one you already have.
   final int discoverEvery;
 
   static const version = 'growth-v1';
@@ -71,15 +73,13 @@ class GrowthPlanner {
       );
     }
 
-    final used = {for (final n in allSubjectNames) normalizeText(n)};
-    final fresh = [for (final c in catalog) if (!used.contains(normalizeText(c.name))) c];
-    final usable = [for (final d in domains) if (d.weight > 0 && d.itemCount > 0) d];
+    // The learner switched everything off on purpose: respect it.
+    if (domains.isNotEmpty && domains.every((d) => d.weight == 0)) return null;
 
-    final wantDiscover = fresh.isNotEmpty &&
-        (usable.isEmpty || growthSteps % discoverEvery == discoverEvery - 1);
-    if (wantDiscover) return _discover(fresh, allSubjectNames, growthSteps, seed);
-    if (usable.isNotEmpty) return _expand(usable, expansions, seed);
-    return null; // nothing to grow from and nothing new to start
+    final usable = [for (final d in domains) if (d.weight > 0 && d.itemCount > 0) d];
+    final wantMap = usable.isEmpty || growthSteps % discoverEvery == discoverEvery - 1;
+    if (wantMap) return _map(allSubjectNames, growthSteps, seed);
+    return _expand(usable, expansions, seed);
   }
 
   GrowthOption _expand(List<DomainInfo> usable, Map<int, int> expansions, int seed) {
@@ -107,20 +107,27 @@ class GrowthPlanner {
     );
   }
 
-  GrowthOption _discover(List<CatalogSubject> fresh, Set<String> existing, int growthSteps, int seed) {
-    final cats = ({for (final c in fresh) c.category}.toList())..sort();
-    final cat = cats[((growthSteps ~/ discoverEvery) + (unitFromSeed(seed) * cats.length).floor()) % cats.length];
-    final pool = [for (final c in fresh) if (c.category == cat) c];
-    final pick = pool[(unitFromSeed(seed * 17 + 5) * pool.length).floor() % pool.length];
+  GrowthOption _map(Set<String> existing, int growthSteps, int seed) {
+    final used = {for (final n in existing) normalizeText(n)};
+    final byCat = <String, List<CatalogSubject>>{};
+    for (final c in catalog) {
+      if (!used.contains(normalizeText(c.name))) byCat.putIfAbsent(c.category, () => []).add(c);
+    }
+    final cats = byCat.keys.toList()..sort();
+    final ideas = [
+      for (final c in cats) byCat[c]![(unitFromSeed(seed * 17 + c.length) * byCat[c]!.length).floor() % byCat[c]!.length].name
+    ];
     return GrowthOption(
-      kind: GrowthKind.discover,
-      domainName: pick.name,
-      category: cat,
-      headline: 'A new subject: ${pick.name}',
-      goal: 'a rich, engaging first outline for someone curious who is new to it',
+      kind: GrowthKind.map,
+      domainName: '',
+      headline: 'New subjects, chosen for you',
+      ideas: ideas,
       reasons: [
-        'Time for something new: ${pick.name} (${pick.category}).',
-        'The app rotates through ${cats.length} areas so none gets left out; ${existing.length} subject${existing.length == 1 ? '' : 's'} exist so far.',
+        existing.isEmpty
+            ? 'Your library is empty, so the prompt asks for a broad, well-rounded start.'
+            : 'Time to widen the library. The prompt tells your LLM what you already study (subjects and topics, never your cards) '
+                'and asks for a few subjects that are missing.',
+        'It asks for at least one subject that connects to what you know and one from an area you have not touched.',
       ],
     );
   }

@@ -3985,9 +3985,9 @@ class $PromptLogsTable extends PromptLogs
   late final GeneratedColumn<int> domainId = GeneratedColumn<int>(
     'domain_id',
     aliasedName,
-    false,
+    true,
     type: DriftSqlType.int,
-    requiredDuringInsert: true,
+    requiredDuringInsert: false,
     defaultConstraints: GeneratedColumn.constraintIsAlways(
       'REFERENCES domain (id)',
     ),
@@ -4101,8 +4101,6 @@ class $PromptLogsTable extends PromptLogs
         _domainIdMeta,
         domainId.isAcceptableOrUnknown(data['domain_id']!, _domainIdMeta),
       );
-    } else if (isInserting) {
-      context.missing(_domainIdMeta);
     }
     if (data.containsKey('syllabus_item_id')) {
       context.handle(
@@ -4178,7 +4176,7 @@ class $PromptLogsTable extends PromptLogs
       domainId: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}domain_id'],
-      )!,
+      ),
       syllabusItemId: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}syllabus_item_id'],
@@ -4215,7 +4213,9 @@ class $PromptLogsTable extends PromptLogs
 class PromptLog extends DataClass implements Insertable<PromptLog> {
   final int id;
   final int createdAt;
-  final int domainId;
+
+  /// Null for prompts that are about the whole library (the "new subjects" map prompt).
+  final int? domainId;
   final int? syllabusItemId;
   final String templateVersion;
   final String promptText;
@@ -4225,7 +4225,7 @@ class PromptLog extends DataClass implements Insertable<PromptLog> {
   const PromptLog({
     required this.id,
     required this.createdAt,
-    required this.domainId,
+    this.domainId,
     this.syllabusItemId,
     required this.templateVersion,
     required this.promptText,
@@ -4238,7 +4238,9 @@ class PromptLog extends DataClass implements Insertable<PromptLog> {
     final map = <String, Expression>{};
     map['id'] = Variable<int>(id);
     map['created_at'] = Variable<int>(createdAt);
-    map['domain_id'] = Variable<int>(domainId);
+    if (!nullToAbsent || domainId != null) {
+      map['domain_id'] = Variable<int>(domainId);
+    }
     if (!nullToAbsent || syllabusItemId != null) {
       map['syllabus_item_id'] = Variable<int>(syllabusItemId);
     }
@@ -4254,7 +4256,9 @@ class PromptLog extends DataClass implements Insertable<PromptLog> {
     return PromptLogsCompanion(
       id: Value(id),
       createdAt: Value(createdAt),
-      domainId: Value(domainId),
+      domainId: domainId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(domainId),
       syllabusItemId: syllabusItemId == null && nullToAbsent
           ? const Value.absent()
           : Value(syllabusItemId),
@@ -4274,7 +4278,7 @@ class PromptLog extends DataClass implements Insertable<PromptLog> {
     return PromptLog(
       id: serializer.fromJson<int>(json['id']),
       createdAt: serializer.fromJson<int>(json['createdAt']),
-      domainId: serializer.fromJson<int>(json['domainId']),
+      domainId: serializer.fromJson<int?>(json['domainId']),
       syllabusItemId: serializer.fromJson<int?>(json['syllabusItemId']),
       templateVersion: serializer.fromJson<String>(json['templateVersion']),
       promptText: serializer.fromJson<String>(json['promptText']),
@@ -4289,7 +4293,7 @@ class PromptLog extends DataClass implements Insertable<PromptLog> {
     return <String, dynamic>{
       'id': serializer.toJson<int>(id),
       'createdAt': serializer.toJson<int>(createdAt),
-      'domainId': serializer.toJson<int>(domainId),
+      'domainId': serializer.toJson<int?>(domainId),
       'syllabusItemId': serializer.toJson<int?>(syllabusItemId),
       'templateVersion': serializer.toJson<String>(templateVersion),
       'promptText': serializer.toJson<String>(promptText),
@@ -4302,7 +4306,7 @@ class PromptLog extends DataClass implements Insertable<PromptLog> {
   PromptLog copyWith({
     int? id,
     int? createdAt,
-    int? domainId,
+    Value<int?> domainId = const Value.absent(),
     Value<int?> syllabusItemId = const Value.absent(),
     String? templateVersion,
     String? promptText,
@@ -4312,7 +4316,7 @@ class PromptLog extends DataClass implements Insertable<PromptLog> {
   }) => PromptLog(
     id: id ?? this.id,
     createdAt: createdAt ?? this.createdAt,
-    domainId: domainId ?? this.domainId,
+    domainId: domainId.present ? domainId.value : this.domainId,
     syllabusItemId: syllabusItemId.present
         ? syllabusItemId.value
         : this.syllabusItemId,
@@ -4392,7 +4396,7 @@ class PromptLog extends DataClass implements Insertable<PromptLog> {
 class PromptLogsCompanion extends UpdateCompanion<PromptLog> {
   final Value<int> id;
   final Value<int> createdAt;
-  final Value<int> domainId;
+  final Value<int?> domainId;
   final Value<int?> syllabusItemId;
   final Value<String> templateVersion;
   final Value<String> promptText;
@@ -4413,7 +4417,7 @@ class PromptLogsCompanion extends UpdateCompanion<PromptLog> {
   PromptLogsCompanion.insert({
     this.id = const Value.absent(),
     required int createdAt,
-    required int domainId,
+    this.domainId = const Value.absent(),
     this.syllabusItemId = const Value.absent(),
     required String templateVersion,
     required String promptText,
@@ -4421,7 +4425,6 @@ class PromptLogsCompanion extends UpdateCompanion<PromptLog> {
     this.cardsImported = const Value.absent(),
     this.status = const Value.absent(),
   }) : createdAt = Value(createdAt),
-       domainId = Value(domainId),
        templateVersion = Value(templateVersion),
        promptText = Value(promptText),
        cardsRequested = Value(cardsRequested);
@@ -4452,7 +4455,7 @@ class PromptLogsCompanion extends UpdateCompanion<PromptLog> {
   PromptLogsCompanion copyWith({
     Value<int>? id,
     Value<int>? createdAt,
-    Value<int>? domainId,
+    Value<int?>? domainId,
     Value<int?>? syllabusItemId,
     Value<String>? templateVersion,
     Value<String>? promptText,
@@ -9633,7 +9636,7 @@ typedef $$ActivityBucketsTableProcessedTableManager =
 typedef $$PromptLogsTableCreateCompanionBuilder = PromptLogsCompanion Function({
   Value<int> id,
   required int createdAt,
-  required int domainId,
+  Value<int?> domainId,
   Value<int?> syllabusItemId,
   required String templateVersion,
   required String promptText,
@@ -9644,7 +9647,7 @@ typedef $$PromptLogsTableCreateCompanionBuilder = PromptLogsCompanion Function({
 typedef $$PromptLogsTableUpdateCompanionBuilder = PromptLogsCompanion Function({
   Value<int> id,
   Value<int> createdAt,
-  Value<int> domainId,
+  Value<int?> domainId,
   Value<int?> syllabusItemId,
   Value<String> templateVersion,
   Value<String> promptText,
@@ -9660,9 +9663,9 @@ final class $$PromptLogsTableReferences
   static $DomainsTable _domainIdTable(_$AppDatabase db) =>
       db.domains.createAlias('prompt_log__domain_id__domain__id');
 
-  $$DomainsTableProcessedTableManager get domainId {
-    final $_column = $_itemColumn<int>('domain_id')!;
-
+  $$DomainsTableProcessedTableManager? get domainId {
+    final $_column = $_itemColumn<int>('domain_id');
+    if ($_column == null) return null;
     final manager = $$DomainsTableTableManager(
       $_db,
       $_db.domains,
@@ -9990,7 +9993,7 @@ class $$PromptLogsTableTableManager
               ({
                 Value<int> id = const Value.absent(),
                 Value<int> createdAt = const Value.absent(),
-                Value<int> domainId = const Value.absent(),
+                Value<int?> domainId = const Value.absent(),
                 Value<int?> syllabusItemId = const Value.absent(),
                 Value<String> templateVersion = const Value.absent(),
                 Value<String> promptText = const Value.absent(),
@@ -10012,7 +10015,7 @@ class $$PromptLogsTableTableManager
               ({
                 Value<int> id = const Value.absent(),
                 required int createdAt,
-                required int domainId,
+                Value<int?> domainId = const Value.absent(),
                 Value<int?> syllabusItemId = const Value.absent(),
                 required String templateVersion,
                 required String promptText,
