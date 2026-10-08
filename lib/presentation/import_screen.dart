@@ -316,6 +316,15 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
       ]);
     }
     return ListView(padding: const EdgeInsets.symmetric(horizontal: 16), children: [
+      if (p.renamedFrom != null)
+        Card(
+          child: ListTile(
+            leading: const Icon(Icons.swap_horiz),
+            title: Text('These go to "${p.domain}"'),
+            subtitle: Text('The AI wrote the subject as "${p.renamedFrom}", but it matches the prompt you copied for "${p.domain}", '
+                'so the cards are added there.'),
+          ),
+        ),
       if (p.newDomain)
         Card(
           child: ListTile(

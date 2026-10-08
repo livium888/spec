@@ -29,12 +29,24 @@ class ImportService {
     final p = parseImportJson(raw);
     if (p.hasFatal) return p;
 
-    final dom = await _findDomain(p.domain);
+    var dom = await _findDomain(p.domain);
+    if (dom == null) {
+      // AIs sometimes rename the subject ("Psychology & Influence" for "Psychology and Influence").
+      // Importing that as a brand-new subject would leave the requested topic untouched, so the
+      // app would offer the same topic again and again. Match it to the prompt that was copied.
+      final asked = await _askedSubject(p);
+      if (asked != null) {
+        p.renamedFrom = p.domain;
+        p.domain = asked.name;
+        dom = asked;
+      }
+    }
     p.newDomain = dom == null;
 
     final existing = <String>{};
-    if (dom != null) {
-      final rows = await (db.select(db.notes)..where((n) => n.domainId.equals(dom.id))).get();
+    final found = dom;
+    if (found != null) {
+      final rows = await (db.select(db.notes)..where((n) => n.domainId.equals(found.id))).get();
       existing.addAll(rows.map((n) => n.guid));
     }
     final seen = <String>{};
@@ -53,6 +65,36 @@ class ImportService {
       }
     }
     return p;
+  }
+
+  /// The subject of a recent, still-unimported CARD prompt that this answer plausibly answers:
+  /// same topic title, or a subject name that contains / is contained in the one asked for.
+  /// Null if nothing matches, so a genuinely new subject is never forced into an old one.
+  Future<Domain?> _askedSubject(ImportPreview p) async {
+    final since = DateTime.now().toUtc().millisecondsSinceEpoch - 24 * 3600 * 1000;
+    final rows = await (db.select(db.promptLogs)
+          ..where((x) =>
+              x.status.equals('issued') &
+              x.domainId.isNotNull() &
+              x.syllabusItemId.isNotNull() &
+              x.createdAt.isBiggerOrEqualValue(since))
+          ..orderBy([(x) => OrderingTerm.desc(x.createdAt), (x) => OrderingTerm.desc(x.id)])
+          ..limit(5))
+        .get();
+    final wantItem = p.syllabusItem == null ? null : normalizeText(p.syllabusItem!);
+    final wantDomain = normalizeText(p.domain);
+    for (final r in rows) {
+      final dom = await (db.select(db.domains)..where((d) => d.id.equals(r.domainId!))).getSingleOrNull();
+      final item = await (db.select(db.syllabusItems)..where((i) => i.id.equals(r.syllabusItemId!))).getSingleOrNull();
+      if (dom == null || item == null) continue;
+      final name = normalizeText(dom.name);
+      final sameTopic = wantItem != null && wantItem.isNotEmpty && wantItem == normalizeText(item.title);
+      final similarName = wantDomain.length >= 4 &&
+          name.length >= 4 &&
+          (wantDomain.contains(name) || name.contains(wantDomain));
+      if (sameTopic || similarName) return dom;
+    }
+    return null;
   }
 
   /// Insert every `ok` card whose index is in [selected] (null = all).

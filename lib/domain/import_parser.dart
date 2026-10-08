@@ -63,10 +63,15 @@ class ImportPreview {
     required this.fatalErrors,
   });
 
-  final String domain;
+  /// The subject the cards go to. Normally what the AI wrote; the data layer may replace it with
+  /// the subject of the prompt the learner copied when the AI renamed it (see [renamedFrom]).
+  String domain;
   final String? syllabusItem;
   final List<ParsedCard> cards;
   final List<String> fatalErrors;
+
+  /// What the AI wrote as the subject, when it was matched to the subject of the prompt instead.
+  String? renamedFrom;
 
   /// Filled by the data layer (DB dedupe).
   final Map<int, PreviewStatus> status = {};

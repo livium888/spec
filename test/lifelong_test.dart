@@ -30,6 +30,7 @@ LearnPlan plan(List<ItemStats> items, List<DomainInfo> doms, {int seed = 1, Lear
     p.plan(domains: doms, items: items, capacity: _cap, seed: seed);
 
 void main() {
+  renamedSubjectTests();
   group('revisit rules (pure)', () {
     test('cool-down doubles each round and is capped at 12 years', () {
       expect([for (var r = 1; r <= 4; r++) planner.cooldownDays(r)], [90, 180, 360, 720]);
@@ -259,5 +260,73 @@ void main() {
     final dm = await db.select(db.domains).getSingle();
     expect((dm.name, dm.learnWeight, dm.revisit), ('Old', 2, true));
     expect((await db.select(db.syllabusItems).getSingle()).rounds, 1);
+  });
+}
+
+// ---- the AI renames the subject: the asked-for topic must still be answered ----
+void renamedSubjectTests() {
+  group('answer with a renamed subject', () {
+    late AppDatabase db;
+    late LearnService learn;
+    late ImportService imp;
+    setUp(() async {
+      db = AppDatabase(NativeDatabase.memory());
+      final s = SettingsRepo(db);
+      learn = LearnService(db, s, QueueService(db, s));
+      imp = ImportService(db);
+      final out = OutlineService(db);
+      await out.commit(await out.preview(
+          '{"domain":"Psychology and Influence","items":[{"title":"Memory and attention","target_cards":5},{"title":"Biases","target_cards":5}]}'));
+      await out.commit(await out.preview('{"domain":"Music","items":[{"title":"Rhythm","target_cards":5}]}'));
+    });
+    tearDown(() => db.close());
+
+    String cards(String domain, String? item, int n) => jsonEncode({
+          'domain': domain,
+          'syllabus_item': item,
+          'cards': [
+            for (var i = 0; i < n; i++)
+              {'type': 'basic', 'front': 'Question $domain $i?', 'back': 'A', 'source_type': 'model_memory', 'source_ref': '', 'supporting_quote': '', 'confidence': 'high'}
+          ]
+        });
+
+    test('"&" for "and": cards go to the subject that was asked for, so the topic is no longer offered again', () async {
+      final v = await learn.view();
+      final top = v.plan.options.first;
+      await learn.choose(top, v);
+      final name = top.item.domainName;
+      final renamed = '${name.replaceAll(' and ', ' & ')} (AI edition)';
+      final p = await imp.preview(cards(renamed, top.item.title, top.count));
+      expect(p.renamedFrom, renamed);
+      expect(p.domain, name);
+      expect(p.newDomain, isFalse);
+      await imp.commit(p);
+      expect((await db.select(db.domains).get()).length, 2); // no stray third subject
+      final v2 = await learn.view();
+      expect(v2.plan.options.first.item.id, isNot(top.item.id));
+    });
+
+    test('a different topic title but a similar subject name still maps to the asked subject', () async {
+      final v = await learn.view();
+      final top = v.plan.options.first;
+      await learn.choose(top, v);
+      final p = await imp.preview(cards('${top.item.domainName} 101', 'Totally rephrased title', 3));
+      expect(p.domain, top.item.domainName);
+    });
+
+    test('a genuinely different subject is NOT forced into the asked one', () async {
+      final v = await learn.view();
+      await learn.choose(v.plan.options.first, v);
+      final p = await imp.preview(cards('Chess openings', null, 3));
+      expect(p.renamedFrom, isNull);
+      expect(p.newDomain, isTrue);
+      expect(p.domain, 'Chess openings');
+    });
+
+    test('with no prompt outstanding nothing is remapped', () async {
+      final p = await imp.preview(cards('Psychology & Influence', null, 2));
+      expect(p.renamedFrom, isNull);
+      expect(p.newDomain, isTrue);
+    });
   });
 }
