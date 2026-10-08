@@ -1,8 +1,10 @@
 name: Build signed APK
 
-# Manual only for now: add the 4 signing secrets first, then run this from the
-# Actions tab. Re-enable the push trigger once secrets exist.
+# Builds on every push to main or a ccr-* branch (so each update yields a new APK
+# signed with the same key), and can also be run by hand from the Actions tab.
 on:
+  push:
+    branches: [main, 'ccr-**']
   workflow_dispatch:
 
 permissions:
