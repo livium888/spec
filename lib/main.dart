@@ -4,7 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'app/background.dart';
 import 'app/bootstrap.dart';
 import 'app/providers.dart';
-import 'presentation/home_screen.dart';
+import 'presentation/app_shell.dart';
+import 'presentation/theme/app_theme.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -24,17 +25,11 @@ class DailyLearningApp extends StatelessWidget {
   const DailyLearningApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    ThemeData theme(Brightness b) => ThemeData(
-          useMaterial3: true,
-          colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF3D5AFE), brightness: b),
-          visualDensity: VisualDensity.standard,
-        );
-    return MaterialApp(
-      title: 'Daily Learning',
-      theme: theme(Brightness.light),
-      darkTheme: theme(Brightness.dark),
-      home: const HomeScreen(),
-    );
-  }
+  Widget build(BuildContext context) => MaterialApp(
+        title: 'Daily Learning',
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.light(),
+        darkTheme: AppTheme.dark(),
+        home: const AppShell(),
+      );
 }

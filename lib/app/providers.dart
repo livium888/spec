@@ -11,6 +11,7 @@ import '../data/params_repo.dart';
 import '../data/queue_service.dart';
 import '../data/review_service.dart';
 import '../data/settings_repo.dart';
+import '../data/stats_service.dart';
 import 'bootstrap.dart';
 
 /// Where bundled starter subjects are read from (overridden in tests).
@@ -32,6 +33,8 @@ final paramsRepoProvider =
     Provider((ref) => ParamsRepo(ref.watch(dbProvider), ref.watch(settingsRepoProvider)));
 final reviewServiceProvider = Provider((ref) => ReviewService(
     ref.watch(dbProvider), ref.watch(settingsRepoProvider), ref.watch(paramsRepoProvider)));
+final statsServiceProvider =
+    Provider((ref) => StatsService(ref.watch(dbProvider), ref.watch(settingsRepoProvider)));
 final queueServiceProvider =
     Provider((ref) => QueueService(ref.watch(dbProvider), ref.watch(settingsRepoProvider)));
 final importServiceProvider = Provider((ref) => ImportService(ref.watch(dbProvider)));

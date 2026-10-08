@@ -10,6 +10,9 @@ import 'dart:io';
 
 void main() {
   testWidgets('home shows empty state and backup warning on a fresh install', (tester) async {
+    tester.view.physicalSize = const Size(411, 900); // a phone, not the 800x600 default
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
     final db = AppDatabase(NativeDatabase.memory());
     final bs = Bootstrap(File('unused'), Directory.systemTemp, db);
     await tester.pumpWidget(ProviderScope(
@@ -20,8 +23,7 @@ void main() {
     await tester.pump();
     await tester.pump();
 
-    expect(find.text('Daily Learning'), findsOneWidget);
-    expect(find.textContaining('Nothing here yet'), findsOneWidget);
+    expect(find.textContaining('plant your first cards'), findsOneWidget);
     expect(find.textContaining('Backups not set up'), findsOneWidget);
     expect(find.text('Learn something new'), findsOneWidget);
     expect(find.textContaining('Good time to learn'), findsOneWidget);

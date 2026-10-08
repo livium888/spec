@@ -3,12 +3,21 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:flutter/services.dart';
+
 import '../app/providers.dart';
+import '../data/stats_service.dart';
 import '../domain/models.dart';
-import '../domain/study_card.dart';
 import '../domain/study_advisor.dart';
+import '../domain/study_card.dart';
 import 'advice_card.dart';
 import 'format.dart';
+import 'theme/app_theme.dart';
+import 'theme/subject_style.dart';
+import 'theme/tokens.dart';
+import 'widgets/confetti.dart';
+import 'widgets/progress_ring.dart';
+import 'widgets/soft_card.dart';
 
 class ReviewScreen extends ConsumerStatefulWidget {
   const ReviewScreen({super.key});
@@ -31,6 +40,9 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
   Timer? _poll;
   bool _sessionEnded = false;
   Advice? _advice;
+  ProgressStats? _stats;
+  final _domainNames = <int, String>{};
+  final _ratings = <int>[];
 
   @override
   void initState() {
@@ -56,9 +68,17 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
       }
       if (!mounted) return;
       final adv = next == null ? await ref.read(learnServiceProvider).advice() : null;
+      final stats = next == null && _answered > 0 ? await ref.read(statsServiceProvider).compute() : null;
+      if (_domainNames.isEmpty) {
+        final db = ref.read(dbProvider);
+        for (final d in await db.select(db.domains).get()) {
+          _domainNames[d.id] = d.name;
+        }
+      }
       if (!mounted) return;
       setState(() {
         _advice = adv;
+        _stats = stats;
         _queue = q;
         _current = next;
         _preview = pv;
@@ -86,6 +106,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
     final c = _current;
     if (c == null || _busy) return;
     setState(() => _busy = true);
+    rating == Rating.again ? HapticFeedback.mediumImpact() : HapticFeedback.lightImpact();
     _stopwatch.stop();
     final ms = _stopwatch.elapsedMilliseconds;
     try {
@@ -95,6 +116,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
             durationMs: ms,
           );
       _touched.add(c.domainId);
+      _ratings.add(rating);
       _answered++;
       _totalMs += ms;
       if (res.becameLeech && mounted) {
@@ -124,6 +146,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
         }
       } else {
         if (_answered > 0) _answered--;
+        if (_ratings.isNotEmpty) _ratings.removeLast();
         _sessionEnded = false;
         await _load(force: await ref.read(queueServiceProvider).cardById(restored.id));
       }
@@ -201,19 +224,46 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
     );
   }
 
+  void _reveal() {
+    if (_revealed) return;
+    HapticFeedback.selectionClick();
+    setState(() => _revealed = true);
+  }
+
   @override
   Widget build(BuildContext context) {
+    final c = AppColors.of(context);
     final left = _queue?.ordered.length ?? 0;
+    final total = _answered + left;
     return Scaffold(
-      appBar: AppBar(
-        title: Text(_current == null ? 'Review' : '$left left'),
-        actions: [
-          IconButton(tooltip: 'Undo last answer', icon: const Icon(Icons.undo), onPressed: _busy ? null : _undo),
-          if (_current != null)
-            IconButton(tooltip: 'Suspend this card', icon: const Icon(Icons.pause_circle_outline), onPressed: _suspend),
-        ],
+      body: SafeArea(
+        child: Column(children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(4, 4, 4, 0),
+            child: Row(children: [
+              IconButton(tooltip: 'Close', icon: const Icon(Icons.close), onPressed: () => Navigator.of(context).maybePop()),
+              Expanded(
+                child: Semantics(
+                  label: 'Session progress',
+                  value: total == 0 ? '0%' : '${(_answered / total * 100).round()}%',
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(Rd.pill),
+                    child: TweenAnimationBuilder<double>(
+                      tween: Tween(end: total == 0 ? 0 : _answered / total),
+                      duration: const Duration(milliseconds: 350),
+                      builder: (_, v, _) => LinearProgressIndicator(value: v, minHeight: 8, color: c.accent, backgroundColor: c.line),
+                    ),
+                  ),
+                ),
+              ),
+              IconButton(tooltip: 'Undo last answer', icon: const Icon(Icons.undo), onPressed: _busy ? null : _undo),
+              if (_current != null)
+                IconButton(tooltip: 'Suspend this card', icon: const Icon(Icons.pause_circle_outline), onPressed: _suspend),
+            ]),
+          ),
+          Expanded(child: _content(context)),
+        ]),
       ),
-      body: SafeArea(child: _content(context)),
     );
   }
 
@@ -231,110 +281,273 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
         ),
       );
     }
-    final c = _current;
-    if (c == null) return _done(context);
+    final card = _current;
+    if (card == null) return _done(context);
+    final reduce = MediaQuery.maybeDisableAnimationsOf(context) ?? false;
 
-    final text = Theme.of(context).textTheme;
     return Column(children: [
       Expanded(
-        child: GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: _revealed ? null : () => setState(() => _revealed = true),
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(20),
+        child: AnimatedSwitcher(
+          duration: reduce ? Duration.zero : const Duration(milliseconds: 280),
+          layoutBuilder: (current, previous) => Stack(
+            fit: StackFit.expand,
+            alignment: Alignment.topCenter,
+            children: [...previous, ?current],
+          ),
+          transitionBuilder: (child, anim) => FadeTransition(
+            opacity: anim,
+            child: SlideTransition(
+              position: Tween(begin: const Offset(0.06, 0), end: Offset.zero).animate(anim),
+              child: child,
+            ),
+          ),
+          child: KeyedSubtree(key: ValueKey(card.id), child: _cardView(context, card, reduce)),
+        ),
+      ),
+      Padding(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+        child: _revealed ? _ratingRow(context) : _showAnswerButton(),
+      ),
+    ]);
+  }
+
+  String _stateLabel(StudyCard c) => switch (c.snapshot.state) {
+        CardState.newCard => 'New',
+        CardState.learning => 'Learning',
+        CardState.review => 'Review',
+        CardState.relearning => 'Relearning',
+      };
+
+  Widget _cardView(BuildContext context, StudyCard card, bool reduce) {
+    final c = AppColors.of(context);
+    final t = Theme.of(context).textTheme;
+    final name = _domainNames[card.domainId] ?? '';
+    final style = SubjectStyle.of(card.domainId, name, c.brightness);
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: _revealed ? null : _reveal,
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+        child: SoftCard(
+          radius: Rd.hero,
+          padding: const EdgeInsets.fromLTRB(22, 20, 22, 24),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 300),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Wrap(spacing: 8, children: [
-                Chip(label: Text(c.snapshot.state == CardState.newCard ? 'New' : c.snapshot.state.name)),
-                if (c.unverified)
-                  const Chip(
-                      avatar: Icon(Icons.help_outline, size: 18),
-                      label: Text('Unverified source')),
+              Wrap(spacing: 8, runSpacing: 6, children: [
+                if (name.isNotEmpty)
+                  _Tag(icon: style.icon, text: name, fg: style.strong, bg: style.tint),
+                _Tag(text: _stateLabel(card), fg: c.inkSoft, bg: c.surfaceDim),
+                if (card.unverified)
+                  _Tag(icon: Icons.help_outline, text: 'Unverified', fg: c.warn, bg: c.warnTint),
               ]),
-              const SizedBox(height: 16),
+              const SizedBox(height: 22),
               // Plain Text only: card content comes from an LLM and is never interpreted as markup.
-              SelectableText(c.front, style: text.headlineSmall),
-              if (_revealed) ...[
-                const Divider(height: 32),
-                SelectableText(c.back, style: text.titleLarge),
-                for (final (label, body) in c.extras)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 14),
-                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Text(label, style: text.labelLarge),
-                      const SizedBox(height: 2),
-                      SelectableText(body, style: text.bodyLarge),
-                    ]),
-                  ),
-                if ((c.fields['supporting_quote'] as String? ?? '').isNotEmpty) ...[
-                  const SizedBox(height: 16),
-                  Text('Source: “${c.fields['supporting_quote']}”', style: text.bodyMedium),
-                ],
+              // Not selectable on purpose: selectable text swallows taps, and a tap anywhere on the card reveals the answer.
+              Text(card.front, style: AppText.serif(26, weight: 600, height: 1.32, color: c.ink)),
+              AnimatedSize(
+                duration: reduce ? Duration.zero : const Duration(milliseconds: 260),
+                curve: Curves.easeOutCubic,
+                alignment: Alignment.topCenter,
+                child: _revealed ? _answerSide(context, card, style) : const SizedBox(width: double.infinity),
+              ),
+              if (!_revealed) ...[
+                const SizedBox(height: 28),
+                Row(children: [
+                  Icon(Icons.touch_app_outlined, size: 18, color: c.inkSoft),
+                  const SizedBox(width: 6),
+                  Text('Think of your answer, then tap to reveal', style: t.bodySmall),
+                ]),
               ],
             ]),
           ),
         ),
       ),
-      Padding(
-        padding: const EdgeInsets.all(12),
-        child: _revealed
-            ? Row(children: [
-                for (final r in Rating.all)
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 3),
-                      child: Semantics(
-                        label: '${ratingName(r)}, next in ${formatInterval(_preview[r] ?? Duration.zero)}',
-                        excludeSemantics: true,
-                        child: FilledButton.tonal(
-                          style: FilledButton.styleFrom(
-                              minimumSize: const Size(0, 64), padding: const EdgeInsets.symmetric(horizontal: 2)),
-                          onPressed: _busy ? null : () => _answer(r),
-                          child: Column(mainAxisSize: MainAxisSize.min, children: [
-                            Text(ratingName(r)),
-                            Text(formatInterval(_preview[r] ?? Duration.zero), style: text.labelSmall),
-                          ]),
-                        ),
-                      ),
-                    ),
+    );
+  }
+
+  Widget _answerSide(BuildContext context, StudyCard card, SubjectStyle style) {
+    final c = AppColors.of(context);
+    final t = Theme.of(context).textTheme;
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: const Duration(milliseconds: 320),
+      builder: (_, v, child) => Opacity(opacity: v, child: child),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        const SizedBox(height: 20),
+        Container(width: 44, height: 4, decoration: BoxDecoration(color: style.strong, borderRadius: BorderRadius.circular(2))),
+        const SizedBox(height: 16),
+        SelectableText(card.back, style: AppText.sans(20, weight: 650, height: 1.4, color: c.ink)),
+        for (final (label, body) in card.extras)
+          Padding(
+            padding: const EdgeInsets.only(top: 18),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(label, style: t.labelMedium?.copyWith(color: style.strong, fontWeight: FontWeight.w700)),
+              const SizedBox(height: 3),
+              SelectableText(body, style: t.bodyLarge),
+            ]),
+          ),
+        if ((card.fields['supporting_quote'] as String? ?? '').isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(top: 18),
+            child: Text('Source: “${card.fields['supporting_quote']}”', style: t.bodySmall),
+          ),
+      ]),
+    );
+  }
+
+  Widget _showAnswerButton() => FilledButton(
+        style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(60)),
+        onPressed: _reveal,
+        child: const Text('Show answer'),
+      );
+
+  Widget _ratingRow(BuildContext context) {
+    final c = AppColors.of(context);
+    final t = Theme.of(context).textTheme;
+    final looks = {
+      Rating.again: (c.dangerTint, c.danger),
+      Rating.hard: (c.warnTint, c.warn),
+      Rating.good: (c.goodTint, c.good),
+      Rating.easy: (c.infoTint, c.info),
+    };
+    return Row(children: [
+      for (final r in Rating.all)
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 3),
+            child: Semantics(
+              button: true,
+              label: '${ratingName(r)}, next in ${formatInterval(_preview[r] ?? Duration.zero)}',
+              excludeSemantics: true,
+              child: Material(
+                color: looks[r]!.$1,
+                borderRadius: BorderRadius.circular(18),
+                clipBehavior: Clip.antiAlias,
+                child: InkWell(
+                  onTap: _busy ? null : () => _answer(r),
+                  child: SizedBox(
+                    height: 68,
+                    child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                      Text(ratingName(r), style: AppText.sans(15, weight: 700, color: looks[r]!.$2)),
+                      const SizedBox(height: 2),
+                      Text(formatInterval(_preview[r] ?? Duration.zero),
+                          style: t.labelSmall?.copyWith(color: looks[r]!.$2)),
+                    ]),
                   ),
-              ])
-            : FilledButton(
-                style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(56)),
-                onPressed: () => setState(() => _revealed = true),
-                child: const Text('Show answer'),
+                ),
               ),
-      ),
+            ),
+          ),
+        ),
     ]);
   }
 
   Widget _done(BuildContext context) {
+    final c = AppColors.of(context);
+    final t = Theme.of(context).textTheme;
     final waiting = _queue?.nextLearningDue;
     final mins = waiting == null
         ? null
         : ((waiting - DateTime.now().millisecondsSinceEpoch) / 60000).ceil().clamp(1, 100000);
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Icon(waiting == null ? Icons.check_circle_outline : Icons.hourglass_bottom, size: 56),
-          const SizedBox(height: 12),
-          Text(
-            waiting == null ? 'All done for today' : 'Next card in about $mins min',
-            style: Theme.of(context).textTheme.headlineSmall,
-            textAlign: TextAlign.center,
-          ),
-          if (_answered > 0) ...[
-            const SizedBox(height: 8),
-            Text('$_answered answered in ${(_totalMs / 60000).toStringAsFixed(1)} min'),
-          ],
-          if (_advice != null) ...[
-            const SizedBox(height: 12),
-            AdviceCard(_advice!),
-          ],
-          const SizedBox(height: 16),
-          FilledButton(onPressed: () => Navigator.pop(context), child: const Text('Back to home')),
-        ]),
+    final passed = _ratings.where((r) => r > Rating.again).length;
+    final pct = _ratings.isEmpty ? null : (passed / _ratings.length * 100).round();
+    final stats = _stats;
+    final celebrate = _answered > 0 && waiting == null;
+    final tomorrow = stats != null && stats.forecast.length > 1 ? stats.forecast[1] : null;
+
+    return Stack(children: [
+      if (celebrate) Positioned.fill(child: ConfettiBurst(colors: [c.accent, c.good, c.info, c.warn])),
+      Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            ProgressRing(
+              value: 1,
+              size: 112,
+              stroke: 12,
+              color: waiting == null ? c.good : c.warn,
+              track: waiting == null ? c.goodTint : c.warnTint,
+              semanticLabel: 'Session complete',
+              child: Icon(waiting == null ? Icons.check_rounded : Icons.hourglass_bottom,
+                  size: 48, color: waiting == null ? c.good : c.warn),
+            ),
+            const SizedBox(height: 20),
+            Text(waiting == null ? (_answered > 0 ? 'Nicely done' : 'All done for today') : 'Next card in about $mins min',
+                textAlign: TextAlign.center, style: t.headlineMedium),
+            if (_answered > 0) ...[
+              const SizedBox(height: 18),
+              Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                _SummaryStat('$_answered', _answered == 1 ? 'card' : 'cards'),
+                _SummaryStat(_formatMs(_totalMs), 'studied'),
+                if (pct != null) _SummaryStat('$pct%', 'remembered'),
+              ]),
+            ],
+            if (stats != null && stats.streak.current > 0) ...[
+              const SizedBox(height: 18),
+              SoftCard(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  Icon(Icons.local_fire_department_rounded, color: c.accent),
+                  const SizedBox(width: 8),
+                  Text('${stats.streak.current}-day streak', style: t.titleSmall),
+                  if (tomorrow != null && tomorrow > 0) ...[
+                    const SizedBox(width: 14),
+                    Text('$tomorrow ${tomorrow == 1 ? 'review' : 'reviews'} tomorrow', style: t.bodySmall),
+                  ],
+                ]),
+              ),
+            ],
+            if (_advice != null) ...[
+              const SizedBox(height: 14),
+              AdviceCard(_advice!, compact: true),
+            ],
+            const SizedBox(height: 22),
+            FilledButton(
+              style: FilledButton.styleFrom(minimumSize: const Size(220, 56)),
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Back to home'),
+            ),
+          ]),
+        ),
       ),
-    );
+    ]);
   }
+
+  static String _formatMs(int ms) {
+    final s = (ms / 1000).round();
+    if (s < 60) return '${s}s';
+    return '${(s / 60).round()} min';
+  }
+}
+
+class _Tag extends StatelessWidget {
+  const _Tag({required this.text, required this.fg, required this.bg, this.icon});
+  final String text;
+  final Color fg, bg;
+  final IconData? icon;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(Rd.pill)),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          if (icon != null) ...[Icon(icon, size: 15, color: fg), const SizedBox(width: 5)],
+          Text(text, style: AppText.sans(12.5, weight: 650, color: fg)),
+        ]),
+      );
+}
+
+class _SummaryStat extends StatelessWidget {
+  const _SummaryStat(this.value, this.label);
+  final String value, label;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14),
+        child: Column(children: [
+          Text(value, style: AppText.serif(28, weight: 700, color: AppColors.of(context).ink)),
+          Text(label, style: Theme.of(context).textTheme.labelMedium),
+        ]),
+      );
 }

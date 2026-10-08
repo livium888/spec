@@ -8,6 +8,8 @@ import '../domain/learn_planner.dart';
 import '../domain/study_advisor.dart';
 import 'advice_card.dart';
 import 'import_screen.dart';
+import 'theme/tokens.dart';
+import 'widgets/soft_card.dart';
 import 'learn_screen.dart';
 
 /// The prompt to copy into an LLM, with the reasons it was chosen.
@@ -50,26 +52,53 @@ class PromptResultScreen extends ConsumerWidget {
       appBar: AppBar(title: const Text('Your prompt')),
       body: SafeArea(
         child: ListView(padding: const EdgeInsets.all(16), children: [
-          Text(prompt.headline, style: t.titleLarge),
+          Text(prompt.headline, style: t.headlineSmall),
           if (wasPending)
             const Padding(
               padding: EdgeInsets.only(top: 8),
               child: Text('You asked for this earlier and have not imported the answer yet.'),
             ),
           if (prompt.reasons.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            Text('Why this one', style: t.labelLarge),
-            for (final r in prompt.reasons) Text('• $r'),
+            const SizedBox(height: Sp.m),
+            SoftCard(
+              color: AppColors.of(context).accentTint,
+              borderColor: Colors.transparent,
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text('Why this one', style: t.labelLarge),
+                const SizedBox(height: 4),
+                for (final r in prompt.reasons) Text(r, style: t.bodyMedium),
+              ]),
+            ),
           ],
           if (advice != null) ...[
-            const SizedBox(height: 8),
+            const SizedBox(height: Sp.s),
             AdviceCard(advice!, compact: true),
           ],
-          const SizedBox(height: 8),
-          const Text('1. Copy the prompt.\n'
-              '2. Paste it into Claude, Gemini, ChatGPT, DeepSeek or any LLM.\n'
-              '3. Copy the JSON it answers with.\n'
-              '4. Come back and tap "Paste the answer".'),
+          const SizedBox(height: Sp.l),
+          SoftCard(
+            child: Column(children: [
+              for (final (i, step) in const [
+                'Copy the prompt.',
+                'Paste it into Claude, Gemini, ChatGPT, DeepSeek or any LLM.',
+                'Copy the JSON it answers with.',
+                'Come back and tap "Paste the answer".',
+              ].indexed)
+                Padding(
+                  padding: EdgeInsets.only(bottom: i == 3 ? 0 : 10),
+                  child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Container(
+                      width: 26,
+                      height: 26,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(color: AppColors.of(context).accentTint, shape: BoxShape.circle),
+                      child: Text('${i + 1}', style: t.labelLarge?.copyWith(color: AppColors.of(context).accent)),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(child: Text(step, style: t.bodyMedium)),
+                  ]),
+                ),
+            ]),
+          ),
           const SizedBox(height: 16),
           FilledButton.icon(
             style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(56)),

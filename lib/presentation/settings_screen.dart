@@ -207,7 +207,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           child: TextField(
             controller: c,
             keyboardType: number ? const TextInputType.numberWithOptions(decimal: true) : TextInputType.text,
-            decoration: InputDecoration(labelText: label, helperText: help),
+            decoration: InputDecoration(labelText: label, helperText: help, helperMaxLines: 3),
           ),
         );
     return Scaffold(

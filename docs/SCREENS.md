@@ -108,3 +108,26 @@ After "Show answer": the short answer, then labelled sections **Why it matters**
 
 ## Settings: About you
 Optional multi-line field (300 characters) with a note that it is added to card prompts and so goes to the LLM you paste into.
+
+## Navigation (current)
+Bottom bar: **Today**, **Progress**, **Library**. Settings is the gear in the Today header.
+
+## Today
+Greeting + date; hero card (progress ring with cards left, headline, streak with a 7-day strip, one primary button: "Start review" / "Keep going" / "Get started"); "Learn something new" tile; advice card; horizontal subject tiles (icon, name, due count, long-term-memory bar); backup status.
+| State | Behaviour |
+|---|---|
+| no cards yet | ring empty, "Let's plant your first cards", button "Get started" |
+| cards waiting | "N cards waiting", about M min, "Start review" (or "Keep going" if some answered) |
+| all done | check in the ring, "All done for today", how many tomorrow |
+| caught up | "You're all caught up", how many tomorrow |
+| streak at risk | "N-day streak · rest day used" when yesterday was forgiven |
+| error | message + Retry |
+
+## Progress
+Streak card (current, best); 17-week activity heatmap with a text summary; long-term memory count and 30-day recall; stacked bar New / Learning / Growing / Long-term; 7-day forecast bars; milestones (earned or n/goal).
+
+## Library
+Subject tiles (2 columns) and the ways to add: starter library, paste an answer, new subject, custom prompt, add a card; Subjects and topics settings.
+
+## Review (current)
+Close, thin progress bar, undo, suspend. Large card: subject tag, state tag, "Unverified" tag, question in serif. Tap anywhere (or "Show answer") to reveal: short answer, then Why it matters / Example / Memory hook. Four colour-coded rating buttons with next interval. End: ring, summary (cards, time, % remembered), streak, advice, "Back to home".

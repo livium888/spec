@@ -6,53 +6,38 @@ import '../app/providers.dart';
 import '../data/backup/backup_service.dart';
 import '../data/backup/backup_storage.dart';
 import '../data/settings_repo.dart';
+import '../data/stats_service.dart';
 import '../domain/study_advisor.dart';
 import '../domain/study_card.dart';
 import 'advice_card.dart';
-import 'add_card_screen.dart';
-import 'import_screen.dart';
 import 'learn_screen.dart';
-import 'topics_screen.dart';
-import 'prompt_screen.dart';
 import 'review_screen.dart';
 import 'settings_screen.dart';
-
-class DomainRow {
-  const DomainRow(this.id, this.name, this.due, this.fresh, this.leeches);
-  final int id;
-  final String name;
-  final int due, fresh, leeches;
-}
+import 'theme/app_theme.dart';
+import 'theme/subject_style.dart';
+import 'theme/tokens.dart';
+import 'topics_screen.dart';
+import 'widgets/progress_ring.dart';
+import 'widgets/soft_card.dart';
 
 class HomeData {
-  const HomeData(this.domains, this.queue, this.lastBackupMs, this.folderSet, this.advice);
-  final List<DomainRow> domains;
+  const HomeData(this.queue, this.lastBackupMs, this.folderSet, this.advice, this.stats);
   final DailyQueue queue;
   final int lastBackupMs; // 0 = never
   final bool folderSet;
   final Advice advice;
+  final ProgressStats stats;
 }
 
 final homeDataProvider = FutureProvider.autoDispose<HomeData>((ref) async {
   ref.watch(refreshProvider);
-  final db = ref.watch(dbProvider);
-  final queues = ref.watch(queueServiceProvider);
   final settings = ref.watch(settingsRepoProvider);
-  final features = await ref.watch(featuresServiceProvider).compute();
-  final leeches = {for (final d in features.domains) d.domainId: d.leechCount};
-  final rows = <DomainRow>[];
-  for (final d in await db.select(db.domains).get()) {
-    if (!d.active) continue;
-    final q = await queues.build(domainId: d.id);
-    rows.add(DomainRow(d.id, d.name, q.learning.length + q.reviews.length, q.newCards.length,
-        leeches[d.id] ?? 0));
-  }
   return HomeData(
-    rows,
-    await queues.build(),
+    await ref.watch(queueServiceProvider).build(),
     await settings.getInt(BackupService.lastSuccessKey, 0),
     await settings.get(SettingsRepo.backupTreeUri) != null,
     await ref.watch(learnServiceProvider).advice(),
+    await ref.watch(statsServiceProvider).compute(),
   );
 });
 
@@ -86,31 +71,25 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     if (mounted) ref.read(refreshProvider.notifier).bump();
   }
 
+  static const _weekdays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+  static const _months = [
+    'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'
+  ];
+
   @override
   Widget build(BuildContext context) {
     final data = ref.watch(homeDataProvider);
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Daily Learning'),
-        actions: [
-          IconButton(
-            tooltip: 'Settings and backup',
-            icon: const Icon(Icons.settings),
-            onPressed: () => _go(const SettingsScreen()),
-          ),
-        ],
-      ),
-      body: data.when(
+    return SafeArea(
+      bottom: false,
+      child: data.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(
           child: Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(24),
             child: Column(mainAxisSize: MainAxisSize.min, children: [
               Text('Could not load: $e'),
               const SizedBox(height: 12),
-              FilledButton(
-                  onPressed: () => ref.read(refreshProvider.notifier).bump(),
-                  child: const Text('Retry')),
+              FilledButton(onPressed: () => ref.read(refreshProvider.notifier).bump(), child: const Text('Retry')),
             ]),
           ),
         ),
@@ -120,81 +99,283 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   Widget _body(BuildContext context, HomeData d) {
-    final total = d.queue.ordered.length;
+    final t = Theme.of(context).textTheme;
+    final now = DateTime.now();
+    final greeting = now.hour < 12 ? 'Good morning' : now.hour < 18 ? 'Good afternoon' : 'Good evening';
     return ListView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
       children: [
-        _BackupBanner(d, onTap: () => _go(const SettingsScreen())),
-        const SizedBox(height: 8),
+        Row(children: [
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(greeting, style: t.headlineMedium),
+              Text('${_weekdays[now.weekday - 1]}, ${now.day} ${_months[now.month - 1]}', style: t.bodySmall),
+            ]),
+          ),
+          IconButton(
+            tooltip: 'Settings and backup',
+            icon: const Icon(Icons.settings_outlined),
+            onPressed: () => _go(const SettingsScreen()),
+          ),
+        ]),
+        const SizedBox(height: Sp.l),
+        _TodayCard(d, onReview: () => _go(const ReviewScreen()), onLearn: () => _go(const LearnScreen())),
+        const SizedBox(height: Sp.m),
+        _LearnTile(d.advice, onTap: () => _go(const LearnScreen())),
+        const SizedBox(height: Sp.s),
         AdviceCard(d.advice, compact: true),
-        const SizedBox(height: 8),
-        if (d.domains.isEmpty)
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Text(
-                'Nothing here yet. Tap "Learn something new": the app picks what to teach you next and writes a '
-                'prompt. Paste it into your LLM, then paste the JSON answer back to import.',
-                style: Theme.of(context).textTheme.bodyLarge,
-              ),
-            ),
-          )
-        else
-          for (final r in d.domains)
-            Card(
-              child: ListTile(
-                onTap: () => _go(const TopicsScreen()),
-                trailing: const Icon(Icons.chevron_right),
-                title: Text(r.name),
-                subtitle: Text('${r.due} due · ${r.fresh} new'
-                    '${r.leeches > 0 ? ' · ${r.leeches} leech${r.leeches == 1 ? '' : 'es'}' : ''}'),
-              ),
-            ),
-        const SizedBox(height: 16),
-        FilledButton.icon(
-          style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(56)),
-          icon: const Icon(Icons.play_arrow),
-          label: Text(total > 0 ? 'Review ($total)' : 'Review'),
-          onPressed: () => _go(const ReviewScreen()),
-        ),
-        if (total == 0 && d.domains.isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.only(top: 8),
-            child: Text(
-              d.queue.nextLearningDue != null
-                  ? 'Nothing due right now. A learning card returns soon.'
-                  : 'All done for today.',
-              textAlign: TextAlign.center,
+        if (d.stats.subjects.isNotEmpty) ...[
+          const SectionTitle('Your subjects'),
+          SizedBox(
+            height: 150,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              clipBehavior: Clip.none,
+              itemCount: d.stats.subjects.length,
+              separatorBuilder: (_, _) => const SizedBox(width: Sp.m),
+              itemBuilder: (context, i) {
+                final s = d.stats.subjects[i];
+                return SubjectTile(s, onTap: () => _go(TopicsScreen(domainId: s.domainId)));
+              },
             ),
           ),
-        const SizedBox(height: 8),
-        FilledButton.tonalIcon(
-          style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(56)),
-          icon: const Icon(Icons.auto_awesome),
-          label: const Text('Learn something new'),
-          onPressed: () => _go(const LearnScreen()),
-        ),
-        const SizedBox(height: 16),
-        Wrap(spacing: 8, runSpacing: 8, children: [
-          OutlinedButton.icon(
-              icon: const Icon(Icons.content_paste),
-              label: const Text('Import'),
-              onPressed: () => _go(const ImportScreen())),
-          OutlinedButton.icon(
-              icon: const Icon(Icons.auto_awesome),
-              label: const Text('Custom prompt'),
-              onPressed: () => _go(const PromptScreen())),
-          OutlinedButton.icon(
-              icon: const Icon(Icons.add),
-              label: const Text('Add card'),
-              onPressed: () => _go(const AddCardScreen())),
-        ]),
+        ],
+        const SizedBox(height: Sp.xl),
+        _BackupBanner(d, onTap: () => _go(const SettingsScreen())),
       ],
     );
   }
 }
 
-/// Backup status. State is conveyed by icon + words + colour, never colour alone.
+/// The hero: how much is left today, the streak, and the one big button.
+class _TodayCard extends StatelessWidget {
+  const _TodayCard(this.d, {required this.onReview, required this.onLearn});
+  final HomeData d;
+  final VoidCallback onReview, onLearn;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = AppColors.of(context);
+    final t = Theme.of(context).textTheme;
+    final s = d.stats;
+    final remaining = d.queue.ordered.length;
+    final done = s.todayAnswered;
+    final total = done + remaining;
+    final noCards = s.totalCards == 0;
+    final caughtUp = remaining == 0 && !noCards;
+    final mins = (remaining * 12 / 60).ceil().clamp(1, 999);
+    final tomorrow = s.forecast.length > 1 ? s.forecast[1] : 0;
+
+    final String headline;
+    final String sub;
+    if (noCards) {
+      headline = 'Let\'s plant your first cards';
+      sub = 'Tap "Learn something new" and the app will pick a topic and write the prompt for you.';
+    } else if (remaining > 0) {
+      headline = remaining == 1 ? '1 card waiting' : '$remaining cards waiting';
+      sub = 'About $mins min${done > 0 ? ' · $done done today' : ''}';
+    } else if (done > 0) {
+      headline = 'All done for today';
+      sub = 'You answered $done in ${s.todayMinutes < 1 ? 'under a minute' : '${s.todayMinutes.round()} min'}.'
+          '${tomorrow > 0 ? ' $tomorrow reviews are scheduled for tomorrow.' : ''}';
+    } else {
+      headline = 'You\'re all caught up';
+      sub = tomorrow > 0 ? 'Nothing due now. $tomorrow reviews are scheduled for tomorrow.' : 'Nothing due right now.';
+    }
+
+    return SoftCard(
+      radius: Rd.hero,
+      padding: const EdgeInsets.all(20),
+      color: c.surface,
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          ProgressRing(
+            value: noCards ? 0 : (total == 0 ? 1 : done / total),
+            color: caughtUp ? c.good : c.accent,
+            track: c.accentTint,
+            size: 104,
+            stroke: 11,
+            semanticLabel: 'Today\'s progress',
+            child: caughtUp
+                ? Icon(Icons.check_rounded, color: c.good, size: 40)
+                : noCards
+                    ? Icon(Icons.spa_outlined, color: c.accent, size: 36)
+                    : Column(mainAxisSize: MainAxisSize.min, children: [
+                        Text('$remaining', style: AppText.serif(30, weight: 700, color: c.ink, height: 1.0)),
+                        Text('left', style: t.labelSmall),
+                      ]),
+          ),
+          const SizedBox(width: 18),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(headline, style: t.headlineSmall),
+              const SizedBox(height: 4),
+              Text(sub, style: t.bodyMedium?.copyWith(color: c.inkSoft)),
+            ]),
+          ),
+        ]),
+        const SizedBox(height: 16),
+        _StreakRow(s),
+        if (remaining > 0) ...[
+          const SizedBox(height: 16),
+          FilledButton(
+            style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(56)),
+            onPressed: onReview,
+            child: Text(done > 0 ? 'Keep going' : 'Start review'),
+          ),
+        ] else if (noCards) ...[
+          const SizedBox(height: 16),
+          FilledButton.icon(
+            style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(56)),
+            icon: const Icon(Icons.auto_awesome),
+            onPressed: onLearn,
+            label: const Text('Get started'),
+          ),
+        ],
+      ]),
+    );
+  }
+}
+
+class _StreakRow extends StatelessWidget {
+  const _StreakRow(this.s);
+  final ProgressStats s;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = AppColors.of(context);
+    final t = Theme.of(context).textTheme;
+    final st = s.streak;
+    final text = st.current == 0
+        ? 'Start a streak today'
+        : st.restDayProtected
+            ? '${st.current}-day streak · rest day used'
+            : '${st.current}-day streak';
+    final weekday = DateTime.now().weekday;
+    const letters = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+    return Row(children: [
+      Icon(Icons.local_fire_department_outlined, size: 22, color: st.current > 0 ? c.accent : c.inkSoft),
+      const SizedBox(width: 6),
+      Expanded(child: Text(text, style: t.titleSmall)),
+      Semantics(
+        label: 'Last 7 days: studied on ${s.weekActive.where((x) => x).length}.',
+        child: ExcludeSemantics(
+          child: Row(children: [
+            for (var i = 0; i < 7; i++)
+              Padding(
+                padding: const EdgeInsets.only(left: 5),
+                child: Column(mainAxisSize: MainAxisSize.min, children: [
+                  Container(
+                    width: 18,
+                    height: 18,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: s.weekActive[i] ? c.accent : Colors.transparent,
+                      border: Border.all(color: s.weekActive[i] ? c.accent : c.line, width: 1.5),
+                    ),
+                    child: s.weekActive[i] ? Icon(Icons.check, size: 12, color: c.onAccent) : null,
+                  ),
+                  const SizedBox(height: 2),
+                  Text(letters[((weekday - 1) - (6 - i)) % 7],
+                      style: t.labelSmall?.copyWith(fontSize: 10)),
+                ]),
+              ),
+          ]),
+        ),
+      ),
+    ]);
+  }
+}
+
+class _LearnTile extends StatelessWidget {
+  const _LearnTile(this.advice, {required this.onTap});
+  final Advice advice;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = AppColors.of(context);
+    final t = Theme.of(context).textTheme;
+    return SoftCard(
+      color: c.accentTint,
+      borderColor: Colors.transparent,
+      onTap: onTap,
+      semanticLabel: 'Learn something new',
+      child: Row(children: [
+        Container(
+          width: 48,
+          height: 48,
+          decoration: BoxDecoration(color: c.accent, shape: BoxShape.circle),
+          child: Icon(Icons.auto_awesome, color: c.onAccent),
+        ),
+        const SizedBox(width: 14),
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('Learn something new', style: t.titleMedium),
+            Text('The app picks the topic and writes the prompt.', style: t.bodySmall?.copyWith(color: c.ink)),
+          ]),
+        ),
+        Icon(Icons.chevron_right, color: c.ink),
+      ]),
+    );
+  }
+}
+
+/// A subject as a small coloured tile: icon, name, how much is in long-term memory, what is due.
+class SubjectTile extends StatelessWidget {
+  const SubjectTile(this.s, {super.key, required this.onTap, this.width = 160});
+  final SubjectStat s;
+  final VoidCallback onTap;
+  final double width;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = AppColors.of(context);
+    final t = Theme.of(context).textTheme;
+    final st = SubjectStyle.of(s.domainId, s.name, c.brightness);
+    return SizedBox(
+      width: width,
+      child: SoftCard(
+        onTap: onTap,
+        padding: const EdgeInsets.all(14),
+        semanticLabel: '${s.name}: ${s.cards} cards, ${s.mature} in long-term memory, ${s.dueNow} due',
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [
+            Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(color: st.tint, borderRadius: BorderRadius.circular(12)),
+              child: Icon(st.icon, color: st.strong, size: 22),
+            ),
+            const Spacer(),
+            if (s.dueNow > 0)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(color: st.tint, borderRadius: BorderRadius.circular(Rd.pill)),
+                child: Text('${s.dueNow} due', style: t.labelSmall?.copyWith(color: st.strong)),
+              ),
+          ]),
+          const Spacer(),
+          Text(s.name, maxLines: 2, overflow: TextOverflow.ellipsis, style: t.titleSmall),
+          const SizedBox(height: 8),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(Rd.pill),
+            child: LinearProgressIndicator(
+              value: s.masteredShare,
+              minHeight: 6,
+              color: st.strong,
+              backgroundColor: st.tint,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(s.cards == 0 ? 'No cards yet' : '${s.cards} cards', style: t.labelSmall),
+        ]),
+      ),
+    );
+  }
+}
+
+/// Backup status. State is conveyed by icon AND words, never colour alone.
 class _BackupBanner extends StatelessWidget {
   const _BackupBanner(this.d, {required this.onTap});
   final HomeData d;
@@ -202,7 +383,7 @@ class _BackupBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
+    final c = AppColors.of(context);
     String text;
     var bad = false;
     if (!d.folderSet) {
@@ -217,31 +398,20 @@ class _BackupBanner extends StatelessWidget {
       final when = days == 0 ? 'today' : '$days day${days == 1 ? '' : 's'} ago';
       text = 'Last backup: $when${bad ? ' - OVERDUE' : ''}';
     }
-    final color = bad ? cs.error : cs.onSurface;
-    return Semantics(
-      button: true,
-      label: text,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          constraints: const BoxConstraints(minHeight: 48),
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          decoration: BoxDecoration(
-            border: Border.all(color: bad ? cs.error : cs.outlineVariant),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Row(children: [
-            Icon(bad ? Icons.warning_amber : Icons.cloud_done_outlined, color: color),
-            const SizedBox(width: 8),
-            Expanded(child: Text(text, style: TextStyle(color: color))),
-          ]),
-        ),
-      ),
+    return SoftCard(
+      onTap: onTap,
+      color: bad ? c.dangerTint : c.surface,
+      borderColor: bad ? c.danger : c.line,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      semanticLabel: text,
+      child: Row(children: [
+        Icon(bad ? Icons.warning_amber_rounded : Icons.cloud_done_outlined, color: bad ? c.danger : c.good),
+        const SizedBox(width: 10),
+        Expanded(child: Text(text, style: Theme.of(context).textTheme.bodyMedium)),
+      ]),
     );
   }
 }
 
-// Re-exported so SettingsScreen can share the picker without importing saf_util twice.
 Future<String?> pickBackupFolder() async =>
     (await SafUtil().pickDirectory(writePermission: true, persistablePermission: true))?.uri;

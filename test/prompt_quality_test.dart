@@ -221,7 +221,7 @@ void main() {
       await t.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 80)));
       await t.pump(const Duration(milliseconds: 50));
     }
-    await t.tap(find.textContaining('Review ('));
+    await t.tap(find.text('Start review'));
     for (var i = 0; i < 8; i++) {
       await t.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 80)));
       await t.pump(const Duration(milliseconds: 50));
