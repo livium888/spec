@@ -15,6 +15,7 @@ import 'package:daily_learning/main.dart';
 import 'package:drift/drift.dart' show Value;
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show SystemChannels;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
@@ -79,6 +80,7 @@ void main() {
   editDeleteWidgetTests();
   guideWidgetTests();
   memoryModelWidgetTests();
+  diagnosticsWidgetTests();
   testWidgets('ONE press: Home -> prompt screen, no choosing, with the reasons and the advice', (t) async {
     final db = await boot(t, seed: true);
     expect(find.textContaining('Good time to learn'), findsOneWidget); // advice on Home
@@ -386,4 +388,37 @@ void memoryModelWidgetTests() {
     expect(find.textContaining('Kept your current settings').evaluate().length + find.textContaining('Done.').evaluate().length, 1);
     await done(t, db);
   }, timeout: const Timeout(Duration(minutes: 4)));
+}
+
+void diagnosticsWidgetTests() {
+  testWidgets('Settings > Diagnostics: shows the build, lets you mark checks, and copies a report', (t) async {
+    final db = await boot(t, settings: {'guide_seen': '1'});
+    String? copied;
+    t.binding.defaultBinaryMessenger.setMockMethodCallHandler(SystemChannels.platform, (call) async {
+      if (call.method == 'Clipboard.setData') copied = (call.arguments as Map)['text'] as String?;
+      return null;
+    });
+    addTearDown(() => t.binding.defaultBinaryMessenger.setMockMethodCallHandler(SystemChannels.platform, null));
+
+    await t.tap(find.byTooltip('Settings and backup'));
+    await settle(t);
+    await t.dragUntilVisible(find.text('Diagnostics and phone check'), find.byType(ListView).first, const Offset(0, -200));
+    await t.tap(find.text('Diagnostics and phone check'));
+    await until(t, find.text('Local development build'));
+    await settle(t);
+    expect(find.text('Local development build'), findsOneWidget);
+    expect(find.text('Phone check'), findsOneWidget);
+
+    await t.tap(find.byTooltip('Works').first);
+    await settle(t);
+    await t.scrollUntilVisible(find.text('Copy report'), 300, scrollable: find.byType(Scrollable).first);
+    await t.pump();
+    await t.tap(find.text('Copy report'));
+    await settle(t);
+    expect(copied, contains('[works] New version installed over the old one'));
+    expect(copied, contains('(no errors recorded)'));
+    final saved = await t.runAsync(() => SettingsRepo(db).get('phone_check'));
+    expect(saved, contains('works'));
+    await done(t, db);
+  });
 }

@@ -1,0 +1,63 @@
+/// The phone check: things to try on a real device, and the report to send back.
+/// Plain data and text; no Flutter, no I/O.
+library;
+
+enum CheckState { untested, works, broken }
+
+class PhoneCheckItem {
+  const PhoneCheckItem(this.id, this.title, this.how);
+  final String id, title, how;
+}
+
+const kPhoneCheck = <PhoneCheckItem>[
+  PhoneCheckItem('install', 'New version installed over the old one',
+      'You did not have to uninstall, and your cards are still there.'),
+  PhoneCheckItem('review', 'Review a few cards', 'Tap a card to flip it, rate it, finish a short session, try Undo.'),
+  PhoneCheckItem('learn', 'Learn something new gives a prompt',
+      'Tap it, then "Copy prompt". Paste into any notes app to see that it copied.'),
+  PhoneCheckItem('share_out', 'Send prompt to my AI app',
+      'On the prompt screen tap "Send to my AI app", pick your AI. The prompt should appear ready to send.'),
+  PhoneCheckItem('paste_cards', 'Paste cards from your AI',
+      'Copy the AI\'s JSON answer, "Paste the answer" > "Paste from clipboard", check the preview, import.'),
+  PhoneCheckItem('share_in', 'Share an answer into this app',
+      'In your AI app, share/send its answer to "Daily Learning". The preview should open by itself.'),
+  PhoneCheckItem('paste_topics', 'Paste a topic list', 'From a "more topics" prompt.'),
+  PhoneCheckItem('paste_subjects', 'Paste new subjects', 'From a "new subjects" prompt: tick some, add them.'),
+  PhoneCheckItem('other_ai', 'An answer from a different AI',
+      'Try ChatGPT, Gemini or DeepSeek if you use them. Note which one in the report.'),
+  PhoneCheckItem('backup', 'Backup to a folder',
+      'Settings > Choose folder > Back up now. A "learning-backup-….db.gz" file should appear in that folder.'),
+  PhoneCheckItem('restore', 'Restore the latest backup', 'Settings > Restore latest. Counts should match what you had.'),
+  PhoneCheckItem('edit_delete', 'Edit and delete a card', 'Library > Browse. Change a word and save; delete one.'),
+  PhoneCheckItem('fit', 'Memory model fit',
+      'Settings > Memory model. If it is available, run it and note how long it took.'),
+  PhoneCheckItem('reminder', 'Daily reminder', 'Turn it on, set a time two minutes ahead, wait for it, tap it.'),
+  PhoneCheckItem('display', 'Dark mode and large text',
+      'Switch the phone to dark mode and the biggest text size: nothing is cut off or unreadable.'),
+];
+
+String renderReport({
+  required String build,
+  required String os,
+  required Map<String, String> facts,
+  required Map<String, CheckState> checks,
+  required String notes,
+  required String errorLogTail,
+}) {
+  final b = StringBuffer()
+    ..writeln('Daily Learning report')
+    ..writeln(build)
+    ..writeln(os);
+  for (final e in facts.entries) {
+    b.writeln('${e.key}: ${e.value}');
+  }
+  b.writeln('\nPhone check');
+  for (final i in kPhoneCheck) {
+    final s = checks[i.id] ?? CheckState.untested;
+    b.writeln('[${switch (s) { CheckState.works => 'works', CheckState.broken => 'BROKEN', CheckState.untested => 'not tried' }}] ${i.title}');
+  }
+  if (notes.trim().isNotEmpty) b.writeln('\nNotes\n${notes.trim()}');
+  b.writeln('\nError log (newest last)');
+  b.writeln(errorLogTail.trim().isEmpty ? '(no errors recorded)' : errorLogTail.trim());
+  return b.toString();
+}

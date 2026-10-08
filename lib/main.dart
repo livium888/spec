@@ -1,15 +1,30 @@
+import 'dart:io';
+import 'dart:ui' show PlatformDispatcher;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:path/path.dart' as p;
 
 import 'app/background.dart';
 import 'app/bootstrap.dart';
 import 'app/providers.dart';
+import 'data/error_log.dart';
 import 'presentation/app_shell.dart';
 import 'presentation/theme/app_theme.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final bs = await Bootstrap.open();
+  final errors = ErrorLog(File(p.join(bs.dbFile.parent.path, 'error.log')));
+  final previousOnError = FlutterError.onError;
+  FlutterError.onError = (details) {
+    errors.record(details.exception, details.stack, where: 'flutter');
+    previousOnError?.call(details);
+  };
+  PlatformDispatcher.instance.onError = (error, stack) {
+    errors.record(error, stack, where: 'platform');
+    return false; // still reported as usual
+  };
   try {
     await initBackgroundBackup();
   } catch (_) {

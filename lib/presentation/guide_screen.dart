@@ -116,6 +116,10 @@ class GuideScreen extends StatelessWidget {
               '• Some cards or topics marked invalid or duplicate are skipped; the rest still import.\n'
               '• Your AI added commentary? Reply "JSON only, no other text" and copy the new answer.'),
 
+          heading('If something goes wrong'),
+          para('Settings > Diagnostics and phone check shows which build you have, lists things to try once on your phone, and keeps a private '
+              'log of crashes. Tap "Copy report" and send it to whoever maintains the app.'),
+
           heading('Your privacy'),
           para('The app has no accounts and makes no network calls. The only thing that leaves your phone is what you choose to paste into an AI: '
               'a prompt you can read in full before copying. The "new subjects" prompt includes your subject names and recent topic titles.'),

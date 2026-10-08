@@ -1,11 +1,13 @@
 import 'dart:io';
 import 'dart:ui';
 
+import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:workmanager/workmanager.dart';
 
 import '../data/backup/backup_service.dart';
 import '../data/backup/backup_storage.dart';
+import '../data/error_log.dart';
 import '../data/settings_repo.dart';
 import 'bootstrap.dart';
 
@@ -16,7 +18,8 @@ const kWeeklyBackupTask = 'weekly-backup';
 void callbackDispatcher() {
   Workmanager().executeTask((task, input) async {
     DartPluginRegistrant.ensureInitialized();
-    final db = Bootstrap.openDb(await Bootstrap.dbFilePath());
+    final dbFile = await Bootstrap.dbFilePath();
+    final db = Bootstrap.openDb(dbFile);
     try {
       final settings = SettingsRepo(db);
       final uri = await settings.get(SettingsRepo.backupTreeUri);
@@ -25,6 +28,9 @@ void callbackDispatcher() {
       if (!await svc.isStale(days: 6)) return true; // already backed up recently
       final err = await svc.export(SafBackupStorage(uri), await getTemporaryDirectory());
       return err == null; // false => WorkManager retries with backoff
+    } catch (e, st) {
+      ErrorLog(File(p.join(dbFile.parent.path, 'error.log'))).record(e, st, where: 'weekly backup');
+      return false;
     } finally {
       await db.close();
     }

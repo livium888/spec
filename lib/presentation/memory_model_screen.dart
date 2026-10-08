@@ -38,8 +38,10 @@ class _MemoryModelScreenState extends ConsumerState<MemoryModelScreen> {
 
   Future<void> _fit() async {
     setState(() { _training = true; _result = null; _message = null; });
+    final sw = Stopwatch()..start();
     try {
       final r = await ref.read(optimizerServiceProvider).optimise();
+      await ref.read(settingsRepoProvider).set('optimizer_last_fit_ms', '${sw.elapsedMilliseconds}');
       if (mounted) setState(() => _result = r);
     } catch (e) {
       if (mounted) setState(() => _message = 'Could not fit: $e');

@@ -56,7 +56,13 @@ jobs:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-        run: flutter build apk --release --build-number=${{ github.run_number }}
+        # arm64 only: every Android phone of the last several years is 64-bit, and one ABI
+        # roughly halves the download. Build number and commit are shown in Settings > Diagnostics.
+        run: >
+          flutter build apk --release --target-platform android-arm64
+          --build-number=${{ github.run_number }}
+          --dart-define=BUILD_NUMBER=${{ github.run_number }}
+          --dart-define=GIT_SHA=${{ github.sha }}
 
       - name: Remove keystore
         if: always()

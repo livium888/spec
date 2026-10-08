@@ -1,9 +1,13 @@
+import 'dart:io';
+
 import 'package:flutter/services.dart' show AssetBundle, rootBundle;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:path/path.dart' as p;
 
 import '../data/backup/backup_service.dart';
 import '../data/db/database.dart';
 import '../data/engine_service.dart';
+import '../data/error_log.dart';
 import '../data/card_edit_service.dart';
 import '../data/import_service.dart';
 import '../data/learn_service.dart';
@@ -30,6 +34,8 @@ class DbNotifier extends Notifier<AppDatabase> {
 
 final dbProvider = NotifierProvider<DbNotifier, AppDatabase>(DbNotifier.new);
 
+final errorLogProvider = Provider((ref) =>
+    ErrorLog(File(p.join(ref.watch(bootstrapProvider).dbFile.parent.path, 'error.log'))));
 final settingsRepoProvider = Provider((ref) => SettingsRepo(ref.watch(dbProvider)));
 final paramsRepoProvider =
     Provider((ref) => ParamsRepo(ref.watch(dbProvider), ref.watch(settingsRepoProvider)));
