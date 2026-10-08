@@ -1,0 +1,131 @@
+{
+  "domain": "Crafts and Making",
+  "items": [
+    {
+      "title": "Workshop safety and measuring",
+      "level": 1,
+      "description": "Protective gear, safe habits, accurate measuring and marking.",
+      "target_cards": 8,
+      "prerequisites": []
+    },
+    {
+      "title": "Wood as a material",
+      "level": 1,
+      "description": "Grain, species, moisture and movement.",
+      "target_cards": 8,
+      "prerequisites": []
+    },
+    {
+      "title": "Basic electronics: voltage, current and resistance",
+      "level": 1,
+      "description": "Ohm's law, series and parallel, and common components.",
+      "target_cards": 8,
+      "prerequisites": []
+    },
+    {
+      "title": "Sewing by hand and machine",
+      "level": 1,
+      "description": "Stitches, seams, patterns and fabric types.",
+      "target_cards": 8,
+      "prerequisites": []
+    },
+    {
+      "title": "Knitting and crochet",
+      "level": 1,
+      "description": "Stitches, reading patterns, tension and finishing.",
+      "target_cards": 8,
+      "prerequisites": []
+    },
+    {
+      "title": "Cooking: heat, knife skills and seasoning",
+      "level": 1,
+      "description": "Core techniques that make most recipes work.",
+      "target_cards": 8,
+      "prerequisites": []
+    },
+    {
+      "title": "Gardening: soil, light and water",
+      "level": 1,
+      "description": "What plants need and how to read your site.",
+      "target_cards": 8,
+      "prerequisites": []
+    },
+    {
+      "title": "Knots and rope",
+      "level": 1,
+      "description": "Practical knots for tying, joining, hitching and loops.",
+      "target_cards": 8,
+      "prerequisites": []
+    },
+    {
+      "title": "Hand tools and how to sharpen them",
+      "level": 1,
+      "description": "Saws, planes, chisels and keeping an edge.",
+      "target_cards": 8,
+      "prerequisites": [
+        "Workshop safety and measuring"
+      ]
+    },
+    {
+      "title": "Basic joinery",
+      "level": 2,
+      "description": "Butt, lap, mortise-and-tenon and dovetail joints.",
+      "target_cards": 10,
+      "prerequisites": [
+        "Hand tools and how to sharpen them",
+        "Wood as a material"
+      ]
+    },
+    {
+      "title": "Finishing wood",
+      "level": 2,
+      "description": "Sanding, stains, oils and varnishes.",
+      "target_cards": 10,
+      "prerequisites": [
+        "Wood as a material"
+      ]
+    },
+    {
+      "title": "Soldering and reading circuits",
+      "level": 2,
+      "description": "Safe soldering and understanding schematics.",
+      "target_cards": 10,
+      "prerequisites": [
+        "Basic electronics: voltage, current and resistance",
+        "Workshop safety and measuring"
+      ]
+    },
+    {
+      "title": "Pottery and ceramics",
+      "level": 2,
+      "description": "Clay types, hand building, throwing, glazing and firing.",
+      "target_cards": 10,
+      "prerequisites": []
+    },
+    {
+      "title": "Home repair basics",
+      "level": 2,
+      "description": "Common fixes, and knowing when a job needs a licensed professional.",
+      "target_cards": 10,
+      "prerequisites": [
+        "Workshop safety and measuring"
+      ]
+    },
+    {
+      "title": "Bicycle maintenance",
+      "level": 2,
+      "description": "Brakes, gears, chain, tyres and a basic service routine.",
+      "target_cards": 10,
+      "prerequisites": [
+        "Workshop safety and measuring"
+      ]
+    },
+    {
+      "title": "3D modelling and printing",
+      "level": 3,
+      "description": "Designing in CAD and printing parts that fit and hold.",
+      "target_cards": 10,
+      "prerequisites": []
+    }
+  ]
+}

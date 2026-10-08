@@ -3,7 +3,7 @@
 /// docs/DECISIONS.md D11); every decision is logged so they can be fitted later.
 library;
 
-enum LearnAction { newItem, deepen, remediate }
+enum LearnAction { newItem, deepen, remediate, revisit }
 
 /// Per-topic facts gathered from the database.
 class ItemStats {
@@ -20,11 +20,19 @@ class ItemStats {
     this.lapses30d = 0,
     this.leechCount = 0,
     this.prereqIds = const [],
+    this.rounds = 1,
+    this.daysSinceCovered,
   });
   final int id, domainId, position, targetCards, cardCount;
+
+  /// 1 = first pass; each revisit adds one.
+  final int rounds;
+
+  /// Days since cards were last added to this topic (null: never).
+  final double? daysSinceCovered;
   final String domainName, title;
 
-  /// todo | active | done (already normalised by the service).
+  /// todo | active | done | skipped (already normalised by the service).
   final String status;
   final int reviews30d, lapses30d, leechCount;
   final List<int> prereqIds;
@@ -39,9 +47,17 @@ class DomainInfo {
     this.avgInterest,
     this.daysSinceLastImport,
     this.itemCount = 0,
+    this.weight = 2,
+    this.revisit = true,
   });
   final int id;
   final String name;
+
+  /// How often this subject is offered: 0 off, 1 low, 2 normal, 3 high.
+  final int weight;
+
+  /// Whether finished topics in this subject come back later.
+  final bool revisit;
   final double? avgInterest; // -1..1, null if never rated
   final double? daysSinceLastImport; // null if nothing imported yet
   final int itemCount;
@@ -92,10 +108,11 @@ class LearnOption {
         LearnAction.newItem => '${item.domainName}: ${item.title}',
         LearnAction.deepen => '${item.domainName}: more on ${item.title}',
         LearnAction.remediate => '${item.domainName}: fix hard cards in ${item.title}',
+        LearnAction.revisit => '${item.domainName}: revisit ${item.title}',
       };
 }
 
-enum EmptyReason { none, noDomains, noSyllabus, allDone }
+enum EmptyReason { none, noDomains, noSyllabus, allDone, allPaused }
 
 class LearnPlan {
   const LearnPlan({
@@ -105,7 +122,11 @@ class LearnPlan {
     required this.emptyReason,
     this.blockedReason,
     this.domainsWithoutSyllabus = const [],
+    this.nextRevisitInDays,
   });
+
+  /// Days until the earliest finished topic becomes due for a revisit (null: none will).
+  final double? nextRevisitInDays;
   final List<LearnOption> options; // 0..2 shown to the user
   final List<LearnOption> candidates; // everything eligible, ranked (for the log)
   final Capacity capacity;
@@ -132,7 +153,34 @@ class LearnPlanner {
     this.exploreEps = 0.15,
     this.prereqFraction = 0.7,
     this.minRoom = 3,
+    this.revisitBaseMonths = 3,
   });
+
+  /// First revisit comes this many months after a topic was last extended;
+  /// each later round waits twice as long (3, 6, 12, 24 ... months), capped at 12 years.
+  final int revisitBaseMonths;
+
+  static const maxCooldownDays = 12 * 365.0;
+
+  LearnPlanner copyWith({int? revisitBaseMonths}) => LearnPlanner(
+        baseCount: baseCount,
+        wipLimit: wipLimit,
+        exploreEps: exploreEps,
+        prereqFraction: prereqFraction,
+        minRoom: minRoom,
+        revisitBaseMonths: revisitBaseMonths ?? this.revisitBaseMonths,
+      );
+
+  /// Days a finished topic rests before it may be offered again.
+  double cooldownDays(int rounds) {
+    final d = revisitBaseMonths * 30.0 * (1 << (rounds - 1).clamp(0, 12));
+    return d > maxCooldownDays ? maxCooldownDays : d;
+  }
+
+  /// Cards added in a revisit round.
+  int revisitStep(int targetCards) => ((targetCards / 2).ceil()).clamp(5, 10);
+
+  static const _weightFactor = {1: 0.6, 2: 1.0, 3: 1.4};
 
   final int baseCount;
 
@@ -148,6 +196,7 @@ class LearnPlanner {
 
   /// Status normalisation used by the service and the tests.
   static String effectiveStatus(String stored, int cards, int target) {
+    if (stored == 'skipped') return 'skipped'; // the learner opted out of this topic
     if (stored == 'done') return 'done';
     if (cards >= target) return 'done';
     if (cards > 0) return 'active';
@@ -167,7 +216,9 @@ class LearnPlanner {
     bool prereqMet(ItemStats it) => it.prereqIds.every((id) {
           final p = byId[id];
           if (p == null) return true; // dangling edge: do not block forever
-          return p.status == 'done' || p.cardCount >= (p.targetCards * prereqFraction).ceil();
+          return p.status == 'done' ||
+              p.status == 'skipped' ||
+              p.cardCount >= (p.targetCards * prereqFraction).ceil();
         });
 
     final room = capacity.cardsRoom;
@@ -179,10 +230,53 @@ class LearnPlanner {
       byDomain.putIfAbsent(it.domainId, () => []).add(it);
     }
 
+    double? nextRevisit;
     for (final entry in byDomain.entries) {
       final dom = domainById[entry.key];
+      final weight = dom?.weight ?? 2;
+      final wf = _weightFactor[weight] ?? 1.0;
       final list = entry.value..sort((a, b) => a.position.compareTo(b.position));
       final active = list.where((i) => i.status == 'active').toList();
+
+      // Revisit: finished topics come back after their cool-down, with new angles.
+      // Tracked even for paused subjects so the "next revisit" hint stays honest.
+      if (dom?.revisit ?? true) {
+        ItemStats? best;
+        var bestOver = 0.0;
+        for (final it in list) {
+          if (it.status != 'done' || it.cardCount == 0 || it.daysSinceCovered == null) continue;
+          final cd = cooldownDays(it.rounds);
+          final left = cd - it.daysSinceCovered!;
+          if (left > 0) {
+            if (weight > 0 && (nextRevisit == null || left < nextRevisit)) nextRevisit = left;
+            continue;
+          }
+          final over = it.daysSinceCovered! / cd;
+          if (best == null || over > bestOver) {
+            best = it;
+            bestOver = over;
+          }
+        }
+        if (best != null && weight > 0) {
+          final months = (best.daysSinceCovered! / 30).floor();
+          final ago = months >= 24
+              ? '${(months / 12).floor()} years ago'
+              : months >= 2
+                  ? '$months months ago'
+                  : '${best.daysSinceCovered!.floor()} days ago';
+          cands.add(LearnOption(
+            action: LearnAction.revisit,
+            item: best,
+            score: (0.5 + 0.2 * (bestOver.clamp(1.0, 3.0) - 1.0) + 0.1 * ((dom?.avgInterest ?? 0).clamp(0.0, 1.0))) * wf +
+                jitter(best, 4),
+            reasons: [
+              'You last added cards to ${best.title} $ago (round ${best.rounds}). Time for a deeper pass with new angles.'
+            ],
+            count: sized(revisitStep(best.targetCards)),
+          ));
+        }
+      }
+      if (weight == 0) continue; // paused subject: nothing else is offered
 
       // Deepen: finish what you started.
       for (final it in active) {
@@ -191,7 +285,7 @@ class LearnPlanner {
         cands.add(LearnOption(
           action: LearnAction.deepen,
           item: it,
-          score: 0.2 + 0.8 * (remaining / it.targetCards) + jitter(it, 1),
+          score: (0.2 + 0.8 * (remaining / it.targetCards)) * wf + jitter(it, 1),
           reasons: ['${it.title} has ${it.cardCount} of ${it.targetCards} cards.'],
           count: sized(remaining < baseCount ? remaining : baseCount),
         ));
@@ -218,7 +312,7 @@ class LearnPlanner {
           cands.add(LearnOption(
             action: LearnAction.newItem,
             item: next,
-            score: 1.0 + 0.3 * interest + staleBonus + jitter(next, 2),
+            score: (1.0 + 0.3 * interest + staleBonus) * wf + jitter(next, 2),
             reasons: why,
             count: sized(next.targetCards < baseCount ? next.targetCards : baseCount),
           ));
@@ -227,6 +321,7 @@ class LearnPlanner {
 
       // Remediate: leeches or a high lapse rate on enough data.
       for (final it in list) {
+        if (it.status == 'skipped') continue;
         final lapsey = it.reviews30d >= 10 && it.lapseRate >= 0.25;
         if (it.leechCount < 2 && !lapsey) continue;
         final severity = (it.leechCount / 5 + it.lapseRate).clamp(0.0, 1.5);
@@ -234,7 +329,7 @@ class LearnPlanner {
         cands.add(LearnOption(
           action: LearnAction.remediate,
           item: it,
-          score: 0.9 + severity + jitter(it, 3),
+          score: (0.9 + severity) * wf + jitter(it, 3),
           reasons: [
             if (it.leechCount >= 2) '${it.leechCount} leech cards in ${it.title}.',
             if (lapsey) 'You forget ${(it.lapseRate * 100).round()}% of ${it.title} reviews.',
@@ -272,6 +367,8 @@ class LearnPlanner {
     if (options.isEmpty) {
       if (domains.isEmpty) {
         empty = EmptyReason.noDomains;
+      } else if (domains.every((d) => d.weight == 0)) {
+        empty = EmptyReason.allPaused;
       } else if (items.isEmpty) {
         empty = EmptyReason.noSyllabus;
       } else {
@@ -295,6 +392,7 @@ class LearnPlanner {
       emptyReason: empty,
       blockedReason: blocked,
       domainsWithoutSyllabus: noSyllabus,
+      nextRevisitInDays: nextRevisit,
     );
   }
 }

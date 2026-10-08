@@ -4,7 +4,7 @@ part 'database.g.dart';
 
 /// Bump together with a migration step in [AppDatabase.migration].
 /// Also checked by RestoreBackup against `PRAGMA user_version` of a backup file.
-const int kSchemaVersion = 2;
+const int kSchemaVersion = 3;
 
 class Domains extends Table {
   @override
@@ -13,6 +13,10 @@ class Domains extends Table {
   TextColumn get name => text().unique()();
   BoolColumn get active => boolean().withDefault(const Constant(true))();
   IntColumn get createdAt => integer()();
+  // v3: how often "Learn something new" offers this subject (0 off, 1 low, 2 normal, 3 high)
+  // and whether finished topics come back later for deeper cards.
+  IntColumn get learnWeight => integer().withDefault(const Constant(2))();
+  BoolColumn get revisit => boolean().withDefault(const Constant(true))();
 }
 
 class SyllabusItems extends Table {
@@ -27,6 +31,8 @@ class SyllabusItems extends Table {
   // v2: how many cards make this topic "covered", and a one-line scope note.
   IntColumn get targetCards => integer().withDefault(const Constant(10))();
   TextColumn get description => text().withDefault(const Constant(''))();
+  // v3: how many times this topic has been taken to a deeper level (1 = first pass).
+  IntColumn get rounds => integer().withDefault(const Constant(1))();
 }
 
 /// v2: item `itemId` should come after `prereqId`.
@@ -190,6 +196,11 @@ class AppDatabase extends _$AppDatabase {
             await m.addColumn(syllabusItems, syllabusItems.targetCards);
             await m.addColumn(syllabusItems, syllabusItems.description);
             await m.createTable(syllabusPrereqs);
+          }
+          if (from < 3) {
+            await m.addColumn(domains, domains.learnWeight);
+            await m.addColumn(domains, domains.revisit);
+            await m.addColumn(syllabusItems, syllabusItems.rounds);
           }
         },
         beforeOpen: (details) async {

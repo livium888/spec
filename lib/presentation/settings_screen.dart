@@ -11,6 +11,7 @@ import '../data/backup/backup_service.dart';
 import '../data/backup/backup_storage.dart';
 import '../data/settings_repo.dart';
 import 'home_screen.dart' show pickBackupFolder;
+import 'subjects_screen.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -26,6 +27,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   final _relearn = TextEditingController();
   final _rollover = TextEditingController();
   final _minutes = TextEditingController();
+  final _revisit = TextEditingController();
   String? _folder;
   int _lastBackup = 0;
   String? _msg;
@@ -40,7 +42,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   @override
   void dispose() {
-    for (final c in [_newPerDay, _divisor, _retention, _steps, _relearn, _rollover, _minutes]) {
+    for (final c in [_newPerDay, _divisor, _retention, _steps, _relearn, _rollover, _minutes, _revisit]) {
       c.dispose();
     }
     super.dispose();
@@ -55,6 +57,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     _relearn.text = (await s.getIntList(SettingsRepo.relearningSteps, [10])).join(',');
     _rollover.text = '${await s.getInt(SettingsRepo.rolloverHour, 4)}';
     _minutes.text = '${await s.getInt(SettingsRepo.dailyMinutes, 20)}';
+    _revisit.text = '${await s.getInt(SettingsRepo.revisitMonths, 3)}';
     _folder = await s.get(SettingsRepo.backupTreeUri);
     _lastBackup = await s.getInt(BackupService.lastSuccessKey, 0);
     if (mounted) setState(() => _loaded = true);
@@ -68,6 +71,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final r = double.tryParse(_retention.text.trim());
     final h = int.tryParse(_rollover.text.trim());
     final mins = int.tryParse(_minutes.text.trim());
+    final rev = int.tryParse(_revisit.text.trim());
     List<int>? parse(String t) {
       final parts = t.split(',').map((e) => int.tryParse(e.trim())).toList();
       return parts.isEmpty || parts.contains(null) || parts.any((e) => e! < 1 || e > 1440)
@@ -82,6 +86,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     if (r == null || r < 0.7 || r > 0.99) err = 'Desired retention must be between 0.70 and 0.99.';
     if (h == null || h < 0 || h > 23) err = 'Day rollover hour must be 0-23.';
     if (mins == null || mins < 5 || mins > 240) err = 'Daily study time must be 5-240 minutes.';
+    if (rev == null || rev < 1 || rev > 24) err = 'First revisit delay must be 1-24 months.';
     if (ls == null) err = 'Learning steps: minutes separated by commas, e.g. 1,10.';
     if (rs == null) err = 'Relearning steps: minutes separated by commas, e.g. 10.';
     if (err != null) {
@@ -95,6 +100,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     await s.set(SettingsRepo.relearningSteps, rs!.join(','));
     await s.set(SettingsRepo.rolloverHour, '$h');
     await s.set(SettingsRepo.dailyMinutes, '$mins');
+    await s.set(SettingsRepo.revisitMonths, '$rev');
     // New params row (old log rows keep theirs, so replay stays exact).
     await ref.read(paramsRepoProvider).syncFromSettings();
     ref.read(refreshProvider.notifier).bump();
@@ -234,12 +240,21 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 const Divider(height: 40),
                 Text('Study', style: t.titleLarge),
                 const SizedBox(height: 12),
+                OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(52)),
+                  icon: const Icon(Icons.tune),
+                  label: const Text('Subjects and topics'),
+                  onPressed: () => Navigator.of(context)
+                      .push(MaterialPageRoute<void>(builder: (_) => const SubjectsScreen())),
+                ),
+                const SizedBox(height: 16),
                 field(_newPerDay, 'New cards per day'),
                 field(_divisor, 'Backlog divisor', help: 'Daily new limit shrinks by 1 for every this-many due reviews.'),
                 field(_retention, 'Desired retention', help: '0.90 = aim to remember 90% at review time.'),
                 field(_steps, 'Learning steps (minutes)', number: false, help: 'e.g. 1,10'),
                 field(_relearn, 'Relearning steps (minutes)', number: false, help: 'e.g. 10'),
                 field(_rollover, 'Day rolls over at (hour, local)', help: '4 = 04:00'),
+                field(_revisit, 'Bring finished topics back after (months)', help: 'First delay; each later round waits twice as long (3, 6, 12, 24 ... up to 12 years).'),
                 field(_minutes, 'Daily study time (minutes)', help: 'Used by "Learn something new" to decide how many new cards fit.'),
                 FilledButton(
                     style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(56)),

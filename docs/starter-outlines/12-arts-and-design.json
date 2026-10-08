@@ -1,0 +1,138 @@
+{
+  "domain": "Arts and Design",
+  "items": [
+    {
+      "title": "How to look at art: subject, form and context",
+      "level": 1,
+      "description": "Reading what a work shows, how it is made, and when and why.",
+      "target_cards": 8,
+      "prerequisites": []
+    },
+    {
+      "title": "Elements of design: line, shape, form, space and texture",
+      "level": 1,
+      "description": "The basic vocabulary of any visual work.",
+      "target_cards": 8,
+      "prerequisites": []
+    },
+    {
+      "title": "Colour theory",
+      "level": 1,
+      "description": "Hue, value, saturation, harmony, contrast and temperature.",
+      "target_cards": 8,
+      "prerequisites": []
+    },
+    {
+      "title": "Composition and visual balance",
+      "level": 1,
+      "description": "Focal point, rule of thirds, rhythm, symmetry and negative space.",
+      "target_cards": 8,
+      "prerequisites": []
+    },
+    {
+      "title": "Drawing fundamentals: observation and proportion",
+      "level": 1,
+      "description": "Seeing shapes accurately before adding detail.",
+      "target_cards": 8,
+      "prerequisites": []
+    },
+    {
+      "title": "Light, shade and value",
+      "level": 2,
+      "description": "Modelling form with light, core shadow and cast shadow.",
+      "target_cards": 10,
+      "prerequisites": [
+        "Drawing fundamentals: observation and proportion"
+      ]
+    },
+    {
+      "title": "Perspective",
+      "level": 2,
+      "description": "One, two and three-point perspective, horizon line and foreshortening.",
+      "target_cards": 10,
+      "prerequisites": [
+        "Drawing fundamentals: observation and proportion"
+      ]
+    },
+    {
+      "title": "Painting media and techniques",
+      "level": 2,
+      "description": "Oil, acrylic, watercolour and gouache: properties and methods.",
+      "target_cards": 10,
+      "prerequisites": [
+        "Colour theory"
+      ]
+    },
+    {
+      "title": "Photography: exposure, light and framing",
+      "level": 2,
+      "description": "Aperture, shutter, ISO, light quality and composition in photographs.",
+      "target_cards": 10,
+      "prerequisites": [
+        "Composition and visual balance"
+      ]
+    },
+    {
+      "title": "Typography and layout",
+      "level": 2,
+      "description": "Typeface anatomy, hierarchy, spacing and grids.",
+      "target_cards": 10,
+      "prerequisites": [
+        "Elements of design: line, shape, form, space and texture"
+      ]
+    },
+    {
+      "title": "Western art history: Renaissance to Baroque",
+      "level": 2,
+      "description": "Key movements, artists and ideas from about 1400 to 1700.",
+      "target_cards": 10,
+      "prerequisites": []
+    },
+    {
+      "title": "Western art history: Impressionism to modernism",
+      "level": 2,
+      "description": "From 1860s Paris to abstraction, and what each break was against.",
+      "target_cards": 10,
+      "prerequisites": [
+        "Western art history: Renaissance to Baroque"
+      ]
+    },
+    {
+      "title": "Contemporary art and its debates",
+      "level": 3,
+      "description": "Conceptual, installation and digital art, and arguments about value.",
+      "target_cards": 10,
+      "prerequisites": [
+        "Western art history: Impressionism to modernism"
+      ]
+    },
+    {
+      "title": "Art beyond the West: Asian, African and Islamic traditions",
+      "level": 2,
+      "description": "Major traditions, forms and their own histories.",
+      "target_cards": 10,
+      "prerequisites": []
+    },
+    {
+      "title": "Architecture: styles and how buildings work",
+      "level": 2,
+      "description": "Classical to modern styles, structure, materials and space.",
+      "target_cards": 10,
+      "prerequisites": []
+    },
+    {
+      "title": "Film language: shots, editing and sound",
+      "level": 2,
+      "description": "How filmmakers build meaning and emotion.",
+      "target_cards": 10,
+      "prerequisites": []
+    },
+    {
+      "title": "Literature: genre, form and voice",
+      "level": 2,
+      "description": "Reading closely: narrator, structure, theme and genre conventions.",
+      "target_cards": 10,
+      "prerequisites": []
+    }
+  ]
+}

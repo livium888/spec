@@ -6,6 +6,7 @@ import '../data/learn_service.dart';
 import '../domain/learn_planner.dart';
 import 'new_subject_screen.dart';
 import 'prompt_result_screen.dart';
+import 'starter_library_screen.dart';
 import 'topics_screen.dart';
 
 /// "Learn something new": the app picks (up to) two things to ask the LLM for.
@@ -105,6 +106,11 @@ class _LearnScreenState extends ConsumerState<LearnScreen> {
       const SizedBox(height: 16),
       Wrap(spacing: 8, runSpacing: 8, children: [
         OutlinedButton.icon(
+          icon: const Icon(Icons.library_books_outlined),
+          label: const Text('Starter library'),
+          onPressed: () => _open(const StarterLibraryScreen()),
+        ),
+        OutlinedButton.icon(
           icon: const Icon(Icons.add_circle_outline),
           label: const Text('New subject or more topics'),
           onPressed: () => _open(const NewSubjectScreen()),
@@ -169,6 +175,7 @@ class _LearnScreenState extends ConsumerState<LearnScreen> {
       LearnAction.newItem => 'New topic',
       LearnAction.deepen => 'Go deeper',
       LearnAction.remediate => 'Fix hard cards',
+      LearnAction.revisit => 'Revisit',
     };
     return Card(
       child: Padding(
@@ -194,20 +201,34 @@ class _LearnScreenState extends ConsumerState<LearnScreen> {
     );
   }
 
+  static String _inWords(double days) {
+    if (days < 14) return '${days.ceil()} days';
+    if (days < 60) return '${(days / 7).round()} weeks';
+    if (days < 730) return '${(days / 30).round()} months';
+    return '${(days / 365).round()} years';
+  }
+
   Widget _empty(BuildContext context, LearnPlan plan) {
     final (title, body) = switch (plan.emptyReason) {
       EmptyReason.noDomains => (
           'Start with a subject',
-          'Tell the app what you want to learn. It will give you a prompt that asks your LLM for an ordered outline. '
-              'Paste the answer back and the app will take it from there.'
+          'Pick subjects from the starter library, or name your own and the app will give you a prompt that asks '
+              'your LLM for an ordered outline. Paste the answer back and the app takes it from there.'
         ),
       EmptyReason.noSyllabus => (
           'No topics yet',
           'Your subjects have no outline. Create one with the button below.'
         ),
       EmptyReason.allDone => (
-          'Everything in your outlines is covered',
-          'Add more topics to a subject, or start a new one.'
+          'Everything is covered for now',
+          plan.nextRevisitInDays == null
+              ? 'Add more topics to a subject, or start a new one.'
+              : 'Finished topics come back for a deeper pass. The next one is due in about '
+                  '${_inWords(plan.nextRevisitInDays!)}. You can also add more subjects.'
+        ),
+      EmptyReason.allPaused => (
+          'All your subjects are paused',
+          'Turn a subject back on under Settings > Subjects and topics.'
         ),
       EmptyReason.none => ('', ''),
     };
@@ -221,6 +242,12 @@ class _LearnScreenState extends ConsumerState<LearnScreen> {
           const SizedBox(height: 12),
           FilledButton(
             style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(52)),
+            onPressed: () => _open(const StarterLibraryScreen()),
+            child: const Text('Browse the starter library'),
+          ),
+          const SizedBox(height: 8),
+          OutlinedButton(
+            style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(52)),
             onPressed: () => _open(const NewSubjectScreen()),
             child: const Text('New subject or more topics'),
           ),

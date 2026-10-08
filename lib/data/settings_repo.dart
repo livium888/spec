@@ -15,6 +15,7 @@ class SettingsRepo {
   static const activeParamsId = 'active_params_id';
   static const backupTreeUri = 'backup_tree_uri';
   static const lastSessionDomains = 'last_session_domains';
+  static const revisitMonths = 'revisit_months'; // first revisit delay; doubles each round
   static const dailyMinutes = 'daily_minutes'; // study-time budget used by "Learn something new"
 
   Future<String?> get(String key) async {

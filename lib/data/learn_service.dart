@@ -53,7 +53,7 @@ class LearnService {
     await refreshStatuses();
     final clock = await settings.dayClock();
     final seed = clock.dayIndex(t); // same day => same plan; next day may differ among ties
-    final plan = planner.plan(
+    final plan = (await _planner()).plan(
       domains: await _domains(t),
       items: await _items(t),
       capacity: await _capacity(t),
@@ -76,6 +76,42 @@ class LearnService {
             .write(SyllabusItemsCompanion(status: Value(next)));
       }
     }
+  }
+
+  Future<LearnPlanner> _planner() async => planner.copyWith(
+      revisitBaseMonths: (await settings.getInt(SettingsRepo.revisitMonths, 3)).clamp(1, 24));
+
+  /// 0 = never offer this subject, 1 low, 2 normal, 3 high.
+  Future<void> setSubjectWeight(int domainId, int weight) =>
+      (db.update(db.domains)..where((d) => d.id.equals(domainId)))
+          .write(DomainsCompanion(learnWeight: Value(weight.clamp(0, 3))));
+
+  /// Whether finished topics of this subject come back for deeper cards.
+  Future<void> setSubjectRevisit(int domainId, bool on) =>
+      (db.update(db.domains)..where((d) => d.id.equals(domainId)))
+          .write(DomainsCompanion(revisit: Value(on)));
+
+  /// Opt out of a topic (never offered), or put it back.
+  Future<void> setTopicSkipped(int itemId, bool skipped) async {
+    await (db.update(db.syllabusItems)..where((x) => x.id.equals(itemId)))
+        .write(SyllabusItemsCompanion(status: Value(skipped ? 'skipped' : 'todo')));
+    await refreshStatuses();
+  }
+
+  /// For the Topics screen: days until each finished topic returns (<= 0: due now).
+  Future<Map<int, double>> returnsInDays({DateTime? now}) async {
+    final t = (now ?? DateTime.now()).toUtc();
+    final p = await _planner();
+    final doms = {for (final d in await _domains(t)) d.id: d};
+    return {
+      for (final it in await _items(t))
+        if (it.status == 'done' &&
+            it.cardCount > 0 &&
+            it.daysSinceCovered != null &&
+            (doms[it.domainId]?.revisit ?? true) &&
+            (doms[it.domainId]?.weight ?? 2) > 0)
+          it.id: p.cooldownDays(it.rounds) - it.daysSinceCovered!
+    };
   }
 
   Future<void> setItemStatus(int itemId, String status) =>
@@ -130,8 +166,23 @@ class LearnService {
             cardsRequested: option.count,
           ));
     } else {
+      var round = 1;
+      if (option.action == LearnAction.revisit) {
+        // Raise the target and open a new round BEFORE building the prompt, so the
+        // topic shows as "in progress" until the new cards arrive.
+        round = it.rounds + 1;
+        await (db.update(db.syllabusItems)..where((x) => x.id.equals(it.id))).write(
+            SyllabusItemsCompanion(
+                targetCards: Value(it.cardCount + option.count),
+                rounds: Value(round),
+                status: const Value('active')));
+      }
       final r = await prompts.build(
-          domainId: it.domainId, syllabusItemId: it.id, n: option.count, now: t);
+          domainId: it.domainId,
+          syllabusItemId: it.id,
+          n: option.count,
+          round: round,
+          now: t);
       text = r.text;
       logId = r.logId;
     }
@@ -186,6 +237,8 @@ class LearnService {
         avgInterest: (interest.data['a'] as num?)?.toDouble(),
         daysSinceLastImport: lastMs == null ? null : (nowMs - lastMs) / _day,
         itemCount: count.read<int>('n'),
+        weight: d.learnWeight,
+        revisit: d.revisit,
       ));
     }
     return out;
@@ -198,7 +251,8 @@ class LearnService {
       prereqs.putIfAbsent(e.itemId, () => []).add(e.prereqId);
     }
     final rows = await db.customSelect('''
-      SELECT s.id, s.domain_id, d.name AS dname, s.title, s.position, s.status, s.target_cards,
+      SELECT s.id, s.domain_id, d.name AS dname, s.title, s.position, s.status, s.target_cards, s.rounds,
+        (SELECT MAX(n.created_at) FROM note n WHERE n.syllabus_item_id = s.id) AS last_covered,
         (SELECT COUNT(*) FROM card c JOIN note n ON n.id = c.note_id
            WHERE n.syllabus_item_id = s.id) AS cards,
         (SELECT COUNT(*) FROM card c JOIN note n ON n.id = c.note_id
@@ -213,6 +267,7 @@ class LearnService {
       WHERE d.active = 1
       ORDER BY s.domain_id, s.position''',
         variables: [Variable.withInt(since), Variable.withInt(since)]).get();
+    final nowMs = t.millisecondsSinceEpoch;
     return [
       for (final r in rows)
         ItemStats(
@@ -228,6 +283,10 @@ class LearnService {
           lapses30d: r.read<int>('lap30'),
           leechCount: r.read<int>('leeches'),
           prereqIds: prereqs[r.read<int>('id')] ?? const [],
+          rounds: r.read<int>('rounds'),
+          daysSinceCovered: r.read<int?>('last_covered') == null
+              ? null
+              : (nowMs - r.read<int>('last_covered')) / _day,
         )
     ];
   }

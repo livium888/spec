@@ -15,7 +15,7 @@ void main() {
       .toList()
     ..sort((a, b) => a.path.compareTo(b.path));
 
-  test('starter outlines exist', () => expect(files.length, 11));
+  test('starter outlines exist', () => expect(files.length, 16));
 
   for (final f in files) {
     test('imports cleanly: ${f.uri.pathSegments.last}', () async {

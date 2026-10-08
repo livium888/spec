@@ -172,6 +172,9 @@ void main() {
     raw.execute('DROP TABLE syllabus_prereq');
     raw.execute('ALTER TABLE syllabus_item DROP COLUMN target_cards');
     raw.execute('ALTER TABLE syllabus_item DROP COLUMN description');
+    raw.execute('ALTER TABLE syllabus_item DROP COLUMN rounds');
+    raw.execute('ALTER TABLE domain DROP COLUMN learn_weight');
+    raw.execute('ALTER TABLE domain DROP COLUMN revisit');
     raw.execute('PRAGMA user_version = 1');
     raw.close();
 

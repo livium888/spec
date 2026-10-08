@@ -364,7 +364,7 @@ void main() {
     });
   });
 
-  test('migration v1 -> v2 keeps data and adds the new schema', () async {
+  test('migration v1 -> latest keeps data and adds the new schema', () async {
     final dir = Directory.systemTemp.createTempSync('mig');
     addTearDown(() => dir.deleteSync(recursive: true));
     final f = File('${dir.path}/m.db');
@@ -379,6 +379,9 @@ void main() {
     raw.execute('DROP TABLE syllabus_prereq');
     raw.execute('ALTER TABLE syllabus_item DROP COLUMN target_cards');
     raw.execute('ALTER TABLE syllabus_item DROP COLUMN description');
+    raw.execute('ALTER TABLE syllabus_item DROP COLUMN rounds');
+    raw.execute('ALTER TABLE domain DROP COLUMN learn_weight');
+    raw.execute('ALTER TABLE domain DROP COLUMN revisit');
     raw.execute('PRAGMA user_version = 1');
     raw.close();
 
@@ -389,6 +392,8 @@ void main() {
     expect(row.targetCards, 10);
     expect(row.description, '');
     expect(await db.select(db.syllabusPrereqs).get(), isEmpty);
-    expect((await db.customSelect('PRAGMA user_version').getSingle()).data.values.first, 2);
+    expect((await db.customSelect('PRAGMA user_version').getSingle()).data.values.first, kSchemaVersion);
+    expect(row.rounds, 1);
+    expect((await db.select(db.domains).getSingle()).learnWeight, 2);
   });
 }

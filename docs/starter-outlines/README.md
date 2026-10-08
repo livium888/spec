@@ -1,6 +1,6 @@
 # Starter outlines
 
-Eleven ready-to-import outlines (136 topics, about 1270 cards at the target counts). Each `.json` file is one subject in the app's outline format: copy the file's contents, open the app, **Import -> Paste from clipboard**, review the preview, **Add topics**.
+16 ready-to-import outlines (213 topics, about 2002 cards at the target counts). This is a starting point, not a ceiling: the app keeps going for as long as you do, and you can add subjects or extend any of them at any time. Each `.json` file is one subject in the app's outline format: copy the file's contents, open the app, **Import -> Paste from clipboard**, review the preview, **Add topics**.
 
 ## What this list is, and is not
 
@@ -8,7 +8,7 @@ Eleven ready-to-import outlines (136 topics, about 1270 cards at the target coun
 - Its design leans on well-known ideas, named from memory and not re-verified here: Charlie Munger's "latticework of mental models", Richard Hamming's *You and Your Research*, the liberal-arts tradition, and Kahneman/Tversky-style decision research.
 - The one piece of evidence consulted: Nobel laureates are significantly more likely than other scientists to be polymaths with wide non-specialist interests (Root-Bernstein et al., *Creativity Research Journal*, 2020 and 2022). That is correlational and about Nobel laureates, not about wealth or power.
 - Order inside each subject follows prerequisites. Topics marked level 1 are foundations. Country-specific topics (tax wrappers, legal forms) should be learned for where you live.
-- Edit freely: drop subjects you do not care about, or ask the app's outline prompt for a subject that is missing (art, music, languages, a craft; the research above suggests those matter too).
+- Edit freely. For a specific language, add **Language Course Template** and give it a name (for example "Spanish"); for anything not here, use *New subject or more topics* in the app.
 
 ## Topics
 
@@ -180,3 +180,95 @@ Eleven ready-to-import outlines (136 topics, about 1270 cards at the target coun
 - **Career capital and compounding skills** (L2) - Rare and valuable skills that grow with use. *After: Time, priorities and the 80/20 rule*
 - **Health habits as a performance system** (L2) - Sleep, movement and food as inputs to everything else.
 - **Leadership** (L3) - Setting direction, earning trust, and developing others. *After: Career capital and compounding skills*
+
+### 12. Arts and Design (17 topics) - `12-arts-and-design.json`
+
+- **How to look at art: subject, form and context** (L1) - Reading what a work shows, how it is made, and when and why.
+- **Elements of design: line, shape, form, space and texture** (L1) - The basic vocabulary of any visual work.
+- **Colour theory** (L1) - Hue, value, saturation, harmony, contrast and temperature.
+- **Composition and visual balance** (L1) - Focal point, rule of thirds, rhythm, symmetry and negative space.
+- **Drawing fundamentals: observation and proportion** (L1) - Seeing shapes accurately before adding detail.
+- **Light, shade and value** (L2) - Modelling form with light, core shadow and cast shadow. *After: Drawing fundamentals: observation and proportion*
+- **Perspective** (L2) - One, two and three-point perspective, horizon line and foreshortening. *After: Drawing fundamentals: observation and proportion*
+- **Painting media and techniques** (L2) - Oil, acrylic, watercolour and gouache: properties and methods. *After: Colour theory*
+- **Photography: exposure, light and framing** (L2) - Aperture, shutter, ISO, light quality and composition in photographs. *After: Composition and visual balance*
+- **Typography and layout** (L2) - Typeface anatomy, hierarchy, spacing and grids. *After: Elements of design: line, shape, form, space and texture*
+- **Western art history: Renaissance to Baroque** (L2) - Key movements, artists and ideas from about 1400 to 1700.
+- **Western art history: Impressionism to modernism** (L2) - From 1860s Paris to abstraction, and what each break was against. *After: Western art history: Renaissance to Baroque*
+- **Contemporary art and its debates** (L3) - Conceptual, installation and digital art, and arguments about value. *After: Western art history: Impressionism to modernism*
+- **Art beyond the West: Asian, African and Islamic traditions** (L2) - Major traditions, forms and their own histories.
+- **Architecture: styles and how buildings work** (L2) - Classical to modern styles, structure, materials and space.
+- **Film language: shots, editing and sound** (L2) - How filmmakers build meaning and emotion.
+- **Literature: genre, form and voice** (L2) - Reading closely: narrator, structure, theme and genre conventions.
+
+### 13. Music (17 topics) - `13-music.json`
+
+- **Rhythm, beat and metre** (L1) - Pulse, time signatures, note values and syncopation.
+- **Pitch, notes and the staff** (L1) - Names of notes, clefs, accidentals and the keyboard layout.
+- **Instruments and the orchestra** (L1) - Families of instruments, ranges and typical roles.
+- **How to practise an instrument effectively** (L1) - Slow practice, chunking, deliberate focus and spacing sessions.
+- **Major scales and keys** (L1) - Whole and half steps, key signatures and the circle of fifths. *After: Pitch, notes and the staff*
+- **Intervals** (L2) - Distances between notes: name, size and sound. *After: Major scales and keys*
+- **Chords and triads** (L2) - Major, minor, diminished and augmented triads, and inversions. *After: Major scales and keys*
+- **Chord progressions and cadences** (L2) - Common progressions, tension and resolution. *After: Chords and triads*
+- **Minor keys and modes** (L2) - Natural, harmonic and melodic minor; Dorian, Mixolydian and others. *After: Major scales and keys*
+- **Ear training** (L2) - Recognising intervals, chords and rhythms by ear. *After: Intervals*
+- **Musical form: song, sonata, rondo and twelve-bar blues** (L2) - How pieces are structured over time.
+- **Music history: medieval to baroque** (L2) - Chant, polyphony, Monteverdi, Bach and Handel.
+- **Music history: classical to romantic** (L2) - Haydn, Mozart, Beethoven, Chopin, Brahms and their contexts. *After: Music history: medieval to baroque*
+- **Twentieth-century and popular music** (L2) - Impressionism, modernism, jazz, rock, hip-hop and electronic music. *After: Music history: classical to romantic*
+- **Jazz harmony and improvisation basics** (L3) - Seventh chords, ii-V-I, blues scale and swing. *After: Chord progressions and cadences; Minor keys and modes*
+- **World music traditions** (L2) - Rhythmic and tonal systems beyond Western tonality.
+- **How recorded music is made: recording, mixing and mastering** (L3) - Signal chain, EQ, compression, reverb and loudness.
+
+### 14. Crafts and Making (16 topics) - `14-crafts-and-making.json`
+
+- **Workshop safety and measuring** (L1) - Protective gear, safe habits, accurate measuring and marking.
+- **Wood as a material** (L1) - Grain, species, moisture and movement.
+- **Basic electronics: voltage, current and resistance** (L1) - Ohm's law, series and parallel, and common components.
+- **Sewing by hand and machine** (L1) - Stitches, seams, patterns and fabric types.
+- **Knitting and crochet** (L1) - Stitches, reading patterns, tension and finishing.
+- **Cooking: heat, knife skills and seasoning** (L1) - Core techniques that make most recipes work.
+- **Gardening: soil, light and water** (L1) - What plants need and how to read your site.
+- **Knots and rope** (L1) - Practical knots for tying, joining, hitching and loops.
+- **Hand tools and how to sharpen them** (L1) - Saws, planes, chisels and keeping an edge. *After: Workshop safety and measuring*
+- **Basic joinery** (L2) - Butt, lap, mortise-and-tenon and dovetail joints. *After: Hand tools and how to sharpen them; Wood as a material*
+- **Finishing wood** (L2) - Sanding, stains, oils and varnishes. *After: Wood as a material*
+- **Soldering and reading circuits** (L2) - Safe soldering and understanding schematics. *After: Basic electronics: voltage, current and resistance; Workshop safety and measuring*
+- **Pottery and ceramics** (L2) - Clay types, hand building, throwing, glazing and firing.
+- **Home repair basics** (L2) - Common fixes, and knowing when a job needs a licensed professional. *After: Workshop safety and measuring*
+- **Bicycle maintenance** (L2) - Brakes, gears, chain, tyres and a basic service routine. *After: Workshop safety and measuring*
+- **3D modelling and printing** (L3) - Designing in CAD and printing parts that fit and hold.
+
+### 15. Languages: How Language Works (12 topics) - `15-languages-how-language-works.json`
+
+- **Sounds and phonetics** (L1) - Vowels, consonants and the sounds languages use.
+- **Writing systems** (L1) - Alphabets, syllabaries and logographies.
+- **How adults learn a language: input, output and spaced practice** (L1) - What research says works: comprehensible input, speaking early, and spaced vocabulary review.
+- **Words, morphology and word formation** (L2) - Roots, affixes, compounds and inflection.
+- **Meaning, context and pragmatics** (L2) - What speakers mean versus what words say.
+- **Language families and how languages change** (L2) - Indo-European, Sino-Tibetan, Afro-Asiatic and sound change over time.
+- **Dialects, accents and register** (L2) - Variation by place, group and situation.
+- **Rhetoric: how language persuades** (L2) - Ethos, pathos, logos and common devices.
+- **Syntax: how sentences are built** (L2) - Word order, clauses, agreement and phrase structure. *After: Words, morphology and word formation*
+- **Etymology and borrowed words** (L2) - Where words come from and how languages borrow. *After: Language families and how languages change*
+- **Translation and false friends** (L3) - What gets lost, and words that look alike but differ. *After: Syntax: how sentences are built*
+- **Multilingualism and the brain** (L3) - How the brain handles several languages.
+
+### 16. Language Course Template (15 topics) - `16-language-course-template.json`
+
+- **Sounds and pronunciation** (L1) - The sounds of the language and how to produce them.
+- **Writing system and spelling** (L1) - Letters or characters, and how spelling maps to sound.
+- **Greetings and introductions** (L1) - Hello, goodbye, names, origin and polite phrases.
+- **Numbers, dates and time** (L1) - Counting, telling time, days, months and dates.
+- **The 100 most frequent words** (L1) - The highest-frequency words that cover most everyday speech.
+- **Present tense of common verbs** (L1) - Be, have, go, want, like, do and other core verbs. *After: The 100 most frequent words*
+- **People, family and describing things** (L1) - Family members, adjectives, colours and descriptions. *After: The 100 most frequent words*
+- **Questions and negation** (L1) - Who, what, where, when, why, and saying no. *After: Present tense of common verbs*
+- **Food, shopping and ordering** (L1) - Restaurants, markets, prices and quantities. *After: Questions and negation*
+- **Directions and transport** (L1) - Asking the way, tickets, and getting around. *After: Questions and negation*
+- **Everyday politeness and conversation phrases** (L2) - Requests, thanks, apologies, small talk and filler phrases. *After: Greetings and introductions*
+- **Past tense** (L2) - Talking about what happened. *After: Present tense of common verbs*
+- **Future plans and intentions** (L2) - Talking about what will or might happen. *After: Present tense of common verbs*
+- **Comparing and giving opinions** (L2) - Better, worse, I think, I prefer, and reasons. *After: People, family and describing things*
+- **Reading short texts** (L2) - Signs, messages and simple articles. *After: Past tense*

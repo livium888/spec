@@ -113,6 +113,7 @@ class PromptService {
     int? syllabusItemId,
     required int n,
     String? sourceText,
+    int round = 1,
     DateTime? now,
   }) async {
     final t = (now ?? DateTime.now()).toUtc().millisecondsSinceEpoch;
@@ -125,7 +126,7 @@ class PromptService {
     final titles = await _recentTitles(domainId, syllabusItemId);
 
     final text = renderPrompt(
-        domain: dom.name, syllabusItem: syl, n: n, recentTitles: titles, sourceText: sourceText);
+        domain: dom.name, syllabusItem: syl, n: n, recentTitles: titles, sourceText: sourceText, round: round);
 
     // Prompts never imported within 14 days are abandoned.
     await (db.update(db.promptLogs)
@@ -136,7 +137,7 @@ class PromptService {
           createdAt: t,
           domainId: domainId,
           syllabusItemId: Value(syllabusItemId),
-          templateVersion: kPromptTemplateVersion,
+          templateVersion: round > 1 ? '$kPromptTemplateVersion+deeper' : kPromptTemplateVersion,
           promptText: text,
           cardsRequested: n,
         ));

@@ -55,8 +55,42 @@ class $DomainsTable extends Domains with TableInfo<$DomainsTable, Domain> {
     type: DriftSqlType.int,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _learnWeightMeta = const VerificationMeta(
+    'learnWeight',
+  );
   @override
-  List<GeneratedColumn> get $columns => [id, name, active, createdAt];
+  late final GeneratedColumn<int> learnWeight = GeneratedColumn<int>(
+    'learn_weight',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(2),
+  );
+  static const VerificationMeta _revisitMeta = const VerificationMeta(
+    'revisit',
+  );
+  @override
+  late final GeneratedColumn<bool> revisit = GeneratedColumn<bool>(
+    'revisit',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("revisit" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    name,
+    active,
+    createdAt,
+    learnWeight,
+    revisit,
+  ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -94,6 +128,21 @@ class $DomainsTable extends Domains with TableInfo<$DomainsTable, Domain> {
     } else if (isInserting) {
       context.missing(_createdAtMeta);
     }
+    if (data.containsKey('learn_weight')) {
+      context.handle(
+        _learnWeightMeta,
+        learnWeight.isAcceptableOrUnknown(
+          data['learn_weight']!,
+          _learnWeightMeta,
+        ),
+      );
+    }
+    if (data.containsKey('revisit')) {
+      context.handle(
+        _revisitMeta,
+        revisit.isAcceptableOrUnknown(data['revisit']!, _revisitMeta),
+      );
+    }
     return context;
   }
 
@@ -119,6 +168,14 @@ class $DomainsTable extends Domains with TableInfo<$DomainsTable, Domain> {
         DriftSqlType.int,
         data['${effectivePrefix}created_at'],
       )!,
+      learnWeight: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}learn_weight'],
+      )!,
+      revisit: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}revisit'],
+      )!,
     );
   }
 
@@ -133,11 +190,15 @@ class Domain extends DataClass implements Insertable<Domain> {
   final String name;
   final bool active;
   final int createdAt;
+  final int learnWeight;
+  final bool revisit;
   const Domain({
     required this.id,
     required this.name,
     required this.active,
     required this.createdAt,
+    required this.learnWeight,
+    required this.revisit,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -146,6 +207,8 @@ class Domain extends DataClass implements Insertable<Domain> {
     map['name'] = Variable<String>(name);
     map['active'] = Variable<bool>(active);
     map['created_at'] = Variable<int>(createdAt);
+    map['learn_weight'] = Variable<int>(learnWeight);
+    map['revisit'] = Variable<bool>(revisit);
     return map;
   }
 
@@ -155,6 +218,8 @@ class Domain extends DataClass implements Insertable<Domain> {
       name: Value(name),
       active: Value(active),
       createdAt: Value(createdAt),
+      learnWeight: Value(learnWeight),
+      revisit: Value(revisit),
     );
   }
 
@@ -168,6 +233,8 @@ class Domain extends DataClass implements Insertable<Domain> {
       name: serializer.fromJson<String>(json['name']),
       active: serializer.fromJson<bool>(json['active']),
       createdAt: serializer.fromJson<int>(json['createdAt']),
+      learnWeight: serializer.fromJson<int>(json['learnWeight']),
+      revisit: serializer.fromJson<bool>(json['revisit']),
     );
   }
   @override
@@ -178,22 +245,36 @@ class Domain extends DataClass implements Insertable<Domain> {
       'name': serializer.toJson<String>(name),
       'active': serializer.toJson<bool>(active),
       'createdAt': serializer.toJson<int>(createdAt),
+      'learnWeight': serializer.toJson<int>(learnWeight),
+      'revisit': serializer.toJson<bool>(revisit),
     };
   }
 
-  Domain copyWith({int? id, String? name, bool? active, int? createdAt}) =>
-      Domain(
-        id: id ?? this.id,
-        name: name ?? this.name,
-        active: active ?? this.active,
-        createdAt: createdAt ?? this.createdAt,
-      );
+  Domain copyWith({
+    int? id,
+    String? name,
+    bool? active,
+    int? createdAt,
+    int? learnWeight,
+    bool? revisit,
+  }) => Domain(
+    id: id ?? this.id,
+    name: name ?? this.name,
+    active: active ?? this.active,
+    createdAt: createdAt ?? this.createdAt,
+    learnWeight: learnWeight ?? this.learnWeight,
+    revisit: revisit ?? this.revisit,
+  );
   Domain copyWithCompanion(DomainsCompanion data) {
     return Domain(
       id: data.id.present ? data.id.value : this.id,
       name: data.name.present ? data.name.value : this.name,
       active: data.active.present ? data.active.value : this.active,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      learnWeight: data.learnWeight.present
+          ? data.learnWeight.value
+          : this.learnWeight,
+      revisit: data.revisit.present ? data.revisit.value : this.revisit,
     );
   }
 
@@ -203,13 +284,16 @@ class Domain extends DataClass implements Insertable<Domain> {
           ..write('id: $id, ')
           ..write('name: $name, ')
           ..write('active: $active, ')
-          ..write('createdAt: $createdAt')
+          ..write('createdAt: $createdAt, ')
+          ..write('learnWeight: $learnWeight, ')
+          ..write('revisit: $revisit')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, name, active, createdAt);
+  int get hashCode =>
+      Object.hash(id, name, active, createdAt, learnWeight, revisit);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -217,7 +301,9 @@ class Domain extends DataClass implements Insertable<Domain> {
           other.id == this.id &&
           other.name == this.name &&
           other.active == this.active &&
-          other.createdAt == this.createdAt);
+          other.createdAt == this.createdAt &&
+          other.learnWeight == this.learnWeight &&
+          other.revisit == this.revisit);
 }
 
 class DomainsCompanion extends UpdateCompanion<Domain> {
@@ -225,17 +311,23 @@ class DomainsCompanion extends UpdateCompanion<Domain> {
   final Value<String> name;
   final Value<bool> active;
   final Value<int> createdAt;
+  final Value<int> learnWeight;
+  final Value<bool> revisit;
   const DomainsCompanion({
     this.id = const Value.absent(),
     this.name = const Value.absent(),
     this.active = const Value.absent(),
     this.createdAt = const Value.absent(),
+    this.learnWeight = const Value.absent(),
+    this.revisit = const Value.absent(),
   });
   DomainsCompanion.insert({
     this.id = const Value.absent(),
     required String name,
     this.active = const Value.absent(),
     required int createdAt,
+    this.learnWeight = const Value.absent(),
+    this.revisit = const Value.absent(),
   }) : name = Value(name),
        createdAt = Value(createdAt);
   static Insertable<Domain> custom({
@@ -243,12 +335,16 @@ class DomainsCompanion extends UpdateCompanion<Domain> {
     Expression<String>? name,
     Expression<bool>? active,
     Expression<int>? createdAt,
+    Expression<int>? learnWeight,
+    Expression<bool>? revisit,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (name != null) 'name': name,
       if (active != null) 'active': active,
       if (createdAt != null) 'created_at': createdAt,
+      if (learnWeight != null) 'learn_weight': learnWeight,
+      if (revisit != null) 'revisit': revisit,
     });
   }
 
@@ -257,12 +353,16 @@ class DomainsCompanion extends UpdateCompanion<Domain> {
     Value<String>? name,
     Value<bool>? active,
     Value<int>? createdAt,
+    Value<int>? learnWeight,
+    Value<bool>? revisit,
   }) {
     return DomainsCompanion(
       id: id ?? this.id,
       name: name ?? this.name,
       active: active ?? this.active,
       createdAt: createdAt ?? this.createdAt,
+      learnWeight: learnWeight ?? this.learnWeight,
+      revisit: revisit ?? this.revisit,
     );
   }
 
@@ -281,6 +381,12 @@ class DomainsCompanion extends UpdateCompanion<Domain> {
     if (createdAt.present) {
       map['created_at'] = Variable<int>(createdAt.value);
     }
+    if (learnWeight.present) {
+      map['learn_weight'] = Variable<int>(learnWeight.value);
+    }
+    if (revisit.present) {
+      map['revisit'] = Variable<bool>(revisit.value);
+    }
     return map;
   }
 
@@ -290,7 +396,9 @@ class DomainsCompanion extends UpdateCompanion<Domain> {
           ..write('id: $id, ')
           ..write('name: $name, ')
           ..write('active: $active, ')
-          ..write('createdAt: $createdAt')
+          ..write('createdAt: $createdAt, ')
+          ..write('learnWeight: $learnWeight, ')
+          ..write('revisit: $revisit')
           ..write(')'))
         .toString();
   }
@@ -394,6 +502,16 @@ class $SyllabusItemsTable extends SyllabusItems
     requiredDuringInsert: false,
     defaultValue: const Constant(''),
   );
+  static const VerificationMeta _roundsMeta = const VerificationMeta('rounds');
+  @override
+  late final GeneratedColumn<int> rounds = GeneratedColumn<int>(
+    'rounds',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(1),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -404,6 +522,7 @@ class $SyllabusItemsTable extends SyllabusItems
     status,
     targetCards,
     description,
+    rounds,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -472,6 +591,12 @@ class $SyllabusItemsTable extends SyllabusItems
         ),
       );
     }
+    if (data.containsKey('rounds')) {
+      context.handle(
+        _roundsMeta,
+        rounds.isAcceptableOrUnknown(data['rounds']!, _roundsMeta),
+      );
+    }
     return context;
   }
 
@@ -513,6 +638,10 @@ class $SyllabusItemsTable extends SyllabusItems
         DriftSqlType.string,
         data['${effectivePrefix}description'],
       )!,
+      rounds: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}rounds'],
+      )!,
     );
   }
 
@@ -531,6 +660,7 @@ class SyllabusItem extends DataClass implements Insertable<SyllabusItem> {
   final String status;
   final int targetCards;
   final String description;
+  final int rounds;
   const SyllabusItem({
     required this.id,
     required this.domainId,
@@ -540,6 +670,7 @@ class SyllabusItem extends DataClass implements Insertable<SyllabusItem> {
     required this.status,
     required this.targetCards,
     required this.description,
+    required this.rounds,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -552,6 +683,7 @@ class SyllabusItem extends DataClass implements Insertable<SyllabusItem> {
     map['status'] = Variable<String>(status);
     map['target_cards'] = Variable<int>(targetCards);
     map['description'] = Variable<String>(description);
+    map['rounds'] = Variable<int>(rounds);
     return map;
   }
 
@@ -565,6 +697,7 @@ class SyllabusItem extends DataClass implements Insertable<SyllabusItem> {
       status: Value(status),
       targetCards: Value(targetCards),
       description: Value(description),
+      rounds: Value(rounds),
     );
   }
 
@@ -582,6 +715,7 @@ class SyllabusItem extends DataClass implements Insertable<SyllabusItem> {
       status: serializer.fromJson<String>(json['status']),
       targetCards: serializer.fromJson<int>(json['targetCards']),
       description: serializer.fromJson<String>(json['description']),
+      rounds: serializer.fromJson<int>(json['rounds']),
     );
   }
   @override
@@ -596,6 +730,7 @@ class SyllabusItem extends DataClass implements Insertable<SyllabusItem> {
       'status': serializer.toJson<String>(status),
       'targetCards': serializer.toJson<int>(targetCards),
       'description': serializer.toJson<String>(description),
+      'rounds': serializer.toJson<int>(rounds),
     };
   }
 
@@ -608,6 +743,7 @@ class SyllabusItem extends DataClass implements Insertable<SyllabusItem> {
     String? status,
     int? targetCards,
     String? description,
+    int? rounds,
   }) => SyllabusItem(
     id: id ?? this.id,
     domainId: domainId ?? this.domainId,
@@ -617,6 +753,7 @@ class SyllabusItem extends DataClass implements Insertable<SyllabusItem> {
     status: status ?? this.status,
     targetCards: targetCards ?? this.targetCards,
     description: description ?? this.description,
+    rounds: rounds ?? this.rounds,
   );
   SyllabusItem copyWithCompanion(SyllabusItemsCompanion data) {
     return SyllabusItem(
@@ -632,6 +769,7 @@ class SyllabusItem extends DataClass implements Insertable<SyllabusItem> {
       description: data.description.present
           ? data.description.value
           : this.description,
+      rounds: data.rounds.present ? data.rounds.value : this.rounds,
     );
   }
 
@@ -645,7 +783,8 @@ class SyllabusItem extends DataClass implements Insertable<SyllabusItem> {
           ..write('position: $position, ')
           ..write('status: $status, ')
           ..write('targetCards: $targetCards, ')
-          ..write('description: $description')
+          ..write('description: $description, ')
+          ..write('rounds: $rounds')
           ..write(')'))
         .toString();
   }
@@ -660,6 +799,7 @@ class SyllabusItem extends DataClass implements Insertable<SyllabusItem> {
     status,
     targetCards,
     description,
+    rounds,
   );
   @override
   bool operator ==(Object other) =>
@@ -672,7 +812,8 @@ class SyllabusItem extends DataClass implements Insertable<SyllabusItem> {
           other.position == this.position &&
           other.status == this.status &&
           other.targetCards == this.targetCards &&
-          other.description == this.description);
+          other.description == this.description &&
+          other.rounds == this.rounds);
 }
 
 class SyllabusItemsCompanion extends UpdateCompanion<SyllabusItem> {
@@ -684,6 +825,7 @@ class SyllabusItemsCompanion extends UpdateCompanion<SyllabusItem> {
   final Value<String> status;
   final Value<int> targetCards;
   final Value<String> description;
+  final Value<int> rounds;
   const SyllabusItemsCompanion({
     this.id = const Value.absent(),
     this.domainId = const Value.absent(),
@@ -693,6 +835,7 @@ class SyllabusItemsCompanion extends UpdateCompanion<SyllabusItem> {
     this.status = const Value.absent(),
     this.targetCards = const Value.absent(),
     this.description = const Value.absent(),
+    this.rounds = const Value.absent(),
   });
   SyllabusItemsCompanion.insert({
     this.id = const Value.absent(),
@@ -703,6 +846,7 @@ class SyllabusItemsCompanion extends UpdateCompanion<SyllabusItem> {
     this.status = const Value.absent(),
     this.targetCards = const Value.absent(),
     this.description = const Value.absent(),
+    this.rounds = const Value.absent(),
   }) : domainId = Value(domainId),
        title = Value(title);
   static Insertable<SyllabusItem> custom({
@@ -714,6 +858,7 @@ class SyllabusItemsCompanion extends UpdateCompanion<SyllabusItem> {
     Expression<String>? status,
     Expression<int>? targetCards,
     Expression<String>? description,
+    Expression<int>? rounds,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -724,6 +869,7 @@ class SyllabusItemsCompanion extends UpdateCompanion<SyllabusItem> {
       if (status != null) 'status': status,
       if (targetCards != null) 'target_cards': targetCards,
       if (description != null) 'description': description,
+      if (rounds != null) 'rounds': rounds,
     });
   }
 
@@ -736,6 +882,7 @@ class SyllabusItemsCompanion extends UpdateCompanion<SyllabusItem> {
     Value<String>? status,
     Value<int>? targetCards,
     Value<String>? description,
+    Value<int>? rounds,
   }) {
     return SyllabusItemsCompanion(
       id: id ?? this.id,
@@ -746,6 +893,7 @@ class SyllabusItemsCompanion extends UpdateCompanion<SyllabusItem> {
       status: status ?? this.status,
       targetCards: targetCards ?? this.targetCards,
       description: description ?? this.description,
+      rounds: rounds ?? this.rounds,
     );
   }
 
@@ -776,6 +924,9 @@ class SyllabusItemsCompanion extends UpdateCompanion<SyllabusItem> {
     if (description.present) {
       map['description'] = Variable<String>(description.value);
     }
+    if (rounds.present) {
+      map['rounds'] = Variable<int>(rounds.value);
+    }
     return map;
   }
 
@@ -789,7 +940,8 @@ class SyllabusItemsCompanion extends UpdateCompanion<SyllabusItem> {
           ..write('position: $position, ')
           ..write('status: $status, ')
           ..write('targetCards: $targetCards, ')
-          ..write('description: $description')
+          ..write('description: $description, ')
+          ..write('rounds: $rounds')
           ..write(')'))
         .toString();
   }
@@ -5584,12 +5736,16 @@ typedef $$DomainsTableCreateCompanionBuilder = DomainsCompanion Function({
   required String name,
   Value<bool> active,
   required int createdAt,
+  Value<int> learnWeight,
+  Value<bool> revisit,
 });
 typedef $$DomainsTableUpdateCompanionBuilder = DomainsCompanion Function({
   Value<int> id,
   Value<String> name,
   Value<bool> active,
   Value<int> createdAt,
+  Value<int> learnWeight,
+  Value<bool> revisit,
 });
 
 final class $$DomainsTableReferences
@@ -5696,6 +5852,16 @@ class $$DomainsTableFilterComposer
 
   ColumnFilters<int> get createdAt => $composableBuilder(
     column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get learnWeight => $composableBuilder(
+    column: $table.learnWeight,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get revisit => $composableBuilder(
+    column: $table.revisit,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -5828,6 +5994,16 @@ class $$DomainsTableOrderingComposer
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<int> get learnWeight => $composableBuilder(
+    column: $table.learnWeight,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get revisit => $composableBuilder(
+    column: $table.revisit,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$DomainsTableAnnotationComposer
@@ -5850,6 +6026,14 @@ class $$DomainsTableAnnotationComposer
 
   GeneratedColumn<int> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<int> get learnWeight => $composableBuilder(
+    column: $table.learnWeight,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get revisit =>
+      $composableBuilder(column: $table.revisit, builder: (column) => column);
 
   Expression<T> syllabusItemsRefs<T extends Object>(
     Expression<T> Function($$SyllabusItemsTableAnnotationComposer a) f,
@@ -5989,11 +6173,15 @@ class $$DomainsTableTableManager
                 Value<String> name = const Value.absent(),
                 Value<bool> active = const Value.absent(),
                 Value<int> createdAt = const Value.absent(),
+                Value<int> learnWeight = const Value.absent(),
+                Value<bool> revisit = const Value.absent(),
               }) => DomainsCompanion(
                 id: id,
                 name: name,
                 active: active,
                 createdAt: createdAt,
+                learnWeight: learnWeight,
+                revisit: revisit,
               ),
           createCompanionCallback:
               ({
@@ -6001,11 +6189,15 @@ class $$DomainsTableTableManager
                 required String name,
                 Value<bool> active = const Value.absent(),
                 required int createdAt,
+                Value<int> learnWeight = const Value.absent(),
+                Value<bool> revisit = const Value.absent(),
               }) => DomainsCompanion.insert(
                 id: id,
                 name: name,
                 active: active,
                 createdAt: createdAt,
+                learnWeight: learnWeight,
+                revisit: revisit,
               ),
           withReferenceMapper: (p0) => p0
               .map(
@@ -6146,6 +6338,7 @@ typedef $$SyllabusItemsTableCreateCompanionBuilder =
       Value<String> status,
       Value<int> targetCards,
       Value<String> description,
+      Value<int> rounds,
     });
 typedef $$SyllabusItemsTableUpdateCompanionBuilder =
     SyllabusItemsCompanion Function({
@@ -6157,6 +6350,7 @@ typedef $$SyllabusItemsTableUpdateCompanionBuilder =
       Value<String> status,
       Value<int> targetCards,
       Value<String> description,
+      Value<int> rounds,
     });
 
 final class $$SyllabusItemsTableReferences
@@ -6263,6 +6457,11 @@ class $$SyllabusItemsTableFilterComposer
 
   ColumnFilters<String> get description => $composableBuilder(
     column: $table.description,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get rounds => $composableBuilder(
+    column: $table.rounds,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -6384,6 +6583,11 @@ class $$SyllabusItemsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get rounds => $composableBuilder(
+    column: $table.rounds,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$DomainsTableOrderingComposer get domainId {
     final $$DomainsTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -6441,6 +6645,9 @@ class $$SyllabusItemsTableAnnotationComposer
     column: $table.description,
     builder: (column) => column,
   );
+
+  GeneratedColumn<int> get rounds =>
+      $composableBuilder(column: $table.rounds, builder: (column) => column);
 
   $$DomainsTableAnnotationComposer get domainId {
     final $$DomainsTableAnnotationComposer composer = $composerBuilder(
@@ -6556,6 +6763,7 @@ class $$SyllabusItemsTableTableManager
                 Value<String> status = const Value.absent(),
                 Value<int> targetCards = const Value.absent(),
                 Value<String> description = const Value.absent(),
+                Value<int> rounds = const Value.absent(),
               }) => SyllabusItemsCompanion(
                 id: id,
                 domainId: domainId,
@@ -6565,6 +6773,7 @@ class $$SyllabusItemsTableTableManager
                 status: status,
                 targetCards: targetCards,
                 description: description,
+                rounds: rounds,
               ),
           createCompanionCallback:
               ({
@@ -6576,6 +6785,7 @@ class $$SyllabusItemsTableTableManager
                 Value<String> status = const Value.absent(),
                 Value<int> targetCards = const Value.absent(),
                 Value<String> description = const Value.absent(),
+                Value<int> rounds = const Value.absent(),
               }) => SyllabusItemsCompanion.insert(
                 id: id,
                 domainId: domainId,
@@ -6585,6 +6795,7 @@ class $$SyllabusItemsTableTableManager
                 status: status,
                 targetCards: targetCards,
                 description: description,
+                rounds: rounds,
               ),
           withReferenceMapper: (p0) => p0
               .map(

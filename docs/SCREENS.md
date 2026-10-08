@@ -81,3 +81,11 @@ Per domain list of topics with status in words (Covered / In progress / Not star
 
 ## Import (outline mode)
 Pasting JSON with `items` shows the outline preview: new vs existing subject banner, each topic with level, target cards, prerequisites, errors and warnings; "Add N topics". Fatal errors (loop, duplicates, bad shape) list reasons and block import.
+
+## Starter library
+List of bundled subjects (name, topics, about N cards) with **Add**. A "Language course" template asks you to name it first. Added subjects show "Added". States: loading, error with message, list. Works offline.
+
+## Settings -> Subjects and topics
+Per subject: name, "x of y topics covered", *Off / Low / Normal / High* (paused text when Off), switch *Bring finished topics back later*, button *Topics*. Button to add subjects from the starter library.
+Topics screen additions: statuses in words (Covered / In progress / Skipped by you / Not started), "round n", "Comes back in about N months" / "Due for a deeper pass now"; tap menu: make cards / go deeper now, skip or include again, mark done / reopen.
+Learn screen additions: option kind "Revisit" with the reason "You last added cards to X 4 months ago (round 1)"; empty state "Everything is covered for now" with when the next revisit is due; "All your subjects are paused".

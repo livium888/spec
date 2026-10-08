@@ -1,0 +1,143 @@
+{
+  "domain": "Music",
+  "items": [
+    {
+      "title": "Rhythm, beat and metre",
+      "level": 1,
+      "description": "Pulse, time signatures, note values and syncopation.",
+      "target_cards": 8,
+      "prerequisites": []
+    },
+    {
+      "title": "Pitch, notes and the staff",
+      "level": 1,
+      "description": "Names of notes, clefs, accidentals and the keyboard layout.",
+      "target_cards": 8,
+      "prerequisites": []
+    },
+    {
+      "title": "Instruments and the orchestra",
+      "level": 1,
+      "description": "Families of instruments, ranges and typical roles.",
+      "target_cards": 8,
+      "prerequisites": []
+    },
+    {
+      "title": "How to practise an instrument effectively",
+      "level": 1,
+      "description": "Slow practice, chunking, deliberate focus and spacing sessions.",
+      "target_cards": 8,
+      "prerequisites": []
+    },
+    {
+      "title": "Major scales and keys",
+      "level": 1,
+      "description": "Whole and half steps, key signatures and the circle of fifths.",
+      "target_cards": 8,
+      "prerequisites": [
+        "Pitch, notes and the staff"
+      ]
+    },
+    {
+      "title": "Intervals",
+      "level": 2,
+      "description": "Distances between notes: name, size and sound.",
+      "target_cards": 10,
+      "prerequisites": [
+        "Major scales and keys"
+      ]
+    },
+    {
+      "title": "Chords and triads",
+      "level": 2,
+      "description": "Major, minor, diminished and augmented triads, and inversions.",
+      "target_cards": 10,
+      "prerequisites": [
+        "Major scales and keys"
+      ]
+    },
+    {
+      "title": "Chord progressions and cadences",
+      "level": 2,
+      "description": "Common progressions, tension and resolution.",
+      "target_cards": 10,
+      "prerequisites": [
+        "Chords and triads"
+      ]
+    },
+    {
+      "title": "Minor keys and modes",
+      "level": 2,
+      "description": "Natural, harmonic and melodic minor; Dorian, Mixolydian and others.",
+      "target_cards": 10,
+      "prerequisites": [
+        "Major scales and keys"
+      ]
+    },
+    {
+      "title": "Ear training",
+      "level": 2,
+      "description": "Recognising intervals, chords and rhythms by ear.",
+      "target_cards": 10,
+      "prerequisites": [
+        "Intervals"
+      ]
+    },
+    {
+      "title": "Musical form: song, sonata, rondo and twelve-bar blues",
+      "level": 2,
+      "description": "How pieces are structured over time.",
+      "target_cards": 10,
+      "prerequisites": []
+    },
+    {
+      "title": "Music history: medieval to baroque",
+      "level": 2,
+      "description": "Chant, polyphony, Monteverdi, Bach and Handel.",
+      "target_cards": 10,
+      "prerequisites": []
+    },
+    {
+      "title": "Music history: classical to romantic",
+      "level": 2,
+      "description": "Haydn, Mozart, Beethoven, Chopin, Brahms and their contexts.",
+      "target_cards": 10,
+      "prerequisites": [
+        "Music history: medieval to baroque"
+      ]
+    },
+    {
+      "title": "Twentieth-century and popular music",
+      "level": 2,
+      "description": "Impressionism, modernism, jazz, rock, hip-hop and electronic music.",
+      "target_cards": 10,
+      "prerequisites": [
+        "Music history: classical to romantic"
+      ]
+    },
+    {
+      "title": "Jazz harmony and improvisation basics",
+      "level": 3,
+      "description": "Seventh chords, ii-V-I, blues scale and swing.",
+      "target_cards": 10,
+      "prerequisites": [
+        "Chord progressions and cadences",
+        "Minor keys and modes"
+      ]
+    },
+    {
+      "title": "World music traditions",
+      "level": 2,
+      "description": "Rhythmic and tonal systems beyond Western tonality.",
+      "target_cards": 10,
+      "prerequisites": []
+    },
+    {
+      "title": "How recorded music is made: recording, mixing and mastering",
+      "level": 3,
+      "description": "Signal chain, EQ, compression, reverb and loudness.",
+      "target_cards": 10,
+      "prerequisites": []
+    }
+  ]
+}

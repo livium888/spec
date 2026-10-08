@@ -4,6 +4,7 @@ import 'package:crypto/crypto.dart';
 import 'package:drift/drift.dart';
 
 import '../domain/import_parser.dart';
+import '../domain/learn_planner.dart' show LearnPlanner;
 import 'db/database.dart';
 
 class ImportSummary {
@@ -97,7 +98,10 @@ class ImportService {
         }
       }
 
-      if (notes > 0) await _updatePromptLog(domainId, sylId, notes);
+      if (notes > 0) {
+        await _updatePromptLog(domainId, sylId, notes);
+        if (sylId != null) await _refreshItemStatus(sylId);
+      }
       return ImportSummary(notes: notes, cards: cards, domainId: domainId);
     });
   }
@@ -131,6 +135,19 @@ class ImportService {
   Future<Domain?> _findDomain(String name) => (db.select(db.domains)
         ..where((d) => d.name.lower().equals(name.trim().toLowerCase())))
       .getSingleOrNull();
+
+  /// Keep the topic's stored status in step with its card count (todo -> active -> done).
+  Future<void> _refreshItemStatus(int itemId) async {
+    final it = await (db.select(db.syllabusItems)..where((x) => x.id.equals(itemId))).getSingle();
+    final c = await db.customSelect(
+        'SELECT COUNT(*) AS n FROM card c JOIN note n ON n.id = c.note_id WHERE n.syllabus_item_id = ?',
+        variables: [Variable.withInt(itemId)]).getSingle();
+    final next = LearnPlanner.effectiveStatus(it.status, c.read<int>('n'), it.targetCards);
+    if (next != it.status) {
+      await (db.update(db.syllabusItems)..where((x) => x.id.equals(itemId)))
+          .write(SyllabusItemsCompanion(status: Value(next)));
+    }
+  }
 
   /// Attach the import to the most recent still-`issued` prompt for the domain.
   Future<void> _updatePromptLog(int domainId, int? sylId, int notes) async {

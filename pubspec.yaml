@@ -67,6 +67,10 @@ flutter:
   # the material Icons class.
   uses-material-design: true
 
+  # Bundled starter subjects (also readable on GitHub). Offline: nothing is fetched.
+  assets:
+    - docs/starter-outlines/
+
   # To add assets to your application, add an assets section, like this:
   # assets:
   #   - images/a_dot_burr.jpeg

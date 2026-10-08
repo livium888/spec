@@ -3,7 +3,7 @@
 const kPromptTemplateVersion = 'v1';
 
 const kPromptTemplateV1 = '''
-You are a careful flashcard author. Create {n} flashcards for the domain "{domain}"{syllabus_clause}.
+You are a careful flashcard author. Create {n} flashcards for the domain "{domain}"{syllabus_clause}.{depth_clause}
 
 RULES
 1. If SOURCE TEXT is provided below, make cards ONLY from it. Do not add outside facts.
@@ -43,6 +43,7 @@ String renderPrompt({
   required int n,
   required List<String> recentTitles,
   String? sourceText,
+  int round = 1,
 }) {
   final syl = syllabusItem?.trim();
   final recent = recentTitles.isEmpty ? '(none yet)' : recentTitles.map((t) => '- $t').join('\n');
@@ -54,12 +55,17 @@ String renderPrompt({
     'n': '$n',
     'domain': domain,
     'syllabus_clause': syl == null || syl.isEmpty ? '' : ', focusing on "$syl"',
+    'depth_clause': round <= 1
+        ? ''
+        : ' This topic was studied before (round $round). Write NEW cards that go deeper than the basics: '
+            'mechanisms, applications, edge cases, common misconceptions and links to other topics. '
+            'Cover different facts from the existing cards.',
     'syllabus_json': syl == null || syl.isEmpty ? 'null' : '"${syl.replaceAll('"', r'\"')}"',
     'recent_titles': recent,
     'source_text': source,
   };
   return kPromptTemplateV1.replaceAllMapped(
-    RegExp(r'\{(n|domain|syllabus_clause|syllabus_json|recent_titles|source_text)\}'),
+    RegExp(r'\{(n|domain|syllabus_clause|depth_clause|syllabus_json|recent_titles|source_text)\}'),
     (m) => values[m[1]]!,
   );
 }

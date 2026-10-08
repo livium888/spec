@@ -1,0 +1,95 @@
+{
+  "domain": "Languages: How Language Works",
+  "items": [
+    {
+      "title": "Sounds and phonetics",
+      "level": 1,
+      "description": "Vowels, consonants and the sounds languages use.",
+      "target_cards": 8,
+      "prerequisites": []
+    },
+    {
+      "title": "Writing systems",
+      "level": 1,
+      "description": "Alphabets, syllabaries and logographies.",
+      "target_cards": 8,
+      "prerequisites": []
+    },
+    {
+      "title": "How adults learn a language: input, output and spaced practice",
+      "level": 1,
+      "description": "What research says works: comprehensible input, speaking early, and spaced vocabulary review.",
+      "target_cards": 8,
+      "prerequisites": []
+    },
+    {
+      "title": "Words, morphology and word formation",
+      "level": 2,
+      "description": "Roots, affixes, compounds and inflection.",
+      "target_cards": 10,
+      "prerequisites": []
+    },
+    {
+      "title": "Meaning, context and pragmatics",
+      "level": 2,
+      "description": "What speakers mean versus what words say.",
+      "target_cards": 10,
+      "prerequisites": []
+    },
+    {
+      "title": "Language families and how languages change",
+      "level": 2,
+      "description": "Indo-European, Sino-Tibetan, Afro-Asiatic and sound change over time.",
+      "target_cards": 10,
+      "prerequisites": []
+    },
+    {
+      "title": "Dialects, accents and register",
+      "level": 2,
+      "description": "Variation by place, group and situation.",
+      "target_cards": 10,
+      "prerequisites": []
+    },
+    {
+      "title": "Rhetoric: how language persuades",
+      "level": 2,
+      "description": "Ethos, pathos, logos and common devices.",
+      "target_cards": 10,
+      "prerequisites": []
+    },
+    {
+      "title": "Syntax: how sentences are built",
+      "level": 2,
+      "description": "Word order, clauses, agreement and phrase structure.",
+      "target_cards": 10,
+      "prerequisites": [
+        "Words, morphology and word formation"
+      ]
+    },
+    {
+      "title": "Etymology and borrowed words",
+      "level": 2,
+      "description": "Where words come from and how languages borrow.",
+      "target_cards": 10,
+      "prerequisites": [
+        "Language families and how languages change"
+      ]
+    },
+    {
+      "title": "Translation and false friends",
+      "level": 3,
+      "description": "What gets lost, and words that look alike but differ.",
+      "target_cards": 10,
+      "prerequisites": [
+        "Syntax: how sentences are built"
+      ]
+    },
+    {
+      "title": "Multilingualism and the brain",
+      "level": 3,
+      "description": "How the brain handles several languages.",
+      "target_cards": 10,
+      "prerequisites": []
+    }
+  ]
+}

@@ -1,0 +1,131 @@
+{
+  "ask_name": true,
+  "domain": "My language (rename me)",
+  "items": [
+    {
+      "title": "Sounds and pronunciation",
+      "level": 1,
+      "description": "The sounds of the language and how to produce them.",
+      "target_cards": 12,
+      "prerequisites": []
+    },
+    {
+      "title": "Writing system and spelling",
+      "level": 1,
+      "description": "Letters or characters, and how spelling maps to sound.",
+      "target_cards": 8,
+      "prerequisites": []
+    },
+    {
+      "title": "Greetings and introductions",
+      "level": 1,
+      "description": "Hello, goodbye, names, origin and polite phrases.",
+      "target_cards": 8,
+      "prerequisites": []
+    },
+    {
+      "title": "Numbers, dates and time",
+      "level": 1,
+      "description": "Counting, telling time, days, months and dates.",
+      "target_cards": 8,
+      "prerequisites": []
+    },
+    {
+      "title": "The 100 most frequent words",
+      "level": 1,
+      "description": "The highest-frequency words that cover most everyday speech.",
+      "target_cards": 30,
+      "prerequisites": []
+    },
+    {
+      "title": "Present tense of common verbs",
+      "level": 1,
+      "description": "Be, have, go, want, like, do and other core verbs.",
+      "target_cards": 8,
+      "prerequisites": [
+        "The 100 most frequent words"
+      ]
+    },
+    {
+      "title": "People, family and describing things",
+      "level": 1,
+      "description": "Family members, adjectives, colours and descriptions.",
+      "target_cards": 8,
+      "prerequisites": [
+        "The 100 most frequent words"
+      ]
+    },
+    {
+      "title": "Questions and negation",
+      "level": 1,
+      "description": "Who, what, where, when, why, and saying no.",
+      "target_cards": 8,
+      "prerequisites": [
+        "Present tense of common verbs"
+      ]
+    },
+    {
+      "title": "Food, shopping and ordering",
+      "level": 1,
+      "description": "Restaurants, markets, prices and quantities.",
+      "target_cards": 8,
+      "prerequisites": [
+        "Questions and negation"
+      ]
+    },
+    {
+      "title": "Directions and transport",
+      "level": 1,
+      "description": "Asking the way, tickets, and getting around.",
+      "target_cards": 8,
+      "prerequisites": [
+        "Questions and negation"
+      ]
+    },
+    {
+      "title": "Everyday politeness and conversation phrases",
+      "level": 2,
+      "description": "Requests, thanks, apologies, small talk and filler phrases.",
+      "target_cards": 10,
+      "prerequisites": [
+        "Greetings and introductions"
+      ]
+    },
+    {
+      "title": "Past tense",
+      "level": 2,
+      "description": "Talking about what happened.",
+      "target_cards": 10,
+      "prerequisites": [
+        "Present tense of common verbs"
+      ]
+    },
+    {
+      "title": "Future plans and intentions",
+      "level": 2,
+      "description": "Talking about what will or might happen.",
+      "target_cards": 10,
+      "prerequisites": [
+        "Present tense of common verbs"
+      ]
+    },
+    {
+      "title": "Comparing and giving opinions",
+      "level": 2,
+      "description": "Better, worse, I think, I prefer, and reasons.",
+      "target_cards": 10,
+      "prerequisites": [
+        "People, family and describing things"
+      ]
+    },
+    {
+      "title": "Reading short texts",
+      "level": 2,
+      "description": "Signs, messages and simple articles.",
+      "target_cards": 10,
+      "prerequisites": [
+        "Past tense"
+      ]
+    }
+  ]
+}
