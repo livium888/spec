@@ -176,7 +176,7 @@ class LearnService {
   }) async {
     final t = (now ?? DateTime.now()).toUtc();
     final it = option.item;
-    final prompts = PromptService(db);
+    final prompts = PromptService(db, settings: settings);
     final int logId;
     final String text;
 

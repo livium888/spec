@@ -26,6 +26,16 @@ class StudyCard {
   bool get unverified => tags.contains('unverified');
   bool get leech => tags.contains('leech');
 
+  /// Answer-side extras in reading order, as (label, text). Empty ones are left out.
+  List<(String, String)> get extras => [
+        for (final (label, key) in const [
+          ('Why it matters', 'why_it_matters'),
+          ('Example', 'example'),
+          ('Memory hook', 'memory_hook'),
+        ])
+          if ((fields[key] as String? ?? '').trim().isNotEmpty) (label, (fields[key] as String).trim()),
+      ];
+
   static final _clozeRe = RegExp(r'\{\{c(\d+)::(.*?)(?:::(.*?))?\}\}', dotAll: true);
 
   /// Question side. Cloze: the active deletion becomes `[...]` (or its hint).

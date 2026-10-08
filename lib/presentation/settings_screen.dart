@@ -10,6 +10,7 @@ import '../app/providers.dart';
 import '../data/backup/backup_service.dart';
 import '../data/backup/backup_storage.dart';
 import '../data/settings_repo.dart';
+import '../domain/prompt_template.dart' show kMaxProfileChars;
 import 'home_screen.dart' show pickBackupFolder;
 import 'subjects_screen.dart';
 
@@ -28,6 +29,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   final _rollover = TextEditingController();
   final _minutes = TextEditingController();
   final _revisit = TextEditingController();
+  final _profile = TextEditingController();
   String? _folder;
   int _lastBackup = 0;
   String? _msg;
@@ -42,7 +44,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   @override
   void dispose() {
-    for (final c in [_newPerDay, _divisor, _retention, _steps, _relearn, _rollover, _minutes, _revisit]) {
+    for (final c in [_newPerDay, _divisor, _retention, _steps, _relearn, _rollover, _minutes, _revisit, _profile]) {
       c.dispose();
     }
     super.dispose();
@@ -58,6 +60,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     _rollover.text = '${await s.getInt(SettingsRepo.rolloverHour, 4)}';
     _minutes.text = '${await s.getInt(SettingsRepo.dailyMinutes, 20)}';
     _revisit.text = '${await s.getInt(SettingsRepo.revisitMonths, 3)}';
+    _profile.text = await s.get(SettingsRepo.learnerProfile) ?? '';
     _folder = await s.get(SettingsRepo.backupTreeUri);
     _lastBackup = await s.getInt(BackupService.lastSuccessKey, 0);
     if (mounted) setState(() => _loaded = true);
@@ -87,6 +90,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     if (h == null || h < 0 || h > 23) err = 'Day rollover hour must be 0-23.';
     if (mins == null || mins < 5 || mins > 240) err = 'Daily study time must be 5-240 minutes.';
     if (rev == null || rev < 1 || rev > 24) err = 'First revisit delay must be 1-24 months.';
+    if (_profile.text.length > kMaxProfileChars) err = 'Keep "About you" under $kMaxProfileChars characters.';
     if (ls == null) err = 'Learning steps: minutes separated by commas, e.g. 1,10.';
     if (rs == null) err = 'Relearning steps: minutes separated by commas, e.g. 10.';
     if (err != null) {
@@ -101,6 +105,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     await s.set(SettingsRepo.rolloverHour, '$h');
     await s.set(SettingsRepo.dailyMinutes, '$mins');
     await s.set(SettingsRepo.revisitMonths, '$rev');
+    await s.set(SettingsRepo.learnerProfile, _profile.text.trim());
     // New params row (old log rows keep theirs, so replay stays exact).
     await ref.read(paramsRepoProvider).syncFromSettings();
     ref.read(refreshProvider.notifier).bump();
@@ -254,6 +259,23 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 field(_steps, 'Learning steps (minutes)', number: false, help: 'e.g. 1,10'),
                 field(_relearn, 'Relearning steps (minutes)', number: false, help: 'e.g. 10'),
                 field(_rollover, 'Day rolls over at (hour, local)', help: '4 = 04:00'),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: TextField(
+                    controller: _profile,
+                    minLines: 2,
+                    maxLines: 5,
+                    maxLength: kMaxProfileChars,
+                    textCapitalization: TextCapitalization.sentences,
+                    decoration: const InputDecoration(
+                      labelText: 'About you (optional)',
+                      hintText: 'e.g. Nurse, cycles to work, loves football and cooking, learning for fun',
+                      helperText: 'Makes examples and analogies fit your life. It is added to the prompts you '
+                          'copy, so it goes to whichever LLM you paste them into.',
+                      helperMaxLines: 3,
+                    ),
+                  ),
+                ),
                 field(_revisit, 'Bring finished topics back after (months)', help: 'First delay; each later round waits twice as long (3, 6, 12, 24 ... up to 12 years).'),
                 field(_minutes, 'Daily study time (minutes)', help: 'Used by "Learn something new" to decide how many new cards fit.'),
                 FilledButton(

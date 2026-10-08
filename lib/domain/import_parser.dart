@@ -5,6 +5,7 @@ import 'dart:convert';
 /// markup.
 const kMaxCardsPerImport = 200;
 const kMaxFieldChars = 2000;
+const kMaxExtraChars = 600;
 const kMaxTags = 12;
 
 const _types = {'basic', 'cloze'};
@@ -24,10 +25,16 @@ class ParsedCard {
     this.confidence = '',
     this.tags = const [],
     this.errors = const [],
+    this.whyItMatters = '',
+    this.example = '',
+    this.memoryHook = '',
   });
 
   final int index; // 0-based position in the payload
   final String type, front, back, cloze, sourceType, sourceRef, supportingQuote, confidence;
+
+  /// Optional answer-side extras: the story / reason, a concrete example, a memory hook.
+  final String whyItMatters, example, memoryHook;
   final List<String> tags;
   final List<String> errors;
 
@@ -182,6 +189,24 @@ ParsedCard _parseCard(int i, Object? raw) {
     errors.add('source_ref must be an http(s) URL when source_type is url.');
   }
 
+  String extra(String key) {
+    final v = raw[key];
+    if (v == null) return '';
+    if (v is! String) {
+      errors.add('"$key" must be a string.');
+      return '';
+    }
+    if (v.length > kMaxExtraChars) {
+      errors.add('"$key" is too long (max $kMaxExtraChars). Keep it to a sentence or two.');
+      return '';
+    }
+    return v.trim();
+  }
+
+  final why = extra('why_it_matters');
+  final example = extra('example');
+  final hook = extra('memory_hook');
+
   final confidence = str('confidence', required: true);
   if (confidence.isNotEmpty && !_confidences.contains(confidence)) {
     errors.add('"confidence" must be high, medium or low.');
@@ -214,6 +239,9 @@ ParsedCard _parseCard(int i, Object? raw) {
     confidence: confidence,
     tags: tags,
     errors: errors,
+    whyItMatters: why,
+    example: example,
+    memoryHook: hook,
   );
 }
 

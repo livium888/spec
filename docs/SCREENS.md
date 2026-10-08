@@ -102,3 +102,9 @@ Icon + label + headline + reasons; label is one of "Good time", "Go gently", "Ho
 | advice hold off / done | advice card with reasons; "OK, reviews first" / "OK, I will stop here"; "Add just 3 cards anyway" |
 | nothing to offer | explanation (all covered with when the next revisit is due, all subjects paused, no topics) and buttons to the library / new subject |
 | error | message + Retry |
+
+## Review: answer side
+After "Show answer": the short answer, then labelled sections **Why it matters**, **Example**, **Memory hook** when the card has them (plain selectable text, never rendered as markup).
+
+## Settings: About you
+Optional multi-line field (300 characters) with a note that it is added to card prompts and so goes to the LLM you paste into.

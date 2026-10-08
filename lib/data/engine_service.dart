@@ -105,8 +105,11 @@ class EngineFeaturesService {
 
 /// Prompt builder: renders the template and logs it to `prompt_log`.
 class PromptService {
-  PromptService(this.db);
+  PromptService(this.db, {this.settings});
   final AppDatabase db;
+
+  /// When given, the learner's optional "about you" text is added to card prompts.
+  final SettingsRepo? settings;
 
   Future<({int logId, String text})> build({
     required int domainId,
@@ -126,7 +129,8 @@ class PromptService {
     final titles = await _recentTitles(domainId, syllabusItemId);
 
     final text = renderPrompt(
-        domain: dom.name, syllabusItem: syl, n: n, recentTitles: titles, sourceText: sourceText, round: round);
+        domain: dom.name, syllabusItem: syl, n: n, recentTitles: titles, sourceText: sourceText, round: round,
+        learnerProfile: await settings?.get(SettingsRepo.learnerProfile));
 
     // Prompts never imported within 14 days are abandoned.
     await (db.update(db.promptLogs)

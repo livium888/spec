@@ -95,3 +95,12 @@ Restore refuses only backups from a NEWER schema; older files are migrated by Dr
 
 ## D18 — Release pipeline
 New pushes cancel older builds (`concurrency`), and the rolling `latest-apk` release is updated in place (`gh release upload --clobber`) instead of deleted and recreated, so a cancelled run cannot leave the release empty.
+
+## D19 — Card prompt v2: engaging cards, richer answer side, personal examples
+- **Problem:** v1 produced bare Q&A pairs ("soulless"). Chosen: a teacher/storyteller prompt with 7 ranked principles, four dull-vs-great worked examples from different fields, a variety rule, a self-check, and an accuracy rule (vividness never outranks accuracy).
+- **Answer side:** new optional fields `why_it_matters`, `example`, `memory_hook` (<= 600 chars each; stored in `fields_json`; shown after reveal under labelled headings). No DB migration: the importer ignores unknown keys, so older prompts and hand-written JSON keep working.
+- **Personal relevance:** optional "About you" text (<= 300 chars, Settings) is added to card prompts so examples and analogies fit the learner. It is sent to whichever LLM the user pastes prompts into; the setting says so.
+- **Guard rails:** a test extracts the JSON example embedded in the prompt and runs it through the real importer; it checks the example's `back` obeys the prompt's own length rule; the repair prompt (`remediate-v2`) follows the same principles.
+- **Rejected:** forcing a "why" on every card (mixed evidence, slower reviews); long answers with the story inside `back` (hurts retrieval and grading); fixed per-subject tone presets (more settings, little evidence).
+- **Risks:** longer prompts are followed less closely by some models; vivid stories raise hallucination risk (mitigated by the accuracy rule and the Unverified tag); examples can be copied (mitigated by "never reuse" and the variety rule).
+- **Revisit if:** a model keeps ignoring the extras, cards feel formulaic after a few weeks (rotate examples), or `why_it_matters` becomes filler. Template versions are logged per prompt (`prompt_log.template_version`), so batches can be compared.

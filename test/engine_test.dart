@@ -92,7 +92,7 @@ void main() {
     expect(r.text, contains('Create 7 flashcards for the domain "Bio"'));
     expect(r.text, contains('- What is ATP?'));
     expect(r.text, contains('Text with {n} and {domain} inside.')); // not re-expanded
-    expect(r.text, contains('{{c1::hidden text}}'));
+    expect(r.text, contains('{{c1::'));
     expect(r.text, isNot(contains('{recent_titles}')));
     final log = await db.select(db.promptLogs).getSingle();
     expect(log.templateVersion, kPromptTemplateVersion);

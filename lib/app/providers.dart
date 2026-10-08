@@ -38,7 +38,8 @@ final importServiceProvider = Provider((ref) => ImportService(ref.watch(dbProvid
 final outlineServiceProvider = Provider((ref) => OutlineService(ref.watch(dbProvider)));
 final learnServiceProvider = Provider((ref) => LearnService(
     ref.watch(dbProvider), ref.watch(settingsRepoProvider), ref.watch(queueServiceProvider)));
-final promptServiceProvider = Provider((ref) => PromptService(ref.watch(dbProvider)));
+final promptServiceProvider = Provider(
+    (ref) => PromptService(ref.watch(dbProvider), settings: ref.watch(settingsRepoProvider)));
 final interestServiceProvider = Provider((ref) => InterestService(ref.watch(dbProvider)));
 final featuresServiceProvider = Provider(
     (ref) => EngineFeaturesService(ref.watch(dbProvider), ref.watch(settingsRepoProvider)));

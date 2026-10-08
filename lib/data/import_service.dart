@@ -74,9 +74,14 @@ class ImportService {
         if (dupe != null) continue;
 
         final tags = {...c.tags, if (c.unverified) 'unverified'};
-        final fields = c.type == 'cloze'
-            ? {'cloze': c.cloze, 'back': c.back, 'supporting_quote': c.supportingQuote}
-            : {'front': c.front, 'back': c.back, 'supporting_quote': c.supportingQuote};
+        final fields = <String, String>{
+          if (c.type == 'cloze') 'cloze': c.cloze else 'front': c.front,
+          'back': c.back,
+          'supporting_quote': c.supportingQuote,
+          if (c.whyItMatters.isNotEmpty) 'why_it_matters': c.whyItMatters,
+          if (c.example.isNotEmpty) 'example': c.example,
+          if (c.memoryHook.isNotEmpty) 'memory_hook': c.memoryHook,
+        };
         final noteId = await db.into(db.notes).insert(NotesCompanion.insert(
               guid: guid,
               domainId: domainId,

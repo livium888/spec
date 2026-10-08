@@ -256,6 +256,15 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
               if (_revealed) ...[
                 const Divider(height: 32),
                 SelectableText(c.back, style: text.titleLarge),
+                for (final (label, body) in c.extras)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 14),
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text(label, style: text.labelLarge),
+                      const SizedBox(height: 2),
+                      SelectableText(body, style: text.bodyLarge),
+                    ]),
+                  ),
                 if ((c.fields['supporting_quote'] as String? ?? '').isNotEmpty) ...[
                   const SizedBox(height: 16),
                   Text('Source: “${c.fields['supporting_quote']}”', style: text.bodyMedium),
