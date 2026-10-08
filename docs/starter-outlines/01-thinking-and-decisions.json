@@ -1,0 +1,120 @@
+{
+  "domain": "Thinking and Decisions",
+  "items": [
+    {
+      "title": "Mental models and the map is not the territory",
+      "level": 1,
+      "description": "Why every model simplifies, and how to hold several at once.",
+      "target_cards": 8,
+      "prerequisites": []
+    },
+    {
+      "title": "Cognitive biases",
+      "level": 1,
+      "description": "Confirmation, anchoring, availability, hindsight and overconfidence.",
+      "target_cards": 8,
+      "prerequisites": []
+    },
+    {
+      "title": "Incentives",
+      "level": 1,
+      "description": "How behaviour follows rewards, and how to read a situation by its incentives.",
+      "target_cards": 8,
+      "prerequisites": []
+    },
+    {
+      "title": "Opportunity cost and trade-offs",
+      "level": 1,
+      "description": "The real cost of a choice is the best alternative given up.",
+      "target_cards": 8,
+      "prerequisites": []
+    },
+    {
+      "title": "Circle of competence",
+      "level": 1,
+      "description": "Knowing what you know, what you do not, and acting accordingly.",
+      "target_cards": 8,
+      "prerequisites": []
+    },
+    {
+      "title": "Fermi estimation",
+      "level": 1,
+      "description": "Getting a usable answer from rough numbers and order-of-magnitude reasoning.",
+      "target_cards": 8,
+      "prerequisites": []
+    },
+    {
+      "title": "Second-order effects",
+      "level": 2,
+      "description": "Consequences of consequences, and unintended outcomes.",
+      "target_cards": 10,
+      "prerequisites": [
+        "Mental models and the map is not the territory"
+      ]
+    },
+    {
+      "title": "Inversion and pre-mortems",
+      "level": 2,
+      "description": "Solve problems backwards: what would guarantee failure?",
+      "target_cards": 10,
+      "prerequisites": [
+        "Mental models and the map is not the territory"
+      ]
+    },
+    {
+      "title": "Sunk costs and when to quit",
+      "level": 2,
+      "description": "Ignoring past spend; deciding on future costs and benefits only.",
+      "target_cards": 10,
+      "prerequisites": [
+        "Cognitive biases",
+        "Opportunity cost and trade-offs"
+      ]
+    },
+    {
+      "title": "Base rates and reference classes",
+      "level": 2,
+      "description": "Starting from how often things happen before adding the specifics.",
+      "target_cards": 10,
+      "prerequisites": [
+        "Cognitive biases"
+      ]
+    },
+    {
+      "title": "Systems thinking",
+      "level": 2,
+      "description": "Feedback loops, delays, bottlenecks and leverage points.",
+      "target_cards": 10,
+      "prerequisites": [
+        "Mental models and the map is not the territory"
+      ]
+    },
+    {
+      "title": "Probabilistic thinking and calibration",
+      "level": 2,
+      "description": "Expressing beliefs as probabilities and checking how often you are right.",
+      "target_cards": 10,
+      "prerequisites": [
+        "Base rates and reference classes"
+      ]
+    },
+    {
+      "title": "Expected value and risk of ruin",
+      "level": 2,
+      "description": "Why a positive-expectation bet can still be a bad bet.",
+      "target_cards": 10,
+      "prerequisites": [
+        "Probabilistic thinking and calibration"
+      ]
+    },
+    {
+      "title": "Decision journals and reversible decisions",
+      "level": 2,
+      "description": "Recording reasoning, separating luck from skill, and sizing effort to reversibility.",
+      "target_cards": 10,
+      "prerequisites": [
+        "Expected value and risk of ruin"
+      ]
+    }
+  ]
+}

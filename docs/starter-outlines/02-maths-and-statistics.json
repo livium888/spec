@@ -1,0 +1,107 @@
+{
+  "domain": "Maths and Statistics",
+  "items": [
+    {
+      "title": "Exponentials, logarithms and compounding",
+      "level": 1,
+      "description": "Growth that multiplies, and why intuition fails at it.",
+      "target_cards": 8,
+      "prerequisites": []
+    },
+    {
+      "title": "Percentages, ratios and orders of magnitude",
+      "level": 1,
+      "description": "Fluent everyday quantitative reasoning.",
+      "target_cards": 8,
+      "prerequisites": []
+    },
+    {
+      "title": "Probability basics",
+      "level": 1,
+      "description": "Events, independence, complements, and the sum and product rules.",
+      "target_cards": 8,
+      "prerequisites": []
+    },
+    {
+      "title": "Combinatorics and counting",
+      "level": 2,
+      "description": "Permutations, combinations and counting outcomes.",
+      "target_cards": 10,
+      "prerequisites": [
+        "Probability basics"
+      ]
+    },
+    {
+      "title": "Conditional probability and Bayes' theorem",
+      "level": 2,
+      "description": "Updating beliefs with evidence; the base-rate trap.",
+      "target_cards": 10,
+      "prerequisites": [
+        "Probability basics"
+      ]
+    },
+    {
+      "title": "Expected value and variance",
+      "level": 2,
+      "description": "Average outcome and spread of outcomes.",
+      "target_cards": 10,
+      "prerequisites": [
+        "Probability basics"
+      ]
+    },
+    {
+      "title": "Distributions: normal, power law and fat tails",
+      "level": 2,
+      "description": "Which shapes describe heights, wealth, wars and failures.",
+      "target_cards": 10,
+      "prerequisites": [
+        "Probability basics"
+      ]
+    },
+    {
+      "title": "Sampling, confidence intervals and significance",
+      "level": 2,
+      "description": "What a sample can and cannot tell you; what p-values mean.",
+      "target_cards": 10,
+      "prerequisites": [
+        "Distributions: normal, power law and fat tails"
+      ]
+    },
+    {
+      "title": "Correlation, causation and confounding",
+      "level": 2,
+      "description": "Why two things moving together proves little.",
+      "target_cards": 10,
+      "prerequisites": [
+        "Sampling, confidence intervals and significance"
+      ]
+    },
+    {
+      "title": "Regression to the mean and survivorship bias",
+      "level": 2,
+      "description": "Two traps that make noise look like skill.",
+      "target_cards": 10,
+      "prerequisites": [
+        "Correlation, causation and confounding"
+      ]
+    },
+    {
+      "title": "Experiments and A/B tests",
+      "level": 3,
+      "description": "Randomisation, controls and designing a test that can answer the question.",
+      "target_cards": 10,
+      "prerequisites": [
+        "Correlation, causation and confounding"
+      ]
+    },
+    {
+      "title": "Linear regression intuition",
+      "level": 3,
+      "description": "Fitting a line, reading coefficients, and overfitting.",
+      "target_cards": 10,
+      "prerequisites": [
+        "Correlation, causation and confounding"
+      ]
+    }
+  ]
+}

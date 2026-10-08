@@ -1,0 +1,97 @@
+{
+  "domain": "Science and Health",
+  "items": [
+    {
+      "title": "The scientific method and falsifiability",
+      "level": 1,
+      "description": "Hypotheses that can be wrong, and why that matters.",
+      "target_cards": 8,
+      "prerequisites": []
+    },
+    {
+      "title": "Evolution and natural selection",
+      "level": 1,
+      "description": "Variation, inheritance and selection as a general explanation.",
+      "target_cards": 8,
+      "prerequisites": []
+    },
+    {
+      "title": "Cells, DNA and genetics",
+      "level": 1,
+      "description": "The machinery of life and how traits are inherited.",
+      "target_cards": 8,
+      "prerequisites": []
+    },
+    {
+      "title": "Sleep",
+      "level": 1,
+      "description": "What sleep does, how much you need and how to protect it.",
+      "target_cards": 8,
+      "prerequisites": []
+    },
+    {
+      "title": "Nutrition and metabolism",
+      "level": 1,
+      "description": "Energy balance, macronutrients and what the evidence supports.",
+      "target_cards": 8,
+      "prerequisites": []
+    },
+    {
+      "title": "Exercise and ageing",
+      "level": 1,
+      "description": "Strength, cardio and mobility, and their effect on healthspan.",
+      "target_cards": 8,
+      "prerequisites": []
+    },
+    {
+      "title": "Reading a scientific study critically",
+      "level": 2,
+      "description": "Design, sample, effect size, and conflicts of interest.",
+      "target_cards": 10,
+      "prerequisites": [
+        "The scientific method and falsifiability"
+      ]
+    },
+    {
+      "title": "Energy, entropy and thermodynamics",
+      "level": 2,
+      "description": "Conservation, efficiency and why some processes only run one way.",
+      "target_cards": 10,
+      "prerequisites": []
+    },
+    {
+      "title": "The brain and nervous system",
+      "level": 2,
+      "description": "Neurons, circuits and the main brain regions in plain terms.",
+      "target_cards": 10,
+      "prerequisites": [
+        "Cells, DNA and genetics"
+      ]
+    },
+    {
+      "title": "Infectious disease, vaccines and immunity",
+      "level": 2,
+      "description": "How pathogens spread, how immunity works and how vaccines train it.",
+      "target_cards": 10,
+      "prerequisites": [
+        "Cells, DNA and genetics"
+      ]
+    },
+    {
+      "title": "Climate and energy systems",
+      "level": 2,
+      "description": "Greenhouse effect, emissions sources and the energy transition.",
+      "target_cards": 10,
+      "prerequisites": [
+        "Energy, entropy and thermodynamics"
+      ]
+    },
+    {
+      "title": "Chemistry and materials basics",
+      "level": 2,
+      "description": "Atoms, bonds, reactions and why materials behave as they do.",
+      "target_cards": 10,
+      "prerequisites": []
+    }
+  ]
+}

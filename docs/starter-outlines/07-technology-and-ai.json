@@ -1,0 +1,105 @@
+{
+  "domain": "Technology and AI",
+  "items": [
+    {
+      "title": "How computers and the internet work",
+      "level": 1,
+      "description": "Hardware, operating systems, networks, protocols and the web.",
+      "target_cards": 8,
+      "prerequisites": []
+    },
+    {
+      "title": "Programming fundamentals",
+      "level": 1,
+      "description": "Variables, control flow, functions and data structures.",
+      "target_cards": 8,
+      "prerequisites": []
+    },
+    {
+      "title": "Data, databases and spreadsheets",
+      "level": 1,
+      "description": "Tables, queries, and reasoning about data.",
+      "target_cards": 8,
+      "prerequisites": []
+    },
+    {
+      "title": "Cybersecurity and privacy basics",
+      "level": 1,
+      "description": "Passwords, phishing, encryption in daily life and threat models.",
+      "target_cards": 8,
+      "prerequisites": [
+        "How computers and the internet work"
+      ]
+    },
+    {
+      "title": "Algorithms and complexity",
+      "level": 2,
+      "description": "Sorting, searching, Big-O and why scale changes everything.",
+      "target_cards": 10,
+      "prerequisites": [
+        "Programming fundamentals"
+      ]
+    },
+    {
+      "title": "Software engineering practice",
+      "level": 2,
+      "description": "Version control, testing, review and maintaining code over time.",
+      "target_cards": 10,
+      "prerequisites": [
+        "Programming fundamentals"
+      ]
+    },
+    {
+      "title": "Cloud, platforms and APIs",
+      "level": 2,
+      "description": "How modern products are built on rented infrastructure and interfaces.",
+      "target_cards": 10,
+      "prerequisites": [
+        "How computers and the internet work"
+      ]
+    },
+    {
+      "title": "Cryptography and blockchains",
+      "level": 2,
+      "description": "Hashes, keys, signatures, and what blockchains do and do not guarantee.",
+      "target_cards": 10,
+      "prerequisites": [
+        "Cybersecurity and privacy basics"
+      ]
+    },
+    {
+      "title": "Machine learning basics",
+      "level": 2,
+      "description": "Training, generalisation, overfitting and evaluation.",
+      "target_cards": 10,
+      "prerequisites": [
+        "Data, databases and spreadsheets"
+      ]
+    },
+    {
+      "title": "Exponential technologies: chips, energy and biotech",
+      "level": 2,
+      "description": "Cost curves that drop predictably and what they unlock.",
+      "target_cards": 10,
+      "prerequisites": []
+    },
+    {
+      "title": "Large language models and their limits",
+      "level": 3,
+      "description": "How they work in outline, where they fail, and how to use them safely.",
+      "target_cards": 10,
+      "prerequisites": [
+        "Machine learning basics"
+      ]
+    },
+    {
+      "title": "Automation and the future of work",
+      "level": 3,
+      "description": "Which tasks automate first and how people and firms adapt.",
+      "target_cards": 10,
+      "prerequisites": [
+        "Large language models and their limits"
+      ]
+    }
+  ]
+}

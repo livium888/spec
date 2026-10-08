@@ -1,0 +1,129 @@
+{
+  "domain": "Business and Strategy",
+  "items": [
+    {
+      "title": "Business models and unit economics",
+      "level": 1,
+      "description": "How a business makes money per customer, and when it scales.",
+      "target_cards": 8,
+      "prerequisites": []
+    },
+    {
+      "title": "Customer problems and product-market fit",
+      "level": 1,
+      "description": "Finding a painful problem and proving people will pay for the fix.",
+      "target_cards": 8,
+      "prerequisites": []
+    },
+    {
+      "title": "Competitive advantage and moats",
+      "level": 2,
+      "description": "What protects profits from competitors: scale, brand, switching costs, network effects.",
+      "target_cards": 10,
+      "prerequisites": [
+        "Business models and unit economics"
+      ]
+    },
+    {
+      "title": "Strategy and positioning",
+      "level": 2,
+      "description": "Choosing where to play and what to leave out.",
+      "target_cards": 10,
+      "prerequisites": [
+        "Competitive advantage and moats"
+      ]
+    },
+    {
+      "title": "Pricing and margins",
+      "level": 2,
+      "description": "Cost-plus versus value pricing, gross margin and discounting traps.",
+      "target_cards": 10,
+      "prerequisites": [
+        "Business models and unit economics"
+      ]
+    },
+    {
+      "title": "Marketing, distribution and channels",
+      "level": 2,
+      "description": "Reaching customers cheaply and repeatably.",
+      "target_cards": 10,
+      "prerequisites": [
+        "Customer problems and product-market fit"
+      ]
+    },
+    {
+      "title": "Sales and customer acquisition cost",
+      "level": 2,
+      "description": "Funnels, CAC versus lifetime value, and sales process basics.",
+      "target_cards": 10,
+      "prerequisites": [
+        "Business models and unit economics",
+        "Marketing, distribution and channels"
+      ]
+    },
+    {
+      "title": "Operations, bottlenecks and the Theory of Constraints",
+      "level": 2,
+      "description": "Throughput is set by the slowest step; improve that first.",
+      "target_cards": 10,
+      "prerequisites": []
+    },
+    {
+      "title": "Hiring and building a team",
+      "level": 2,
+      "description": "Defining the role, structured interviews and hiring slowly.",
+      "target_cards": 10,
+      "prerequisites": []
+    },
+    {
+      "title": "Management, delegation and feedback",
+      "level": 2,
+      "description": "Clear expectations, regular one-to-ones and useful feedback.",
+      "target_cards": 10,
+      "prerequisites": [
+        "Hiring and building a team"
+      ]
+    },
+    {
+      "title": "Organisational culture and incentives",
+      "level": 3,
+      "description": "Culture is what gets rewarded and tolerated.",
+      "target_cards": 10,
+      "prerequisites": [
+        "Management, delegation and feedback"
+      ]
+    },
+    {
+      "title": "Negotiation",
+      "level": 2,
+      "description": "Interests versus positions, BATNA, anchoring and listening.",
+      "target_cards": 10,
+      "prerequisites": []
+    },
+    {
+      "title": "Contracts, IP and company structure basics",
+      "level": 2,
+      "description": "What a contract binds, how IP is protected, and common company forms.",
+      "target_cards": 10,
+      "prerequisites": []
+    },
+    {
+      "title": "Startup funding, equity and dilution",
+      "level": 3,
+      "description": "Cap tables, term-sheet basics and the trade-offs of raising money.",
+      "target_cards": 10,
+      "prerequisites": [
+        "Business models and unit economics"
+      ]
+    },
+    {
+      "title": "Innovation and disruption",
+      "level": 3,
+      "description": "How incumbents get displaced and how new entrants win.",
+      "target_cards": 10,
+      "prerequisites": [
+        "Competitive advantage and moats"
+      ]
+    }
+  ]
+}

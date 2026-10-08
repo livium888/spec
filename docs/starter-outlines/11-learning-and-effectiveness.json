@@ -1,0 +1,81 @@
+{
+  "domain": "Learning and Effectiveness",
+  "items": [
+    {
+      "title": "How to learn: retrieval, spacing and interleaving",
+      "level": 1,
+      "description": "The techniques with the best evidence, and why they feel hard.",
+      "target_cards": 8,
+      "prerequisites": []
+    },
+    {
+      "title": "Deep work and managing attention",
+      "level": 1,
+      "description": "Protecting long, focused blocks and reducing context switching.",
+      "target_cards": 8,
+      "prerequisites": []
+    },
+    {
+      "title": "Time, priorities and the 80/20 rule",
+      "level": 1,
+      "description": "Choosing the few things that matter most.",
+      "target_cards": 8,
+      "prerequisites": []
+    },
+    {
+      "title": "Reading effectively and note-taking",
+      "level": 1,
+      "description": "Reading for purpose and capturing what you will reuse.",
+      "target_cards": 8,
+      "prerequisites": []
+    },
+    {
+      "title": "Goal setting and OKRs",
+      "level": 2,
+      "description": "Outcomes versus activities, and reviewing regularly.",
+      "target_cards": 10,
+      "prerequisites": [
+        "Time, priorities and the 80/20 rule"
+      ]
+    },
+    {
+      "title": "Writing to think",
+      "level": 2,
+      "description": "Using writing to find out what you believe.",
+      "target_cards": 10,
+      "prerequisites": []
+    },
+    {
+      "title": "Building a network and asking for help",
+      "level": 2,
+      "description": "Giving first, staying in touch, and making clear asks.",
+      "target_cards": 10,
+      "prerequisites": []
+    },
+    {
+      "title": "Career capital and compounding skills",
+      "level": 2,
+      "description": "Rare and valuable skills that grow with use.",
+      "target_cards": 10,
+      "prerequisites": [
+        "Time, priorities and the 80/20 rule"
+      ]
+    },
+    {
+      "title": "Health habits as a performance system",
+      "level": 2,
+      "description": "Sleep, movement and food as inputs to everything else.",
+      "target_cards": 10,
+      "prerequisites": []
+    },
+    {
+      "title": "Leadership",
+      "level": 3,
+      "description": "Setting direction, earning trust, and developing others.",
+      "target_cards": 10,
+      "prerequisites": [
+        "Career capital and compounding skills"
+      ]
+    }
+  ]
+}

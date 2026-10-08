@@ -1,0 +1,122 @@
+{
+  "domain": "Economics",
+  "items": [
+    {
+      "title": "Supply and demand",
+      "level": 1,
+      "description": "How prices coordinate buyers and sellers, and what shifts the curves.",
+      "target_cards": 8,
+      "prerequisites": []
+    },
+    {
+      "title": "Scarcity, trade-offs and incentives",
+      "level": 1,
+      "description": "The core economic frame applied to everyday choices.",
+      "target_cards": 8,
+      "prerequisites": []
+    },
+    {
+      "title": "Comparative advantage and trade",
+      "level": 1,
+      "description": "Why both sides gain from specialising and trading.",
+      "target_cards": 8,
+      "prerequisites": []
+    },
+    {
+      "title": "GDP, inflation and unemployment",
+      "level": 1,
+      "description": "What the headline numbers measure and what they miss.",
+      "target_cards": 8,
+      "prerequisites": []
+    },
+    {
+      "title": "Elasticity and pricing",
+      "level": 2,
+      "description": "How sensitive demand is to price, and what that means for revenue.",
+      "target_cards": 10,
+      "prerequisites": [
+        "Supply and demand"
+      ]
+    },
+    {
+      "title": "Market structures: competition, monopoly and oligopoly",
+      "level": 2,
+      "description": "How the number of firms changes prices and behaviour.",
+      "target_cards": 10,
+      "prerequisites": [
+        "Supply and demand"
+      ]
+    },
+    {
+      "title": "Network effects and winner-take-all markets",
+      "level": 2,
+      "description": "Why some products get more valuable as more people use them.",
+      "target_cards": 10,
+      "prerequisites": [
+        "Market structures: competition, monopoly and oligopoly"
+      ]
+    },
+    {
+      "title": "Externalities and public goods",
+      "level": 2,
+      "description": "Costs and benefits that markets ignore, and common remedies.",
+      "target_cards": 10,
+      "prerequisites": [
+        "Supply and demand"
+      ]
+    },
+    {
+      "title": "Money, banks and central banks",
+      "level": 2,
+      "description": "How money is created, what banks do, and what a central bank controls.",
+      "target_cards": 10,
+      "prerequisites": [
+        "GDP, inflation and unemployment"
+      ]
+    },
+    {
+      "title": "Interest rates and the business cycle",
+      "level": 2,
+      "description": "Why rates move, and how they ripple through the economy.",
+      "target_cards": 10,
+      "prerequisites": [
+        "Money, banks and central banks"
+      ]
+    },
+    {
+      "title": "Fiscal policy, debt and deficits",
+      "level": 2,
+      "description": "Government spending, taxes and what debt sustainability means.",
+      "target_cards": 10,
+      "prerequisites": [
+        "GDP, inflation and unemployment"
+      ]
+    },
+    {
+      "title": "Behavioural economics",
+      "level": 2,
+      "description": "Where real people depart from rational-agent models.",
+      "target_cards": 10,
+      "prerequisites": []
+    },
+    {
+      "title": "Growth, productivity and inequality",
+      "level": 3,
+      "description": "What drives long-run prosperity and how gains are shared.",
+      "target_cards": 10,
+      "prerequisites": [
+        "GDP, inflation and unemployment"
+      ]
+    },
+    {
+      "title": "Financial crises",
+      "level": 3,
+      "description": "Common anatomy of crises: leverage, runs, contagion and policy response.",
+      "target_cards": 10,
+      "prerequisites": [
+        "Money, banks and central banks",
+        "Interest rates and the business cycle"
+      ]
+    }
+  ]
+}

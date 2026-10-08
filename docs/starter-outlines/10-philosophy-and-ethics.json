@@ -1,0 +1,67 @@
+{
+  "domain": "Philosophy and Ethics",
+  "items": [
+    {
+      "title": "Logic and common fallacies",
+      "level": 1,
+      "description": "Valid arguments and the usual ways reasoning goes wrong.",
+      "target_cards": 8,
+      "prerequisites": []
+    },
+    {
+      "title": "Stoicism",
+      "level": 1,
+      "description": "Focusing on what you control; Marcus Aurelius, Epictetus, Seneca.",
+      "target_cards": 8,
+      "prerequisites": []
+    },
+    {
+      "title": "Ethical frameworks: consequences, duties and virtues",
+      "level": 2,
+      "description": "Three lenses for judging right action.",
+      "target_cards": 10,
+      "prerequisites": []
+    },
+    {
+      "title": "Epistemology: how we know what we know",
+      "level": 2,
+      "description": "Evidence, justification, certainty and the limits of knowledge.",
+      "target_cards": 10,
+      "prerequisites": [
+        "Logic and common fallacies"
+      ]
+    },
+    {
+      "title": "Wisdom traditions and meditation",
+      "level": 2,
+      "description": "What contemplative practices claim and what research suggests.",
+      "target_cards": 10,
+      "prerequisites": []
+    },
+    {
+      "title": "Free will, meaning and existentialism",
+      "level": 3,
+      "description": "Choice, responsibility and making meaning without guarantees.",
+      "target_cards": 10,
+      "prerequisites": []
+    },
+    {
+      "title": "Moral psychology",
+      "level": 3,
+      "description": "How people actually form moral judgements.",
+      "target_cards": 10,
+      "prerequisites": [
+        "Ethical frameworks: consequences, duties and virtues"
+      ]
+    },
+    {
+      "title": "Justice, rights and the social contract",
+      "level": 3,
+      "description": "Competing accounts of fairness and legitimate authority.",
+      "target_cards": 10,
+      "prerequisites": [
+        "Ethical frameworks: consequences, duties and virtues"
+      ]
+    }
+  ]
+}

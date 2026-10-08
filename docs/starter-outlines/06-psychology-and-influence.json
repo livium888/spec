@@ -1,0 +1,97 @@
+{
+  "domain": "Psychology and Influence",
+  "items": [
+    {
+      "title": "How memory and attention work",
+      "level": 1,
+      "description": "Encoding, forgetting, working memory and why focus is limited.",
+      "target_cards": 8,
+      "prerequisites": []
+    },
+    {
+      "title": "Motivation and habits",
+      "level": 1,
+      "description": "Cues, routines and rewards; what sustains effort.",
+      "target_cards": 8,
+      "prerequisites": []
+    },
+    {
+      "title": "Emotional intelligence and self-awareness",
+      "level": 1,
+      "description": "Noticing, naming and managing emotions, yours and others'.",
+      "target_cards": 8,
+      "prerequisites": []
+    },
+    {
+      "title": "Active listening and asking good questions",
+      "level": 1,
+      "description": "Understanding before replying.",
+      "target_cards": 8,
+      "prerequisites": []
+    },
+    {
+      "title": "Clear writing",
+      "level": 1,
+      "description": "Short sentences, concrete words, one idea at a time.",
+      "target_cards": 8,
+      "prerequisites": []
+    },
+    {
+      "title": "Stress, resilience and burnout",
+      "level": 2,
+      "description": "What stress does, recovery, and early warning signs.",
+      "target_cards": 10,
+      "prerequisites": [
+        "Emotional intelligence and self-awareness"
+      ]
+    },
+    {
+      "title": "Persuasion principles",
+      "level": 2,
+      "description": "Reciprocity, commitment, social proof, authority, liking and scarcity.",
+      "target_cards": 10,
+      "prerequisites": []
+    },
+    {
+      "title": "Storytelling and public speaking",
+      "level": 2,
+      "description": "Structure, clarity and delivery under pressure.",
+      "target_cards": 10,
+      "prerequisites": [
+        "Clear writing"
+      ]
+    },
+    {
+      "title": "Conflict and difficult conversations",
+      "level": 2,
+      "description": "Staying curious, separating facts from stories, and repairing.",
+      "target_cards": 10,
+      "prerequisites": [
+        "Active listening and asking good questions"
+      ]
+    },
+    {
+      "title": "Group dynamics, status and social proof",
+      "level": 2,
+      "description": "Conformity, hierarchy, and how groups decide.",
+      "target_cards": 10,
+      "prerequisites": []
+    },
+    {
+      "title": "Personality and individual differences",
+      "level": 3,
+      "description": "What trait models do and do not predict.",
+      "target_cards": 10,
+      "prerequisites": []
+    },
+    {
+      "title": "Cognitive behavioural principles",
+      "level": 3,
+      "description": "Thoughts, feelings and behaviour as a loop you can intervene on.",
+      "target_cards": 10,
+      "prerequisites": [
+        "Emotional intelligence and self-awareness"
+      ]
+    }
+  ]
+}

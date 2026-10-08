@@ -1,0 +1,97 @@
+{
+  "domain": "History and Power",
+  "items": [
+    {
+      "title": "How to read history: sources, bias and narrative",
+      "level": 1,
+      "description": "Primary versus secondary sources and who wrote the record.",
+      "target_cards": 8,
+      "prerequisites": []
+    },
+    {
+      "title": "The agricultural and industrial revolutions",
+      "level": 1,
+      "description": "The two shifts that reshaped population, wealth and power.",
+      "target_cards": 8,
+      "prerequisites": []
+    },
+    {
+      "title": "Political systems: democracy, autocracy and federalism",
+      "level": 1,
+      "description": "How power is acquired, shared and constrained.",
+      "target_cards": 8,
+      "prerequisites": []
+    },
+    {
+      "title": "Law and the rule of law",
+      "level": 1,
+      "description": "What legal systems do and why predictable rules matter.",
+      "target_cards": 8,
+      "prerequisites": []
+    },
+    {
+      "title": "The rise and fall of empires",
+      "level": 2,
+      "description": "Recurring patterns of expansion, overreach and decline.",
+      "target_cards": 10,
+      "prerequisites": []
+    },
+    {
+      "title": "Origins and consequences of the World Wars",
+      "level": 2,
+      "description": "Causes, turning points and the settlements that followed.",
+      "target_cards": 10,
+      "prerequisites": []
+    },
+    {
+      "title": "History of money and finance",
+      "level": 2,
+      "description": "From commodity money to central banking and modern credit.",
+      "target_cards": 10,
+      "prerequisites": []
+    },
+    {
+      "title": "Media, propaganda and information warfare",
+      "level": 2,
+      "description": "How narratives are shaped and how to spot manipulation.",
+      "target_cards": 10,
+      "prerequisites": []
+    },
+    {
+      "title": "The Cold War and the post-war order",
+      "level": 2,
+      "description": "Alliances, institutions and rivalry after 1945.",
+      "target_cards": 10,
+      "prerequisites": [
+        "Origins and consequences of the World Wars"
+      ]
+    },
+    {
+      "title": "Modern China",
+      "level": 2,
+      "description": "Revolution, reform and the rise of a manufacturing and technology power.",
+      "target_cards": 10,
+      "prerequisites": [
+        "The Cold War and the post-war order"
+      ]
+    },
+    {
+      "title": "Geopolitics: geography, energy and chokepoints",
+      "level": 2,
+      "description": "How geography and resources shape strategy.",
+      "target_cards": 10,
+      "prerequisites": [
+        "The Cold War and the post-war order"
+      ]
+    },
+    {
+      "title": "Power, institutions and bureaucracy",
+      "level": 3,
+      "description": "How organisations hold and exercise power over time.",
+      "target_cards": 10,
+      "prerequisites": [
+        "Political systems: democracy, autocracy and federalism"
+      ]
+    }
+  ]
+}

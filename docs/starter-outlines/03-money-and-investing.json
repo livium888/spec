@@ -1,0 +1,129 @@
+{
+  "domain": "Money and Investing",
+  "items": [
+    {
+      "title": "Budgeting, cash flow and savings rate",
+      "level": 1,
+      "description": "Where money goes, and why the savings rate beats the return early on.",
+      "target_cards": 8,
+      "prerequisites": []
+    },
+    {
+      "title": "Compound interest and the time value of money",
+      "level": 1,
+      "description": "Why a sum now is worth more than later, and how time does the work.",
+      "target_cards": 8,
+      "prerequisites": []
+    },
+    {
+      "title": "Inflation and real returns",
+      "level": 1,
+      "description": "Purchasing power and returns after inflation.",
+      "target_cards": 8,
+      "prerequisites": []
+    },
+    {
+      "title": "Emergency funds and insurance basics",
+      "level": 1,
+      "description": "Insuring against ruin, not against small losses.",
+      "target_cards": 8,
+      "prerequisites": []
+    },
+    {
+      "title": "Debt, interest rates and credit",
+      "level": 1,
+      "description": "Good versus bad debt, APR, credit scores and amortisation.",
+      "target_cards": 8,
+      "prerequisites": []
+    },
+    {
+      "title": "Stocks, bonds and funds",
+      "level": 2,
+      "description": "What each asset is, who pays you, and how they differ in risk.",
+      "target_cards": 10,
+      "prerequisites": []
+    },
+    {
+      "title": "Risk, return and diversification",
+      "level": 2,
+      "description": "Why spreading bets lowers risk without lowering expected return.",
+      "target_cards": 10,
+      "prerequisites": [
+        "Compound interest and the time value of money"
+      ]
+    },
+    {
+      "title": "Index funds and fees",
+      "level": 2,
+      "description": "Low-cost passive investing and why fees compound against you.",
+      "target_cards": 10,
+      "prerequisites": [
+        "Stocks, bonds and funds",
+        "Risk, return and diversification"
+      ]
+    },
+    {
+      "title": "Retirement and tax-advantaged accounts",
+      "level": 2,
+      "description": "Country-specific wrappers that shelter growth; learn the ones for where you live.",
+      "target_cards": 10,
+      "prerequisites": [
+        "Compound interest and the time value of money"
+      ]
+    },
+    {
+      "title": "Property as an investment",
+      "level": 2,
+      "description": "Leverage, rent versus buy, yields and illiquidity.",
+      "target_cards": 10,
+      "prerequisites": [
+        "Debt, interest rates and credit"
+      ]
+    },
+    {
+      "title": "Reading financial statements",
+      "level": 2,
+      "description": "Income statement, balance sheet and cash flow, and how they connect.",
+      "target_cards": 10,
+      "prerequisites": []
+    },
+    {
+      "title": "Valuation: price versus value",
+      "level": 3,
+      "description": "Discounted cash flow, multiples and margin of safety.",
+      "target_cards": 10,
+      "prerequisites": [
+        "Reading financial statements",
+        "Compound interest and the time value of money"
+      ]
+    },
+    {
+      "title": "Market cycles, bubbles and crashes",
+      "level": 3,
+      "description": "How booms and busts form, and why timing them fails.",
+      "target_cards": 10,
+      "prerequisites": [
+        "Stocks, bonds and funds"
+      ]
+    },
+    {
+      "title": "Leverage and risk of ruin",
+      "level": 3,
+      "description": "Why borrowed money turns survivable losses into fatal ones.",
+      "target_cards": 10,
+      "prerequisites": [
+        "Debt, interest rates and credit",
+        "Risk, return and diversification"
+      ]
+    },
+    {
+      "title": "Options and derivatives basics",
+      "level": 3,
+      "description": "Calls, puts, hedging versus speculation, and what can go wrong.",
+      "target_cards": 10,
+      "prerequisites": [
+        "Stocks, bonds and funds"
+      ]
+    }
+  ]
+}
