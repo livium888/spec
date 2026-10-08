@@ -12,6 +12,7 @@ import 'package:daily_learning/data/settings_repo.dart';
 import 'package:drift/drift.dart' hide isNull, isNotNull;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:sqlite3/sqlite3.dart' as sql;
 
 void main() {
   late Directory tmp;
@@ -157,5 +158,29 @@ void main() {
 
     // Rejection happens before the live DB is touched.
     expect(await fingerprint(db), before);
+  });
+
+  test('restoring an OLDER (v1) backup upgrades it instead of refusing it', () async {
+    await seed();
+    final storage = DirectoryBackupStorage(backupDir);
+    await BackupService(db, SettingsRepo(db)).export(storage, tmp, now: t0);
+    final f = (await storage.list()).single;
+    final before = await fingerprint(db);
+
+    // Rewrite the backup file so it looks like it came from schema v1.
+    final raw = sql.sqlite3.open(f.uri);
+    raw.execute('DROP TABLE syllabus_prereq');
+    raw.execute('ALTER TABLE syllabus_item DROP COLUMN target_cards');
+    raw.execute('ALTER TABLE syllabus_item DROP COLUMN description');
+    raw.execute('PRAGMA user_version = 1');
+    raw.close();
+
+    final report = await BackupService.restore(
+      bytes: await storage.read(f), dbFile: dbFile, tmpDir: tmp,
+      closeDb: () => db.close(), reopen: () async => db = open(),
+    );
+    expect(report.fingerprint, before);
+    expect(report.clean, isTrue);
+    expect(await db.select(db.syllabusPrereqs).get(), isEmpty); // new table exists
   });
 }

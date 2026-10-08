@@ -3,7 +3,9 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../app/providers.dart';
+import '../data/outline_service.dart' show OutlineException;
 import '../domain/import_parser.dart';
+import '../domain/outline_parser.dart';
 
 class ImportScreen extends ConsumerStatefulWidget {
   const ImportScreen({super.key});
@@ -13,6 +15,7 @@ class ImportScreen extends ConsumerStatefulWidget {
 
 class _ImportScreenState extends ConsumerState<ImportScreen> {
   ImportPreview? _preview;
+  OutlinePreview? _outline;
   final _selected = <int>{};
   bool _busy = false;
   String? _message;
@@ -27,9 +30,18 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
         setState(() => _message = 'The clipboard is empty. Copy the LLM\'s JSON answer first.');
         return;
       }
+      if (detectPayloadKind(text) == 'outline') {
+        final o = await ref.read(outlineServiceProvider).preview(text);
+        setState(() {
+          _outline = o;
+          _preview = null;
+        });
+        return;
+      }
       final p = await ref.read(importServiceProvider).preview(text);
       setState(() {
         _preview = p;
+        _outline = null;
         _selected
           ..clear()
           ..addAll(p.importable.map((c) => c.index));
@@ -59,9 +71,65 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
     }
   }
 
+  Future<void> _commitOutline() async {
+    final o = _outline!;
+    setState(() => _busy = true);
+    try {
+      final s = await ref.read(outlineServiceProvider).commit(o);
+      ref.read(refreshProvider.notifier).bump();
+      if (!mounted) return;
+      setState(() {
+        _outline = null;
+        _message = 'Added ${s.items} topic${s.items == 1 ? '' : 's'} with ${s.edges} prerequisite link${s.edges == 1 ? '' : 's'}'
+            '${s.droppedEdges > 0 ? ' (${s.droppedEdges} ignored: unknown topic)' : ''}. '
+            'Tap "Learn something new" to start.';
+      });
+    } on OutlineException catch (e) {
+      setState(() => _message = e.message);
+    } catch (e) {
+      setState(() => _message = 'Import failed, nothing was saved: $e');
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Widget _outlineList(BuildContext context, OutlinePreview o) {
+    if (o.hasFatal) {
+      return ListView(padding: const EdgeInsets.all(16), children: [
+        Text('This outline can\'t be imported:', style: Theme.of(context).textTheme.titleMedium),
+        const SizedBox(height: 8),
+        for (final e in o.fatalErrors) ListTile(leading: const Icon(Icons.error_outline), title: Text(e)),
+      ]);
+    }
+    return ListView(padding: const EdgeInsets.symmetric(horizontal: 16), children: [
+      Card(
+        child: ListTile(
+          leading: const Icon(Icons.account_tree_outlined),
+          title: Text('Outline for "${o.domain}"'),
+          subtitle: Text(o.newDomain ? 'A new subject will be created.' : 'Topics will be added to your existing subject.'),
+        ),
+      ),
+      for (final it in o.items)
+        Card(
+          child: ListTile(
+            title: Text(it.title.isEmpty ? '(topic ${it.index + 1})' : it.title),
+            subtitle: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              if (o.alreadyExists.contains(it.index)) const Text('Already in your topics - skipped'),
+              for (final e in it.errors) Text('• $e', style: TextStyle(color: Theme.of(context).colorScheme.error)),
+              if (it.valid && !o.alreadyExists.contains(it.index))
+                Text('Level ${it.level} · about ${it.targetCards} cards'
+                    '${it.prerequisites.isEmpty ? '' : ' · after ${it.prerequisites.join(', ')}'}'),
+              for (final w in o.warnings[it.index] ?? const <String>[]) Text('• $w'),
+            ]),
+          ),
+        ),
+    ]);
+  }
+
   @override
   Widget build(BuildContext context) {
     final p = _preview;
+    final o = _outline;
     return Scaffold(
       appBar: AppBar(title: const Text('Import cards')),
       body: SafeArea(
@@ -80,18 +148,30 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
                   padding: const EdgeInsets.only(top: 12),
                   child: Text(_message!, style: Theme.of(context).textTheme.bodyLarge),
                 ),
-              if (p == null && _message == null)
+              if (p == null && o == null && _message == null)
                 const Padding(
                   padding: EdgeInsets.only(top: 12),
-                  child: Text('Copy the JSON your LLM returned, then tap the button. '
+                  child: Text('Copy the JSON your LLM returned (cards or an outline), then tap the button. '
                       'You will see a preview before anything is saved.'),
                 ),
             ]),
           ),
           if (p != null) Expanded(child: _previewList(context, p)),
+          if (o != null) Expanded(child: _outlineList(context, o)),
         ]),
       ),
-      bottomNavigationBar: p == null || p.hasFatal
+      bottomNavigationBar: o != null && !o.hasFatal
+          ? SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: FilledButton(
+                  style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(56)),
+                  onPressed: _busy || o.importable.isEmpty ? null : _commitOutline,
+                  child: Text('Add ${o.importable.length} topic${o.importable.length == 1 ? '' : 's'}'),
+                ),
+              ),
+            )
+          : p == null || p.hasFatal
           ? null
           : SafeArea(
               child: Padding(

@@ -9,6 +9,8 @@ import '../data/settings_repo.dart';
 import '../domain/study_card.dart';
 import 'add_card_screen.dart';
 import 'import_screen.dart';
+import 'learn_screen.dart';
+import 'topics_screen.dart';
 import 'prompt_screen.dart';
 import 'review_screen.dart';
 import 'settings_screen.dart';
@@ -125,8 +127,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Text(
-                'No cards yet. Build a prompt, paste it into your LLM, then import the JSON it '
-                'returns (or add a card by hand).',
+                'Nothing here yet. Tap "Learn something new": the app writes a prompt, you paste it into '
+                'your LLM, then paste the JSON answer back to import.',
                 style: Theme.of(context).textTheme.bodyLarge,
               ),
             ),
@@ -135,6 +137,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           for (final r in d.domains)
             Card(
               child: ListTile(
+                onTap: () => _go(const TopicsScreen()),
+                trailing: const Icon(Icons.chevron_right),
                 title: Text(r.name),
                 subtitle: Text('${r.due} due · ${r.fresh} new'
                     '${r.leeches > 0 ? ' · ${r.leeches} leech${r.leeches == 1 ? '' : 'es'}' : ''}'),
@@ -157,6 +161,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               textAlign: TextAlign.center,
             ),
           ),
+        const SizedBox(height: 8),
+        FilledButton.tonalIcon(
+          style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(56)),
+          icon: const Icon(Icons.auto_awesome),
+          label: const Text('Learn something new'),
+          onPressed: () => _go(const LearnScreen()),
+        ),
         const SizedBox(height: 16),
         Wrap(spacing: 8, runSpacing: 8, children: [
           OutlinedButton.icon(
@@ -165,7 +176,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               onPressed: () => _go(const ImportScreen())),
           OutlinedButton.icon(
               icon: const Icon(Icons.auto_awesome),
-              label: const Text('Prompt builder'),
+              label: const Text('Custom prompt'),
               onPressed: () => _go(const PromptScreen())),
           OutlinedButton.icon(
               icon: const Icon(Icons.add),

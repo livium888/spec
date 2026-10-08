@@ -53,3 +53,31 @@ New cards/day, backlog divisor, desired retention, learning steps, relearning st
 | no folder | Backup disabled with explanation |
 | backing up | progress, buttons disabled |
 | restore | confirm dialog (destructive) -> validate -> report counts + mismatches |
+
+## Learn something new (Home -> button)
+Zones: capacity line, warning banner (if reviews use up the budget), pending-prompt card, 1-2 option cards, secondary actions.
+Primary action per option card: "Use this". Each card shows kind (New topic / Go deeper / Fix hard cards), card count, headline, and the reasons in words.
+| State | Behaviour |
+|---|---|
+| loading | progress indicator |
+| error | message + Retry |
+| no subjects | "Start with a subject" + button to the outline flow |
+| subjects without topics | "No topics yet" + same button |
+| everything covered | "Everything in your outlines is covered" + add topics |
+| one option | heading "Suggested for today" |
+| two options | heading "Pick one"; the second may carry "A change of pace" |
+| budget used up | warning banner; options still offered with a small card count |
+| unimported prompt (< 24 h) | card with "Show it again" / "Discard it" |
+Keyboard/screen reader: option buttons are full-width, >= 52dp, labelled by their card.
+
+## Prompt result
+Steps 1-4 in words, "Copy prompt" (primary), "Paste the answer" (opens Import), collapsible full prompt. Errors: none (pure display).
+
+## New subject or more topics
+Subject (chips for existing ones), optional goal. Validation messages inline. Success opens Prompt result for `outline-v1`.
+
+## Topics
+Per domain list of topics with status in words (Covered / In progress / Not started), "x of y cards", and "After: prerequisites". Tap: make cards for this topic, mark done, reopen. In pick mode (from "Choose a topic myself") a tap goes straight to a prompt and is logged as a manual choice.
+
+## Import (outline mode)
+Pasting JSON with `items` shows the outline preview: new vs existing subject banner, each topic with level, target cards, prerequisites, errors and warnings; "Add N topics". Fatal errors (loop, duplicates, bad shape) list reasons and block import.

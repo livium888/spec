@@ -130,10 +130,13 @@ class BackupService {
     }
     try {
       final v = d.select('PRAGMA user_version').first.values.first as int;
-      if (v != kSchemaVersion) {
+      // Older backups are upgraded by the normal migration when the DB is reopened;
+      // a backup from a NEWER app cannot be read safely.
+      if (v > kSchemaVersion) {
         throw BackupException(
-            'Backup schema version $v does not match this app ($kSchemaVersion).');
+            'This backup was made by a newer version of the app (schema $v, this app understands up to $kSchemaVersion). Update the app first.');
       }
+      if (v < 1) throw BackupException('Not a Daily Learning backup (schema version $v).');
       final integrity = d.select('PRAGMA integrity_check').first.values.first;
       if (integrity != 'ok') throw BackupException('Backup failed integrity check: $integrity');
       final tables = d
