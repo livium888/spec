@@ -167,3 +167,18 @@ Scrolling page, section headings (semantic headers): The idea; Every day; Learn 
 
 ## Import: several subjects (plan)
 Preview lists each proposed subject with a tick-box, its "why", topic count, whether it is new or extends one you have, and the first topics. Invalid subjects show their errors and cannot be ticked. Button: "Add N subjects" (disabled at 0). States: parse error (list of fatal problems), preview, saved message ("Added N subjects with M topics").
+
+## Memory model (Settings > Memory model: fit to my reviews)
+Intro; status card (built-in or personal settings, usable reviews, expected vs actual recall); advice card ("Ready now", "In 20 days", "In about 900 more reviews (about 18 days at your pace)" with reasons); Fit button; result card after a fit; go-back link when personal.
+
+| State | Shows |
+|---|---|
+| Loading | spinner |
+| Error | "Could not load: ..." |
+| Too early (< 1000 usable reviews) | advice with the missing count and days; button disabled with "Available from 1000 usable reviews." |
+| Fitting | indeterminate progress, "can take a minute or two; keep the app open" |
+| Better fit | result card: reason, held-out check, "Use the new weights" / "Keep my current settings" |
+| No better fit | "Nothing to change" + reason, "OK" (records the check) |
+| Applied / kept / reset | confirmation line (live region) |
+
+Today also shows a dismissible card ("Your memory model can be personalised" + the reason, See details / Later) only when a fit is due.

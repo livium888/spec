@@ -7,6 +7,7 @@ import '../data/engine_service.dart';
 import '../data/card_edit_service.dart';
 import '../data/import_service.dart';
 import '../data/learn_service.dart';
+import '../data/optimizer_service.dart';
 import '../data/outline_service.dart';
 import '../data/params_repo.dart';
 import '../data/queue_service.dart';
@@ -40,6 +41,8 @@ final queueServiceProvider =
     Provider((ref) => QueueService(ref.watch(dbProvider), ref.watch(settingsRepoProvider)));
 final importServiceProvider = Provider((ref) => ImportService(ref.watch(dbProvider)));
 final cardEditServiceProvider = Provider((ref) => CardEditService(ref.watch(dbProvider), ref.watch(settingsRepoProvider)));
+final optimizerServiceProvider = Provider((ref) => OptimizerService(
+    ref.watch(dbProvider), ref.watch(settingsRepoProvider), ref.watch(paramsRepoProvider)));
 final outlineServiceProvider = Provider((ref) => OutlineService(ref.watch(dbProvider)));
 final learnServiceProvider = Provider((ref) => LearnService(
     ref.watch(dbProvider), ref.watch(settingsRepoProvider), ref.watch(queueServiceProvider)));

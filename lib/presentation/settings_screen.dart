@@ -12,6 +12,7 @@ import '../data/backup/backup_storage.dart';
 import '../data/settings_repo.dart';
 import '../domain/prompt_template.dart' show kMaxProfileChars;
 import 'guide_screen.dart';
+import 'memory_model_screen.dart';
 import 'home_screen.dart' show pickBackupFolder;
 import 'subjects_screen.dart';
 
@@ -230,6 +231,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   label: const Text('How the app works'),
                   onPressed: () => Navigator.of(context)
                       .push(MaterialPageRoute<void>(builder: (_) => const GuideScreen())),
+                ),
+                const SizedBox(height: 8),
+                OutlinedButton.icon(
+                  icon: const Icon(Icons.psychology_outlined),
+                  label: const Text('Memory model: fit to my reviews'),
+                  onPressed: () => Navigator.of(context)
+                      .push(MaterialPageRoute<void>(builder: (_) => const MemoryModelScreen())),
                 ),
                 const SizedBox(height: 16),
                 Text('Backup', style: t.titleLarge),

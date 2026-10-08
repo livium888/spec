@@ -99,6 +99,12 @@ class GuideScreen extends StatelessWidget {
           para('Settings > About you: a sentence or two (your job, your interests). It goes into the prompts so examples are about things you care about. '
               'Settings also has your daily minutes, which the app uses to decide how much new material is sensible.'),
 
+          heading('Fitting the app to your memory'),
+          para('Out of the box the app schedules reviews using averages from many learners. After about a thousand reviews it can fit its '
+              'memory model to YOU, so cards come back when you personally are about to forget. Open Settings > Memory model: it tells you '
+              'when to do it and why ("in 12 days", or "after 400 more reviews"), shows how well the new fit would have predicted cards it never saw, '
+              'and only offers it if it is clearly better. You can go back at any time. It runs on your phone and never changes your history.'),
+
           heading('Backups'),
           para('Your cards live only on this phone. In Settings and backup, choose a folder once (for example in Google Drive or a folder on the phone). '
               'The app saves a compressed backup there about once a week and keeps the newest eight. To restore on a new phone, install the app, choose the same '

@@ -35,6 +35,31 @@ class ParamsRepo {
     return _insertFromSettings(now ?? DateTime.now().toUtc());
   }
 
+  /// Put [weights] in use from now on: a NEW params row (old rows are immutable, so every old
+  /// review still replays under the weights it was made with). Retention and steps carry over.
+  Future<int> useWeights(List<double> weights, {DateTime? now}) async {
+    final cur = await configFor(await activeId(now: now));
+    final cfg = FsrsConfig(
+      weights: weights,
+      desiredRetention: cur.desiredRetention,
+      learningStepsMin: cur.learningStepsMin,
+      relearningStepsMin: cur.relearningStepsMin,
+      maximumIntervalDays: cur.maximumIntervalDays,
+      fuzzMinDays: cur.fuzzMinDays,
+    );
+    final id = await db.into(db.fsrsParamsTable).insert(FsrsParamsTableCompanion.insert(
+          createdAt: (now ?? DateTime.now().toUtc()).millisecondsSinceEpoch,
+          version: factory(cfg).version,
+          paramsJson: jsonEncode(cfg.toJson()),
+          desiredRetention: cfg.desiredRetention,
+        ));
+    await settings.set(SettingsRepo.activeParamsId, '$id');
+    return id;
+  }
+
+  /// Weights now in use.
+  Future<List<double>> activeWeights() async => (await configFor(await activeId())).weights;
+
   /// Call after the user edits retention / steps. No-op if nothing changed.
   Future<int> syncFromSettings({DateTime? now}) async {
     final currentId = await settings.getInt(SettingsRepo.activeParamsId, -1);

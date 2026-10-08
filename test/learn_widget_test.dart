@@ -5,6 +5,10 @@ import 'package:daily_learning/app/bootstrap.dart';
 import 'package:daily_learning/app/providers.dart';
 import 'package:daily_learning/data/db/database.dart';
 import 'package:daily_learning/data/import_service.dart';
+import 'package:daily_learning/data/optimizer_service.dart';
+import 'package:daily_learning/data/params_repo.dart';
+import 'package:daily_learning/data/review_service.dart';
+import 'package:daily_learning/domain/fsrs_trainer.dart';
 import 'package:daily_learning/data/outline_service.dart';
 import 'package:daily_learning/data/settings_repo.dart';
 import 'package:daily_learning/main.dart';
@@ -12,6 +16,7 @@ import 'package:drift/drift.dart' show Value;
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 
 import 'dir_asset_bundle.dart';
@@ -33,7 +38,8 @@ Future<void> until(WidgetTester t, Finder f) async {
   }
 }
 
-Future<AppDatabase> boot(WidgetTester t, {bool seed = false, Map<String, String> settings = const {}}) async {
+Future<AppDatabase> boot(WidgetTester t,
+    {bool seed = false, Map<String, String> settings = const {}, Future<void> Function(AppDatabase)? prepare, List<Override> extra = const []}) async {
   // A phone-sized screen (the default 800x600 test surface is shorter than any phone).
   t.view.physicalSize = const Size(411, 900);
   t.view.devicePixelRatio = 1.0;
@@ -50,11 +56,13 @@ Future<AppDatabase> boot(WidgetTester t, {bool seed = false, Map<String, String>
     for (final e in settings.entries) {
       await s.set(e.key, e.value);
     }
+    await prepare?.call(db);
   });
   await t.pumpWidget(ProviderScope(
     overrides: [
       bootstrapProvider.overrideWithValue(Bootstrap(File('x'), Directory.systemTemp, db)),
       assetBundleProvider.overrideWithValue(DirAssetBundle('docs/starter-outlines')),
+      ...extra,
     ],
     child: const DailyLearningApp(),
   ));
@@ -70,6 +78,7 @@ Future<void> done(WidgetTester t, AppDatabase db) async {
 void main() {
   editDeleteWidgetTests();
   guideWidgetTests();
+  memoryModelWidgetTests();
   testWidgets('ONE press: Home -> prompt screen, no choosing, with the reasons and the advice', (t) async {
     final db = await boot(t, seed: true);
     expect(find.textContaining('Good time to learn'), findsOneWidget); // advice on Home
@@ -305,4 +314,76 @@ void guideWidgetTests() {
     expect(find.textContaining('several new subjects'), findsOneWidget);
     await done(t, db);
   });
+}
+
+void memoryModelWidgetTests() {
+  testWidgets('Settings -> Memory model: a new learner sees when to fit and why, and cannot fit yet', (t) async {
+    final db = await boot(t, settings: {'guide_seen': '1'});
+    await t.tap(find.byTooltip('Settings and backup'));
+    await settle(t);
+    await t.tap(find.text('Memory model: fit to my reviews'));
+    await until(t, find.text('Using: the built-in settings'));
+    await settle(t);
+    expect(find.textContaining('Not yet'), findsOneWidget);
+    expect(find.textContaining('more reviews'), findsWidgets);
+    expect(find.textContaining('noise'), findsOneWidget); // the reason
+    final fit = t.widget<FilledButton>(find.widgetWithText(FilledButton, 'Fit anyway'));
+    expect(fit.onPressed, isNull);
+    expect(find.textContaining('Available from 1000 usable reviews'), findsOneWidget);
+    await done(t, db);
+  });
+
+  testWidgets('with enough history: Today nudges, the screen fits, shows the check, and applies or keeps', (t) async {
+    final db = await boot(t, settings: {'guide_seen': '1'}, prepare: (db) async {
+      final s = SettingsRepo(db);
+      final params = ParamsRepo(db, s);
+      final review = ReviewService(db, s, params);
+      final imp = ImportService(db);
+      await imp.commit(await imp.preview(jsonEncode({
+        'domain': 'Bio',
+        'syllabus_item': null,
+        'cards': [
+          for (var i = 0; i < 120; i++)
+            {'type': 'basic', 'front': 'Question $i?', 'back': 'A', 'source_type': 'quote', 'source_ref': 'b', 'supporting_quote': 'q', 'confidence': 'high'}
+        ]
+      })));
+      final start = DateTime.now().toUtc().subtract(const Duration(days: 400));
+      const gaps = [0, 1, 3, 7, 14, 30, 45, 60, 80, 100, 120, 150];
+      for (final c in await db.select(db.cards).get()) {
+        await review.review(cardId: c.id, rating: 3, durationMs: 800, now: start.add(Duration(minutes: c.id)));
+        for (var k = 0; k < gaps.length; k++) {
+          await review.review(
+              cardId: c.id,
+              rating: (c.id + k) % 7 == 0 ? 1 : 3,
+              durationMs: 800,
+              now: start.add(Duration(days: gaps[k] + 1, minutes: c.id)));
+        }
+      }
+    }, extra: [
+      optimizerServiceProvider.overrideWith((ref) => OptimizerService(
+            ref.watch(dbProvider),
+            ref.watch(settingsRepoProvider),
+            ref.watch(paramsRepoProvider),
+            runner: (r) async => trainFsrs(TrainRequest(
+                cards: r.cards, start: r.start, defaults: r.defaults, steps: 20, batchReviews: 1000)),
+          )),
+    ]);
+    // Today shows the nudge with the reason.
+    expect(find.text('Your memory model can be personalised'), findsOneWidget);
+    await t.tap(find.text('See details'));
+    await until(t, find.text('Fit to my memory'));
+    await settle(t);
+    expect(find.text('When to fit: now'), findsOneWidget);
+    expect(find.textContaining('Across'), findsOneWidget); // expected vs actual recall, said once
+
+    await t.tap(find.text('Fit to my memory'));
+    await until(t, find.byWidgetPredicate((w) => w is Text && (w.data == 'A better fit was found' || w.data == 'Nothing to change')));
+    await settle(t);
+    expect(find.textContaining('Checked on'), findsOneWidget);
+    final apply = find.text('Use the new weights');
+    await t.tap(apply.evaluate().isNotEmpty ? apply : find.text('OK'));
+    await settle(t);
+    expect(find.textContaining('Kept your current settings').evaluate().length + find.textContaining('Done.').evaluate().length, 1);
+    await done(t, db);
+  }, timeout: const Timeout(Duration(minutes: 4)));
 }

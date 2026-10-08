@@ -18,12 +18,17 @@ import 'theme/subject_style.dart';
 import 'theme/tokens.dart';
 import 'topics_screen.dart';
 import 'guide_screen.dart';
+import 'memory_model_screen.dart';
 import 'widgets/progress_ring.dart';
 import 'widgets/soft_card.dart';
 
 class HomeData {
-  const HomeData(this.queue, this.lastBackupMs, this.folderSet, this.advice, this.stats, {this.guideSeen = true});
+  const HomeData(this.queue, this.lastBackupMs, this.folderSet, this.advice, this.stats,
+      {this.guideSeen = true, this.modelNudge});
   final bool guideSeen;
+
+  /// "Fit the memory model" is worth doing now (null: no nudge).
+  final String? modelNudge;
   final DailyQueue queue;
   final int lastBackupMs; // 0 = never
   final bool folderSet;
@@ -41,8 +46,20 @@ final homeDataProvider = FutureProvider.autoDispose<HomeData>((ref) async {
     await ref.watch(learnServiceProvider).advice(),
     await ref.watch(statsServiceProvider).compute(),
     guideSeen: await settings.get(SettingsRepo.guideSeen) != null,
+    modelNudge: await _modelNudge(ref),
   );
 });
+
+Future<String?> _modelNudge(Ref ref) async {
+  try {
+    final svc = ref.watch(optimizerServiceProvider);
+    if (await svc.bannerSnoozed()) return null;
+    final a = await svc.quickAdvice();
+    return a.ready ? a.reasons.first : null;
+  } catch (_) {
+    return null; // a nudge must never break Today
+  }
+}
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -138,6 +155,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             onPressed: () => _go(const SettingsScreen()),
           ),
         ]),
+        if (d.guideSeen && d.modelNudge != null) ...[
+          const SizedBox(height: Sp.m),
+          _ModelNudge(
+            why: d.modelNudge!,
+            onOpen: () => _go(const MemoryModelScreen()),
+            onLater: () async {
+              await ref.read(optimizerServiceProvider).snoozeBanner(const Duration(days: 14));
+              if (mounted) ref.read(refreshProvider.notifier).bump();
+            },
+          ),
+        ],
         if (!d.guideSeen) ...[
           const SizedBox(height: Sp.m),
           _GuideCard(onOpen: _openGuide, onDismiss: _dismissGuide),
@@ -167,6 +195,29 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         const SizedBox(height: Sp.xl),
         _BackupBanner(d, onTap: () => _go(const SettingsScreen())),
       ],
+    );
+  }
+}
+
+class _ModelNudge extends StatelessWidget {
+  const _ModelNudge({required this.why, required this.onOpen, required this.onLater});
+  final String why;
+  final VoidCallback onOpen, onLater;
+  @override
+  Widget build(BuildContext context) {
+    final t = Theme.of(context).textTheme;
+    return SoftCard(
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text('Your memory model can be personalised', style: t.titleSmall),
+        const SizedBox(height: 4),
+        Text(why, style: t.bodyMedium),
+        const SizedBox(height: 8),
+        Row(children: [
+          FilledButton.tonal(onPressed: onOpen, child: const Text('See details')),
+          const SizedBox(width: 8),
+          TextButton(onPressed: onLater, child: const Text('Later')),
+        ]),
+      ]),
     );
   }
 }
