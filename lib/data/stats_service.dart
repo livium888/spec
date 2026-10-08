@@ -117,10 +117,12 @@ class StatsService {
              SUM(CASE WHEN suspended = 0 AND state = 'review' AND COALESCE(stability, 0) >= ? THEN 1 ELSE 0 END) AS mature
       FROM card''', [Variable.withReal(kMatureStabilityDays), Variable.withReal(kMatureStabilityDays)]);
 
-    // Forecast: reviews still due today, then each of the next 6 days.
+    // Forecast: reviews still due today, then each of the next 6 days. Cards in their first
+    // learning steps (or relearning after a lapse) come back within the day, so they count as today.
     final due = await db.customSelect(
-        "SELECT due FROM card WHERE state = 'review' AND suspended = 0 AND due < ?",
-        variables: [Variable.withInt(dayEnd + 6 * _day)]).get();
+        "SELECT due FROM card WHERE suspended = 0 AND ((state = 'review' AND due < ?) "
+        "OR (state IN ('learning', 'relearning') AND due < ?))",
+        variables: [Variable.withInt(dayEnd + 6 * _day), Variable.withInt(dayEnd)]).get();
     final forecast = List<int>.filled(7, 0);
     for (final r in due) {
       final d = r.read<int>('due');
