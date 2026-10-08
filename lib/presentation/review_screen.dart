@@ -14,6 +14,7 @@ import 'advice_card.dart';
 import 'format.dart';
 import 'theme/app_theme.dart';
 import 'theme/subject_style.dart';
+import 'card_picture.dart';
 import 'edit_card_screen.dart';
 import 'theme/tokens.dart';
 import 'widgets/confetti.dart';
@@ -43,6 +44,10 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
   Advice? _advice;
   ProgressStats? _stats;
   final _domainNames = <int, String>{};
+
+  /// Per subject: the language to read aloud and which side is in it.
+  final _speech = <int, (String, String)>{};
+  bool _speakAuto = false;
   final _ratings = <int>[];
 
   @override
@@ -74,8 +79,10 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
         final db = ref.read(dbProvider);
         for (final d in await db.select(db.domains).get()) {
           _domainNames[d.id] = d.name;
+          if (d.speechLang != null) _speech[d.id] = (d.speechLang!, d.speechSide);
         }
       }
+      _speakAuto = await ref.read(settingsRepoProvider).get('speak_auto') == '1';
       if (!mounted) return;
       setState(() {
         _advice = adv;
@@ -90,6 +97,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
       _stopwatch
         ..reset()
         ..start();
+      if (next != null) _autoSpeak(next, revealed: false);
       _poll?.cancel();
       if (next == null && q.nextLearningDue != null) {
         // Waiting on a learning step: re-check shortly.
@@ -241,6 +249,35 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
     if (_revealed) return;
     HapticFeedback.selectionClick();
     setState(() => _revealed = true);
+    final c = _current;
+    if (c != null) _autoSpeak(c, revealed: true);
+  }
+
+  /// The text of the side written in the subject's language (a cloze is read as the whole sentence).
+  String? _speechText(StudyCard c, {required bool revealed}) {
+    final s = _speech[c.domainId];
+    if (s == null) return null;
+    if (s.$2 == 'back' && !revealed) return null; // never read the answer out before it is shown
+    final text = s.$2 == 'front' && c.noteType != 'cloze' ? c.front : c.back;
+    return text.trim().isEmpty ? null : text;
+  }
+
+  void _autoSpeak(StudyCard c, {required bool revealed}) {
+    if (!_speakAuto) return;
+    final s = _speech[c.domainId];
+    if (s == null) return;
+    final wantsNow = (s.$2 == 'front' && !revealed) || (s.$2 == 'back' && revealed);
+    if (wantsNow) _speak(c, revealed: revealed);
+  }
+
+  Future<void> _speak(StudyCard c, {required bool revealed}) async {
+    final text = _speechText(c, revealed: revealed);
+    final lang = _speech[c.domainId]?.$1;
+    if (text == null || lang == null) return;
+    final problem = await ref.read(speakerProvider).speak(text, lang);
+    if (problem != null && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(problem)));
+    }
   }
 
   @override
@@ -355,7 +392,26 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                 _Tag(text: _stateLabel(card), fg: c.inkSoft, bg: c.surfaceDim),
                 if (card.unverified)
                   _Tag(icon: Icons.help_outline, text: 'Unverified', fg: c.warn, bg: c.warnTint),
+                if (_speech[card.domainId] != null)
+                  Semantics(
+                    button: true,
+                    label: 'Read aloud',
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(Rd.pill),
+                      // A tap on a disabled speaker must not fall through to the card and reveal the answer.
+                      onTap: _speechText(card, revealed: _revealed) == null ? () {} : () => _speak(card, revealed: _revealed),
+                      child: Padding(
+                        padding: const EdgeInsets.all(4),
+                        child: Icon(Icons.volume_up_outlined,
+                            size: 24, color: _speechText(card, revealed: _revealed) == null ? c.line : c.accent),
+                      ),
+                    ),
+                  ),
               ]),
+              if (card.imageSha != null && card.imageOnFront) ...[
+                const SizedBox(height: 16),
+                CardPicture(sha: card.imageSha!, alt: card.imageAlt),
+              ],
               const SizedBox(height: 22),
               // Plain Text only: card content comes from an LLM and is never interpreted as markup.
               // Not selectable on purpose: selectable text swallows taps, and a tap anywhere on the card reveals the answer.
@@ -392,6 +448,10 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
         const SizedBox(height: 20),
         Container(width: 44, height: 4, decoration: BoxDecoration(color: style.strong, borderRadius: BorderRadius.circular(2))),
         const SizedBox(height: 16),
+        if (card.imageSha != null && !card.imageOnFront) ...[
+          CardPicture(sha: card.imageSha!, alt: card.imageAlt),
+          const SizedBox(height: 16),
+        ],
         SelectableText(card.back, style: AppText.sans(20, weight: 650, height: 1.4, color: c.ink)),
         for (final (label, body) in card.extras)
           Padding(

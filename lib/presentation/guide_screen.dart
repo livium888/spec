@@ -95,6 +95,14 @@ class GuideScreen extends StatelessWidget {
               'to search for any card. Editing changes only the words, never when the card is due. Deleting is permanent and also removes that card\'s review history. '
               'To rest a card without losing it, tap the pause icon (suspend).'),
 
+          heading('Pictures and reading aloud'),
+          para('For art, crafts or anything visual: edit a card (the pencil in a review, or Library > Browse) and tap "Add a picture". It shows on the '
+              'question or the answer, and you can tap it to see it full screen. Pictures are shrunk and kept inside the app, so they come back with every backup. '
+              'Add a description so a screen reader can say what is in it.'),
+          para('For languages: Settings > Subjects and topics > Read cards aloud. Pick the language and which side of your cards is written in it, then tap the '
+              'speaker on a card (or switch on automatic reading). It uses your phone\'s own voices; if one is missing the message tells you how to install it. '
+              'Music: pictures help for notation, but the app cannot play sounds yet.'),
+
           heading('Daily reminder'),
           para('Settings > Daily reminder: one short, friendly nudge a day at the time you choose. If you have already done today\'s reviews, '
               'the next one is tomorrow. Some phones stop background reminders to save battery; if it does not appear, check the phone\'s battery settings for this app.'),

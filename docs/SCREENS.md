@@ -200,3 +200,9 @@ Years selector (1, 2, 3), qualifying count with the honest saving, "Retire N car
 
 ## Subjects and topics (addition)
 Per subject "Target recall": same as everything else, 80, 85, 90 or 95%, with the hint "Lower means fewer reviews, but you forget a little more."
+
+## Pictures (Edit card, Review)
+Edit card: "Picture (optional)" section: thumbnail (max 180 px high, tap for full screen), "Shows on the question / answer", a description field (300 characters, for screen readers), "Add a picture" or "Change the picture", "Remove the picture". Errors (too large, not a picture) appear in the live region above Save. A picture picked and then abandoned is deleted when the screen closes. Review: the picture sits under the tags (question side) or above the answer (answer side), max 260 px high; missing picture shows "The picture is missing".
+
+## Read aloud (Subjects and topics, Review)
+Per subject: language menu (Off + 19 languages) and, when on, "Which side is written in that language?" (Question / Answer). Top of the screen: "Read aloud automatically". Review: a speaker icon next to the tags (greyed and inert while the language side is the hidden answer); tapping speaks that side with the phone's voice; failures show a snackbar with the reason and how to fix it.

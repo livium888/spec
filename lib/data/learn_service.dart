@@ -243,6 +243,12 @@ class LearnService {
       (db.update(db.domains)..where((d) => d.id.equals(domainId)))
           .write(DomainsCompanion(retention: Value(retention == null ? null : double.parse(retention.clamp(0.70, 0.97).toStringAsFixed(3)))));
 
+  /// Read this subject's cards aloud in [lang] (BCP-47) from the written-in-that-language [side]
+  /// ('front' or 'back'); null lang turns it off.
+  Future<void> setSubjectSpeech(int domainId, String? lang, {String side = 'back'}) =>
+      (db.update(db.domains)..where((d) => d.id.equals(domainId))).write(DomainsCompanion(
+          speechLang: Value(lang), speechSide: Value(side == 'front' ? 'front' : 'back')));
+
   /// Whether finished topics of this subject come back for deeper cards.
   Future<void> setSubjectRevisit(int domainId, bool on) =>
       (db.update(db.domains)..where((d) => d.id.equals(domainId)))

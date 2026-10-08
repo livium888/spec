@@ -382,6 +382,9 @@ void main() {
     raw.execute('ALTER TABLE syllabus_item DROP COLUMN rounds');
     raw.execute('ALTER TABLE card DROP COLUMN retired_at');
     raw.execute('ALTER TABLE domain DROP COLUMN retention');
+    raw.execute('ALTER TABLE domain DROP COLUMN speech_lang');
+    raw.execute('ALTER TABLE domain DROP COLUMN speech_side');
+    raw.execute('DROP TABLE IF EXISTS media');
     raw.execute('ALTER TABLE domain DROP COLUMN learn_weight');
     raw.execute('ALTER TABLE domain DROP COLUMN revisit');
     raw.execute('PRAGMA user_version = 1');

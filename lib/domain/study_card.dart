@@ -24,6 +24,15 @@ class StudyCard {
 
   int get id => snapshot.id;
   bool get unverified => tags.contains('unverified');
+
+  /// The card's picture (SHA-256 of the stored image), which side it goes on, and its description.
+  String? get imageSha {
+    final v = fields['image'];
+    return v is String && v.isNotEmpty ? v : null;
+  }
+
+  bool get imageOnFront => (fields['image_side'] as String?) != 'back';
+  String get imageAlt => (fields['image_alt'] as String? ?? '').trim();
   bool get leech => tags.contains('leech');
 
   /// Answer-side extras in reading order, as (label, text). Empty ones are left out.

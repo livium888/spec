@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../app/providers.dart';
 import '../data/card_edit_service.dart';
+import '../data/media_service.dart' show MediaException, MediaService;
+import 'card_picture.dart';
 
 /// What happened on the edit screen, so callers can reload.
 enum EditOutcome { saved, deleted }
@@ -26,12 +28,18 @@ class _EditCardScreenState extends ConsumerState<EditCardScreen> {
   };
   final _ctl = <String, TextEditingController>{};
   NoteRow? _note;
+  String? _image, _originalImage, _newImage; // SHA-256s: current, as loaded, picked in this session
+  String _imageSide = 'front';
+  final _alt = TextEditingController();
+  late final MediaService _media;
+  bool _saved = false;
   bool _loading = true, _saving = false;
   List<String> _errors = const [];
 
   @override
   void initState() {
     super.initState();
+    _media = ref.read(mediaServiceProvider);
     _load();
   }
 
@@ -46,10 +54,30 @@ class _EditCardScreenState extends ConsumerState<EditCardScreen> {
         _ctl[k] = TextEditingController(text: n.fields[k] as String? ?? '');
       }
     }
+    if (n != null) {
+      _image = _originalImage = n.fields['image'] as String?;
+      _imageSide = (n.fields['image_side'] as String?) == 'back' ? 'back' : 'front';
+      _alt.text = n.fields['image_alt'] as String? ?? '';
+    }
     setState(() {
       _note = n;
       _loading = false;
     });
+  }
+
+  Future<void> _pickImage() async {
+    try {
+      final picked = await ref.read(imagePickerProvider).pick();
+      if (picked == null) return;
+      final sha = await _media.save(picked.bytes);
+      // A picture picked now and then abandoned is cleaned up when the screen closes.
+      if (_newImage != null && _newImage != sha && _newImage != _originalImage) await _media.deleteIfOrphan(_newImage);
+      if (mounted) setState(() { _image = sha; _newImage = sha; _errors = const []; });
+    } on MediaException catch (e) {
+      if (mounted) setState(() => _errors = [e.message]);
+    } catch (e) {
+      if (mounted) setState(() => _errors = ['Could not open the picture: $e']);
+    }
   }
 
   @override
@@ -57,19 +85,29 @@ class _EditCardScreenState extends ConsumerState<EditCardScreen> {
     for (final c in _ctl.values) {
       c.dispose();
     }
+    _alt.dispose();
+    final abandoned = _newImage;
+    if (!_saved && abandoned != null && abandoned != _originalImage) {
+      _media.deleteIfOrphan(abandoned).ignore(); // picked but never saved
+    }
     super.dispose();
   }
 
   Future<void> _save() async {
     setState(() => _saving = true);
-    final errors = await ref.read(cardEditServiceProvider).update(
-        widget.noteId, {for (final e in _ctl.entries) e.key: e.value.text});
+    final errors = await ref.read(cardEditServiceProvider).update(widget.noteId, {
+      for (final e in _ctl.entries) e.key: e.value.text,
+      'image': _image ?? '',
+      'image_side': _image == null ? '' : _imageSide,
+      'image_alt': _image == null ? '' : _alt.text,
+    });
     if (!mounted) return;
     setState(() {
       _saving = false;
       _errors = errors;
     });
     if (errors.isEmpty) {
+      _saved = true;
       ref.read(refreshProvider.notifier).bump();
       Navigator.of(context).pop(EditOutcome.saved);
     }
@@ -103,6 +141,42 @@ class _EditCardScreenState extends ConsumerState<EditCardScreen> {
     Navigator.of(context).pop(EditOutcome.deleted);
   }
 
+  Widget _pictureSection(BuildContext context) {
+    final t = Theme.of(context).textTheme;
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text('Picture (optional)', style: t.labelLarge),
+      const SizedBox(height: 8),
+      if (_image != null) ...[
+        CardPicture(sha: _image!, alt: _alt.text, maxHeight: 180),
+        const SizedBox(height: 8),
+        SegmentedButton<String>(
+          showSelectedIcon: false,
+          segments: const [
+            ButtonSegment(value: 'front', label: Text('Shows on the question')),
+            ButtonSegment(value: 'back', label: Text('Shows on the answer')),
+          ],
+          selected: {_imageSide},
+          onSelectionChanged: (v) => setState(() => _imageSide = v.first),
+        ),
+        const SizedBox(height: 8),
+        TextField(
+          controller: _alt,
+          maxLength: 300,
+          decoration: const InputDecoration(labelText: 'Describe the picture (read out by screen readers)'),
+        ),
+      ],
+      Wrap(spacing: 8, children: [
+        OutlinedButton.icon(
+          icon: const Icon(Icons.add_photo_alternate_outlined),
+          label: Text(_image == null ? 'Add a picture' : 'Change the picture'),
+          onPressed: _pickImage,
+        ),
+        if (_image != null)
+          TextButton(onPressed: () => setState(() => _image = null), child: const Text('Remove the picture')),
+      ]),
+    ]);
+  }
+
   @override
   Widget build(BuildContext context) {
     final n = _note;
@@ -132,6 +206,8 @@ class _EditCardScreenState extends ConsumerState<EditCardScreen> {
                       ),
                       const SizedBox(height: 12),
                     ],
+                    _pictureSection(context),
+                    const SizedBox(height: 12),
                     if (_errors.isNotEmpty)
                       Semantics(
                         liveRegion: true,

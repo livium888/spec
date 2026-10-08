@@ -1,11 +1,14 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:daily_learning/app/bootstrap.dart';
 import 'package:daily_learning/app/providers.dart';
+import 'package:daily_learning/app/device_services.dart';
 import 'package:daily_learning/app/share_service.dart';
 import 'package:daily_learning/data/db/database.dart';
 import 'package:daily_learning/data/import_service.dart';
+import 'package:daily_learning/data/media_service.dart';
 import 'package:daily_learning/data/optimizer_service.dart';
 import 'package:daily_learning/data/params_repo.dart';
 import 'package:daily_learning/data/plan_service.dart';
@@ -15,6 +18,7 @@ import 'package:daily_learning/domain/fsrs_trainer.dart';
 import 'package:daily_learning/data/outline_service.dart';
 import 'package:daily_learning/data/settings_repo.dart';
 import 'package:daily_learning/main.dart';
+import 'package:daily_learning/presentation/card_picture.dart' show CardPicture;
 import 'package:daily_learning/presentation/library_screen.dart' show LibraryScreen;
 import 'package:drift/drift.dart' show Value;
 import 'package:drift/native.dart';
@@ -89,6 +93,7 @@ void main() {
   reminderWidgetTests();
   phase2WidgetTests();
   manualControlWidgetTests();
+  phase3WidgetTests();
   testWidgets('ONE press: Home -> prompt screen, no choosing, with the reasons and the advice', (t) async {
     final db = await boot(t, seed: true);
     expect(find.textContaining('Good time to learn'), findsOneWidget); // advice on Home
@@ -227,7 +232,7 @@ void main() {
     expect(find.text('Music'), findsOneWidget);
     expect(find.text('How often to offer'), findsOneWidget);
     expect(find.text('Bring finished topics back later'), findsOneWidget);
-    await t.tap(find.text('Off'));
+    await t.tap(find.descendant(of: find.byType(SegmentedButton<int>), matching: find.text('Off')));
     await settle(t);
     expect(find.textContaining('Paused: no new prompts'), findsOneWidget);
     final dm = await t.runAsync(() => db.select(db.domains).getSingle());
@@ -666,6 +671,140 @@ void manualControlWidgetTests() {
     expect(find.textContaining('any whole number'), findsNothing); // no error
     final v = await t.runAsync(() => SettingsRepo(db).get('new_per_day'));
     expect(v, '10000');
+    await done(t, db);
+  });
+}
+
+class FakePicker implements ImagePickerService {
+  FakePicker(this.bytes);
+  final Uint8List? bytes;
+  @override
+  Future<PickedImage?> pick() async => bytes == null ? null : PickedImage(bytes!);
+}
+
+class FakeSpeaker implements Speaker {
+  final spoken = <(String, String)>[];
+  @override
+  Future<String?> speak(String text, String language) async {
+    spoken.add((text, language));
+    return null;
+  }
+
+  @override
+  Future<void> stop() async {}
+}
+
+final _png = Uint8List.fromList(base64.decode(
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='));
+
+Future<void> _spanishCard(AppDatabase db, {String side = 'front', bool withPicture = true}) async {
+  final imp = ImportService(db);
+  await imp.commit(await imp.preview(jsonEncode({
+    'domain': 'Spanish',
+    'syllabus_item': null,
+    'cards': [
+      {'type': 'basic', 'front': 'extraño', 'back': 'strange; also: to miss someone', 'source_type': 'quote', 'source_ref': 'b', 'supporting_quote': 'q', 'confidence': 'high'}
+    ]
+  })));
+  if (withPicture) {
+    final sha = await MediaService(db).save(_png);
+    await db.customStatement("UPDATE note SET fields_json = json_set(fields_json, '\$.image', '$sha', '\$.image_alt', 'A tiny red square', '\$.image_side', 'front')");
+  }
+  await db.customStatement("UPDATE domain SET speech_lang = 'es-ES', speech_side = '$side'");
+}
+
+void phase3WidgetTests() {
+  testWidgets('Review: the picture shows on the question with its description, and the speaker reads the language side', (t) async {
+    final speaker = FakeSpeaker();
+    final db = await boot(t, settings: {'guide_seen': '1'}, extra: [speakerProvider.overrideWithValue(speaker)], prepare: _spanishCard);
+    await t.tap(find.text('Start review'));
+    await until(t, find.text('extraño'));
+    await settle(t);
+    expect(find.byType(CardPicture), findsOneWidget);
+    expect(find.byType(Image), findsOneWidget);
+    await t.tap(find.byIcon(Icons.volume_up_outlined));
+    await settle(t);
+    expect(speaker.spoken, [('extraño', 'es-ES')]);
+    await done(t, db);
+  });
+
+  testWidgets('Review: a language on the ANSWER side is never read out before the answer is shown', (t) async {
+    final speaker = FakeSpeaker();
+    final db = await boot(t, settings: {'guide_seen': '1'}, extra: [speakerProvider.overrideWithValue(speaker)],
+        prepare: (db) => _spanishCard(db, side: 'back', withPicture: false));
+    await t.tap(find.text('Start review'));
+    await until(t, find.text('extraño'));
+    await settle(t);
+    await t.tap(find.byIcon(Icons.volume_up_outlined));
+    await settle(t);
+    expect(speaker.spoken, isEmpty); // the answer stays a secret
+    await t.tap(find.text('Show answer'));
+    await settle(t);
+    await t.tap(find.byIcon(Icons.volume_up_outlined));
+    await settle(t);
+    expect(speaker.spoken.single.$1, contains('strange'));
+    await done(t, db);
+  });
+
+  testWidgets('automatic reading speaks the front when a card appears (if switched on)', (t) async {
+    final speaker = FakeSpeaker();
+    final db = await boot(t, settings: {'guide_seen': '1', 'speak_auto': '1'}, extra: [speakerProvider.overrideWithValue(speaker)],
+        prepare: (db) => _spanishCard(db, withPicture: false));
+    await t.tap(find.text('Start review'));
+    await until(t, find.text('extraño'));
+    await settle(t);
+    expect(speaker.spoken, [('extraño', 'es-ES')]);
+    await done(t, db);
+  });
+
+  testWidgets('Edit card: add a picture, describe it, choose the side, save; remove it again', (t) async {
+    final db = await boot(t, settings: {'guide_seen': '1'}, extra: [imagePickerProvider.overrideWithValue(FakePicker(_png))], prepare: (db) => _spanishCard(db, withPicture: false));
+    await t.tap(find.text('Library'));
+    await settle(t);
+    await t.scrollUntilVisible(find.text('Browse, edit or delete cards'), 200, scrollable: find.descendant(of: find.byType(LibraryScreen), matching: find.byType(Scrollable)).first);
+    await t.pump();
+    await t.tap(find.text('Browse, edit or delete cards'));
+    await until(t, find.text('extraño'));
+    await settle(t);
+    await t.tap(find.text('extraño'));
+    await until(t, find.text('Add a picture'));
+    await settle(t);
+    await t.scrollUntilVisible(find.text('Add a picture'), 200, scrollable: find.byType(Scrollable).first);
+    await t.tap(find.text('Add a picture'));
+    await until(t, find.byType(CardPicture));
+    await settle(t);
+    expect(find.byType(CardPicture), findsOneWidget);
+    await t.tap(find.text('Shows on the answer'));
+    await t.enterText(find.widgetWithText(TextField, 'Describe the picture (read out by screen readers)'), 'A red square');
+    await t.scrollUntilVisible(find.text('Save changes'), 300, scrollable: find.byType(Scrollable).first);
+    await t.tap(find.text('Save changes'));
+    await settle(t);
+    final note = (await t.runAsync(() => db.select(db.notes).getSingle()))!;
+    final fields = jsonDecode(note.fieldsJson) as Map<String, dynamic>;
+    expect(fields['image'], hasLength(64));
+    expect(fields['image_side'], 'back');
+    expect(fields['image_alt'], 'A red square');
+    expect((await t.runAsync(() => MediaService(db).usage()))!.count, 1);
+    await done(t, db);
+  });
+
+  testWidgets('Subjects: choose a language to read aloud and which side is in it', (t) async {
+    final db = await boot(t, seed: true, settings: {'guide_seen': '1'});
+    await t.tap(find.byTooltip('Settings and backup'));
+    await settle(t);
+    await t.scrollUntilVisible(find.text('Subjects and topics'), 300, scrollable: find.byType(Scrollable).first);
+    await t.tap(find.text('Subjects and topics'));
+    await until(t, find.text('Read cards aloud'));
+    await t.scrollUntilVisible(find.text('Read cards aloud'), 200, scrollable: find.byType(Scrollable).first);
+    await t.tap(find.byType(DropdownButtonFormField<String?>).first);
+    await settle(t);
+    await t.tap(find.text('Spanish').last);
+    await settle(t);
+    await t.scrollUntilVisible(find.text('Which side is written in that language?'), 200, scrollable: find.byType(Scrollable).first);
+    await t.tap(find.text('Question'));
+    await settle(t);
+    final d = (await t.runAsync(() => db.select(db.domains).getSingle()))!;
+    expect((d.speechLang, d.speechSide), ('es-ES', 'front'));
     await done(t, db);
   });
 }

@@ -38,5 +38,6 @@ List<String> validateNoteEdit({
   limit('why_it_matters', '"Why it matters"', kMaxExtraChars);
   limit('example', '"Example"', kMaxExtraChars);
   limit('memory_hook', '"Memory hook"', kMaxExtraChars);
+  limit('image_alt', 'The picture description', 300);
   return errors;
 }

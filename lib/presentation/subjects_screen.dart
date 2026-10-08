@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../app/providers.dart';
+import '../app/device_services.dart' show kSpeechLanguages;
 import '../data/db/database.dart' show Domain;
 import 'starter_library_screen.dart';
 import 'topics_screen.dart';
@@ -31,6 +32,7 @@ class _SubjectsScreenState extends ConsumerState<SubjectsScreen> {
   }
 
   double _globalRetention = 0.90;
+  bool _speakAuto = false;
 
   /// The menu offers four values; show the closest one for anything stored in between.
   static double? _nearest(double? v) {
@@ -43,6 +45,7 @@ class _SubjectsScreenState extends ConsumerState<SubjectsScreen> {
     try {
       final db = ref.read(dbProvider);
       _globalRetention = await ref.read(settingsRepoProvider).getDouble('desired_retention', 0.90);
+      _speakAuto = await ref.read(settingsRepoProvider).get('speak_auto') == '1';
       await ref.read(learnServiceProvider).refreshStatuses();
       final out = <_Subject>[];
       for (final d in await (db.select(db.domains)..where((x) => x.active.equals(true))).get()) {
@@ -84,7 +87,17 @@ class _SubjectsScreenState extends ConsumerState<SubjectsScreen> {
                         'weeks, months or years later (the rest doubles each time). Cards you already have are never repeated. '
                         'And when a subject runs out of topics, the app asks your LLM for more, or starts a new subject, '
                         'so there is no ceiling.'),
-                    const SizedBox(height: 12),
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text('Read aloud automatically'),
+                      subtitle: const Text('For subjects with a language set below: speaks the language side when it appears.'),
+                      value: _speakAuto,
+                      onChanged: (v) async {
+                        await ref.read(settingsRepoProvider).set('speak_auto', v ? '1' : '0');
+                        _load();
+                      },
+                    ),
+                    const SizedBox(height: 4),
                     if (_subjects!.isEmpty)
                       const Card(child: ListTile(title: Text('No subjects yet. Add some from the starter library.'))),
                     for (final s in _subjects!) _card(context, s, t),
@@ -158,6 +171,36 @@ class _SubjectsScreenState extends ConsumerState<SubjectsScreen> {
               _load();
             },
           ),
+          const SizedBox(height: 8),
+          Text('Read cards aloud', style: t.labelMedium),
+          const SizedBox(height: 4),
+          DropdownButtonFormField<String?>(
+            initialValue: kSpeechLanguages.any((l) => l.$2 == d.speechLang) ? d.speechLang : null,
+            isExpanded: true,
+            decoration: const InputDecoration(isDense: true, helperText: 'Uses your phone\'s own voice. Good for languages.', helperMaxLines: 2),
+            items: [
+              const DropdownMenuItem(value: null, child: Text('Off')),
+              for (final l in kSpeechLanguages) DropdownMenuItem(value: l.$2, child: Text(l.$1)),
+            ],
+            onChanged: (v) async {
+              await learn.setSubjectSpeech(d.id, v, side: d.speechSide);
+              _load();
+            },
+          ),
+          if (d.speechLang != null) ...[
+            const SizedBox(height: 8),
+            Text('Which side is written in that language?', style: t.bodySmall),
+            const SizedBox(height: 4),
+            SegmentedButton<String>(
+              showSelectedIcon: false,
+              segments: const [ButtonSegment(value: 'front', label: Text('Question')), ButtonSegment(value: 'back', label: Text('Answer'))],
+              selected: {d.speechSide},
+              onSelectionChanged: (v) async {
+                await learn.setSubjectSpeech(d.id, d.speechLang, side: v.first);
+                _load();
+              },
+            ),
+          ],
           Align(
             alignment: Alignment.centerLeft,
             child: TextButton.icon(

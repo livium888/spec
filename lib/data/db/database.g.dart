@@ -93,6 +93,29 @@ class $DomainsTable extends Domains with TableInfo<$DomainsTable, Domain> {
     type: DriftSqlType.double,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _speechLangMeta = const VerificationMeta(
+    'speechLang',
+  );
+  @override
+  late final GeneratedColumn<String> speechLang = GeneratedColumn<String>(
+    'speech_lang',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _speechSideMeta = const VerificationMeta(
+    'speechSide',
+  );
+  @override
+  late final GeneratedColumn<String> speechSide = GeneratedColumn<String>(
+    'speech_side',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('back'),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -102,6 +125,8 @@ class $DomainsTable extends Domains with TableInfo<$DomainsTable, Domain> {
     learnWeight,
     revisit,
     retention,
+    speechLang,
+    speechSide,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -161,6 +186,18 @@ class $DomainsTable extends Domains with TableInfo<$DomainsTable, Domain> {
         retention.isAcceptableOrUnknown(data['retention']!, _retentionMeta),
       );
     }
+    if (data.containsKey('speech_lang')) {
+      context.handle(
+        _speechLangMeta,
+        speechLang.isAcceptableOrUnknown(data['speech_lang']!, _speechLangMeta),
+      );
+    }
+    if (data.containsKey('speech_side')) {
+      context.handle(
+        _speechSideMeta,
+        speechSide.isAcceptableOrUnknown(data['speech_side']!, _speechSideMeta),
+      );
+    }
     return context;
   }
 
@@ -198,6 +235,14 @@ class $DomainsTable extends Domains with TableInfo<$DomainsTable, Domain> {
         DriftSqlType.double,
         data['${effectivePrefix}retention'],
       ),
+      speechLang: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}speech_lang'],
+      ),
+      speechSide: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}speech_side'],
+      )!,
     );
   }
 
@@ -217,6 +262,12 @@ class Domain extends DataClass implements Insertable<Domain> {
 
   /// v6: target recall for this subject (0.70 to 0.97). Null: the app-wide target.
   final double? retention;
+
+  /// v7: read cards of this subject aloud in this language (BCP-47, e.g. "es-ES"); null = off.
+  final String? speechLang;
+
+  /// Which side of the card is written in that language: 'front' or 'back'.
+  final String speechSide;
   const Domain({
     required this.id,
     required this.name,
@@ -225,6 +276,8 @@ class Domain extends DataClass implements Insertable<Domain> {
     required this.learnWeight,
     required this.revisit,
     this.retention,
+    this.speechLang,
+    required this.speechSide,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -238,6 +291,10 @@ class Domain extends DataClass implements Insertable<Domain> {
     if (!nullToAbsent || retention != null) {
       map['retention'] = Variable<double>(retention);
     }
+    if (!nullToAbsent || speechLang != null) {
+      map['speech_lang'] = Variable<String>(speechLang);
+    }
+    map['speech_side'] = Variable<String>(speechSide);
     return map;
   }
 
@@ -252,6 +309,10 @@ class Domain extends DataClass implements Insertable<Domain> {
       retention: retention == null && nullToAbsent
           ? const Value.absent()
           : Value(retention),
+      speechLang: speechLang == null && nullToAbsent
+          ? const Value.absent()
+          : Value(speechLang),
+      speechSide: Value(speechSide),
     );
   }
 
@@ -268,6 +329,8 @@ class Domain extends DataClass implements Insertable<Domain> {
       learnWeight: serializer.fromJson<int>(json['learnWeight']),
       revisit: serializer.fromJson<bool>(json['revisit']),
       retention: serializer.fromJson<double?>(json['retention']),
+      speechLang: serializer.fromJson<String?>(json['speechLang']),
+      speechSide: serializer.fromJson<String>(json['speechSide']),
     );
   }
   @override
@@ -281,6 +344,8 @@ class Domain extends DataClass implements Insertable<Domain> {
       'learnWeight': serializer.toJson<int>(learnWeight),
       'revisit': serializer.toJson<bool>(revisit),
       'retention': serializer.toJson<double?>(retention),
+      'speechLang': serializer.toJson<String?>(speechLang),
+      'speechSide': serializer.toJson<String>(speechSide),
     };
   }
 
@@ -292,6 +357,8 @@ class Domain extends DataClass implements Insertable<Domain> {
     int? learnWeight,
     bool? revisit,
     Value<double?> retention = const Value.absent(),
+    Value<String?> speechLang = const Value.absent(),
+    String? speechSide,
   }) => Domain(
     id: id ?? this.id,
     name: name ?? this.name,
@@ -300,6 +367,8 @@ class Domain extends DataClass implements Insertable<Domain> {
     learnWeight: learnWeight ?? this.learnWeight,
     revisit: revisit ?? this.revisit,
     retention: retention.present ? retention.value : this.retention,
+    speechLang: speechLang.present ? speechLang.value : this.speechLang,
+    speechSide: speechSide ?? this.speechSide,
   );
   Domain copyWithCompanion(DomainsCompanion data) {
     return Domain(
@@ -312,6 +381,12 @@ class Domain extends DataClass implements Insertable<Domain> {
           : this.learnWeight,
       revisit: data.revisit.present ? data.revisit.value : this.revisit,
       retention: data.retention.present ? data.retention.value : this.retention,
+      speechLang: data.speechLang.present
+          ? data.speechLang.value
+          : this.speechLang,
+      speechSide: data.speechSide.present
+          ? data.speechSide.value
+          : this.speechSide,
     );
   }
 
@@ -324,14 +399,25 @@ class Domain extends DataClass implements Insertable<Domain> {
           ..write('createdAt: $createdAt, ')
           ..write('learnWeight: $learnWeight, ')
           ..write('revisit: $revisit, ')
-          ..write('retention: $retention')
+          ..write('retention: $retention, ')
+          ..write('speechLang: $speechLang, ')
+          ..write('speechSide: $speechSide')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, name, active, createdAt, learnWeight, revisit, retention);
+  int get hashCode => Object.hash(
+    id,
+    name,
+    active,
+    createdAt,
+    learnWeight,
+    revisit,
+    retention,
+    speechLang,
+    speechSide,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -342,7 +428,9 @@ class Domain extends DataClass implements Insertable<Domain> {
           other.createdAt == this.createdAt &&
           other.learnWeight == this.learnWeight &&
           other.revisit == this.revisit &&
-          other.retention == this.retention);
+          other.retention == this.retention &&
+          other.speechLang == this.speechLang &&
+          other.speechSide == this.speechSide);
 }
 
 class DomainsCompanion extends UpdateCompanion<Domain> {
@@ -353,6 +441,8 @@ class DomainsCompanion extends UpdateCompanion<Domain> {
   final Value<int> learnWeight;
   final Value<bool> revisit;
   final Value<double?> retention;
+  final Value<String?> speechLang;
+  final Value<String> speechSide;
   const DomainsCompanion({
     this.id = const Value.absent(),
     this.name = const Value.absent(),
@@ -361,6 +451,8 @@ class DomainsCompanion extends UpdateCompanion<Domain> {
     this.learnWeight = const Value.absent(),
     this.revisit = const Value.absent(),
     this.retention = const Value.absent(),
+    this.speechLang = const Value.absent(),
+    this.speechSide = const Value.absent(),
   });
   DomainsCompanion.insert({
     this.id = const Value.absent(),
@@ -370,6 +462,8 @@ class DomainsCompanion extends UpdateCompanion<Domain> {
     this.learnWeight = const Value.absent(),
     this.revisit = const Value.absent(),
     this.retention = const Value.absent(),
+    this.speechLang = const Value.absent(),
+    this.speechSide = const Value.absent(),
   }) : name = Value(name),
        createdAt = Value(createdAt);
   static Insertable<Domain> custom({
@@ -380,6 +474,8 @@ class DomainsCompanion extends UpdateCompanion<Domain> {
     Expression<int>? learnWeight,
     Expression<bool>? revisit,
     Expression<double>? retention,
+    Expression<String>? speechLang,
+    Expression<String>? speechSide,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -389,6 +485,8 @@ class DomainsCompanion extends UpdateCompanion<Domain> {
       if (learnWeight != null) 'learn_weight': learnWeight,
       if (revisit != null) 'revisit': revisit,
       if (retention != null) 'retention': retention,
+      if (speechLang != null) 'speech_lang': speechLang,
+      if (speechSide != null) 'speech_side': speechSide,
     });
   }
 
@@ -400,6 +498,8 @@ class DomainsCompanion extends UpdateCompanion<Domain> {
     Value<int>? learnWeight,
     Value<bool>? revisit,
     Value<double?>? retention,
+    Value<String?>? speechLang,
+    Value<String>? speechSide,
   }) {
     return DomainsCompanion(
       id: id ?? this.id,
@@ -409,6 +509,8 @@ class DomainsCompanion extends UpdateCompanion<Domain> {
       learnWeight: learnWeight ?? this.learnWeight,
       revisit: revisit ?? this.revisit,
       retention: retention ?? this.retention,
+      speechLang: speechLang ?? this.speechLang,
+      speechSide: speechSide ?? this.speechSide,
     );
   }
 
@@ -436,6 +538,12 @@ class DomainsCompanion extends UpdateCompanion<Domain> {
     if (retention.present) {
       map['retention'] = Variable<double>(retention.value);
     }
+    if (speechLang.present) {
+      map['speech_lang'] = Variable<String>(speechLang.value);
+    }
+    if (speechSide.present) {
+      map['speech_side'] = Variable<String>(speechSide.value);
+    }
     return map;
   }
 
@@ -448,7 +556,9 @@ class DomainsCompanion extends UpdateCompanion<Domain> {
           ..write('createdAt: $createdAt, ')
           ..write('learnWeight: $learnWeight, ')
           ..write('revisit: $revisit, ')
-          ..write('retention: $retention')
+          ..write('retention: $retention, ')
+          ..write('speechLang: $speechLang, ')
+          ..write('speechSide: $speechSide')
           ..write(')'))
         .toString();
   }
@@ -4050,6 +4160,348 @@ class ActivityBucketsCompanion extends UpdateCompanion<ActivityBucket> {
   }
 }
 
+class $MediaItemsTable extends MediaItems
+    with TableInfo<$MediaItemsTable, MediaItem> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $MediaItemsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _shaMeta = const VerificationMeta('sha');
+  @override
+  late final GeneratedColumn<String> sha = GeneratedColumn<String>(
+    'sha',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways('UNIQUE'),
+  );
+  static const VerificationMeta _mimeMeta = const VerificationMeta('mime');
+  @override
+  late final GeneratedColumn<String> mime = GeneratedColumn<String>(
+    'mime',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _bytesMeta = const VerificationMeta('bytes');
+  @override
+  late final GeneratedColumn<Uint8List> bytes = GeneratedColumn<Uint8List>(
+    'bytes',
+    aliasedName,
+    false,
+    type: DriftSqlType.blob,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<int> createdAt = GeneratedColumn<int>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, sha, mime, bytes, createdAt];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'media';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<MediaItem> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('sha')) {
+      context.handle(
+        _shaMeta,
+        sha.isAcceptableOrUnknown(data['sha']!, _shaMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_shaMeta);
+    }
+    if (data.containsKey('mime')) {
+      context.handle(
+        _mimeMeta,
+        mime.isAcceptableOrUnknown(data['mime']!, _mimeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_mimeMeta);
+    }
+    if (data.containsKey('bytes')) {
+      context.handle(
+        _bytesMeta,
+        bytes.isAcceptableOrUnknown(data['bytes']!, _bytesMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_bytesMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  MediaItem map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return MediaItem(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      sha: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}sha'],
+      )!,
+      mime: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}mime'],
+      )!,
+      bytes: attachedDatabase.typeMapping.read(
+        DriftSqlType.blob,
+        data['${effectivePrefix}bytes'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}created_at'],
+      )!,
+    );
+  }
+
+  @override
+  $MediaItemsTable createAlias(String alias) {
+    return $MediaItemsTable(attachedDatabase, alias);
+  }
+}
+
+class MediaItem extends DataClass implements Insertable<MediaItem> {
+  final int id;
+  final String sha;
+  final String mime;
+  final Uint8List bytes;
+  final int createdAt;
+  const MediaItem({
+    required this.id,
+    required this.sha,
+    required this.mime,
+    required this.bytes,
+    required this.createdAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['sha'] = Variable<String>(sha);
+    map['mime'] = Variable<String>(mime);
+    map['bytes'] = Variable<Uint8List>(bytes);
+    map['created_at'] = Variable<int>(createdAt);
+    return map;
+  }
+
+  MediaItemsCompanion toCompanion(bool nullToAbsent) {
+    return MediaItemsCompanion(
+      id: Value(id),
+      sha: Value(sha),
+      mime: Value(mime),
+      bytes: Value(bytes),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory MediaItem.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return MediaItem(
+      id: serializer.fromJson<int>(json['id']),
+      sha: serializer.fromJson<String>(json['sha']),
+      mime: serializer.fromJson<String>(json['mime']),
+      bytes: serializer.fromJson<Uint8List>(json['bytes']),
+      createdAt: serializer.fromJson<int>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'sha': serializer.toJson<String>(sha),
+      'mime': serializer.toJson<String>(mime),
+      'bytes': serializer.toJson<Uint8List>(bytes),
+      'createdAt': serializer.toJson<int>(createdAt),
+    };
+  }
+
+  MediaItem copyWith({
+    int? id,
+    String? sha,
+    String? mime,
+    Uint8List? bytes,
+    int? createdAt,
+  }) => MediaItem(
+    id: id ?? this.id,
+    sha: sha ?? this.sha,
+    mime: mime ?? this.mime,
+    bytes: bytes ?? this.bytes,
+    createdAt: createdAt ?? this.createdAt,
+  );
+  MediaItem copyWithCompanion(MediaItemsCompanion data) {
+    return MediaItem(
+      id: data.id.present ? data.id.value : this.id,
+      sha: data.sha.present ? data.sha.value : this.sha,
+      mime: data.mime.present ? data.mime.value : this.mime,
+      bytes: data.bytes.present ? data.bytes.value : this.bytes,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('MediaItem(')
+          ..write('id: $id, ')
+          ..write('sha: $sha, ')
+          ..write('mime: $mime, ')
+          ..write('bytes: $bytes, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(id, sha, mime, $driftBlobEquality.hash(bytes), createdAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is MediaItem &&
+          other.id == this.id &&
+          other.sha == this.sha &&
+          other.mime == this.mime &&
+          $driftBlobEquality.equals(other.bytes, this.bytes) &&
+          other.createdAt == this.createdAt);
+}
+
+class MediaItemsCompanion extends UpdateCompanion<MediaItem> {
+  final Value<int> id;
+  final Value<String> sha;
+  final Value<String> mime;
+  final Value<Uint8List> bytes;
+  final Value<int> createdAt;
+  const MediaItemsCompanion({
+    this.id = const Value.absent(),
+    this.sha = const Value.absent(),
+    this.mime = const Value.absent(),
+    this.bytes = const Value.absent(),
+    this.createdAt = const Value.absent(),
+  });
+  MediaItemsCompanion.insert({
+    this.id = const Value.absent(),
+    required String sha,
+    required String mime,
+    required Uint8List bytes,
+    required int createdAt,
+  }) : sha = Value(sha),
+       mime = Value(mime),
+       bytes = Value(bytes),
+       createdAt = Value(createdAt);
+  static Insertable<MediaItem> custom({
+    Expression<int>? id,
+    Expression<String>? sha,
+    Expression<String>? mime,
+    Expression<Uint8List>? bytes,
+    Expression<int>? createdAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (sha != null) 'sha': sha,
+      if (mime != null) 'mime': mime,
+      if (bytes != null) 'bytes': bytes,
+      if (createdAt != null) 'created_at': createdAt,
+    });
+  }
+
+  MediaItemsCompanion copyWith({
+    Value<int>? id,
+    Value<String>? sha,
+    Value<String>? mime,
+    Value<Uint8List>? bytes,
+    Value<int>? createdAt,
+  }) {
+    return MediaItemsCompanion(
+      id: id ?? this.id,
+      sha: sha ?? this.sha,
+      mime: mime ?? this.mime,
+      bytes: bytes ?? this.bytes,
+      createdAt: createdAt ?? this.createdAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (sha.present) {
+      map['sha'] = Variable<String>(sha.value);
+    }
+    if (mime.present) {
+      map['mime'] = Variable<String>(mime.value);
+    }
+    if (bytes.present) {
+      map['bytes'] = Variable<Uint8List>(bytes.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<int>(createdAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('MediaItemsCompanion(')
+          ..write('id: $id, ')
+          ..write('sha: $sha, ')
+          ..write('mime: $mime, ')
+          ..write('bytes: $bytes, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $PromptLogsTable extends PromptLogs
     with TableInfo<$PromptLogsTable, PromptLog> {
   @override
@@ -5980,6 +6432,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $ActivityBucketsTable activityBuckets = $ActivityBucketsTable(
     this,
   );
+  late final $MediaItemsTable mediaItems = $MediaItemsTable(this);
   late final $PromptLogsTable promptLogs = $PromptLogsTable(this);
   late final $InterestLogsTable interestLogs = $InterestLogsTable(this);
   late final $EngineDecisionsTable engineDecisions = $EngineDecisionsTable(
@@ -6016,6 +6469,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     fsrsParamsTable,
     reviewLogs,
     activityBuckets,
+    mediaItems,
     promptLogs,
     interestLogs,
     engineDecisions,
@@ -6036,6 +6490,8 @@ typedef $$DomainsTableCreateCompanionBuilder = DomainsCompanion Function({
   Value<int> learnWeight,
   Value<bool> revisit,
   Value<double?> retention,
+  Value<String?> speechLang,
+  Value<String> speechSide,
 });
 typedef $$DomainsTableUpdateCompanionBuilder = DomainsCompanion Function({
   Value<int> id,
@@ -6045,6 +6501,8 @@ typedef $$DomainsTableUpdateCompanionBuilder = DomainsCompanion Function({
   Value<int> learnWeight,
   Value<bool> revisit,
   Value<double?> retention,
+  Value<String?> speechLang,
+  Value<String> speechSide,
 });
 
 final class $$DomainsTableReferences
@@ -6166,6 +6624,16 @@ class $$DomainsTableFilterComposer
 
   ColumnFilters<double> get retention => $composableBuilder(
     column: $table.retention,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get speechLang => $composableBuilder(
+    column: $table.speechLang,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get speechSide => $composableBuilder(
+    column: $table.speechSide,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -6313,6 +6781,16 @@ class $$DomainsTableOrderingComposer
     column: $table.retention,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get speechLang => $composableBuilder(
+    column: $table.speechLang,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get speechSide => $composableBuilder(
+    column: $table.speechSide,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$DomainsTableAnnotationComposer
@@ -6346,6 +6824,16 @@ class $$DomainsTableAnnotationComposer
 
   GeneratedColumn<double> get retention =>
       $composableBuilder(column: $table.retention, builder: (column) => column);
+
+  GeneratedColumn<String> get speechLang => $composableBuilder(
+    column: $table.speechLang,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get speechSide => $composableBuilder(
+    column: $table.speechSide,
+    builder: (column) => column,
+  );
 
   Expression<T> syllabusItemsRefs<T extends Object>(
     Expression<T> Function($$SyllabusItemsTableAnnotationComposer a) f,
@@ -6488,6 +6976,8 @@ class $$DomainsTableTableManager
                 Value<int> learnWeight = const Value.absent(),
                 Value<bool> revisit = const Value.absent(),
                 Value<double?> retention = const Value.absent(),
+                Value<String?> speechLang = const Value.absent(),
+                Value<String> speechSide = const Value.absent(),
               }) => DomainsCompanion(
                 id: id,
                 name: name,
@@ -6496,6 +6986,8 @@ class $$DomainsTableTableManager
                 learnWeight: learnWeight,
                 revisit: revisit,
                 retention: retention,
+                speechLang: speechLang,
+                speechSide: speechSide,
               ),
           createCompanionCallback:
               ({
@@ -6506,6 +6998,8 @@ class $$DomainsTableTableManager
                 Value<int> learnWeight = const Value.absent(),
                 Value<bool> revisit = const Value.absent(),
                 Value<double?> retention = const Value.absent(),
+                Value<String?> speechLang = const Value.absent(),
+                Value<String> speechSide = const Value.absent(),
               }) => DomainsCompanion.insert(
                 id: id,
                 name: name,
@@ -6514,6 +7008,8 @@ class $$DomainsTableTableManager
                 learnWeight: learnWeight,
                 revisit: revisit,
                 retention: retention,
+                speechLang: speechLang,
+                speechSide: speechSide,
               ),
           withReferenceMapper: (p0) => p0
               .map(
@@ -9773,6 +10269,204 @@ typedef $$ActivityBucketsTableProcessedTableManager =
       ActivityBucket,
       PrefetchHooks Function()
     >;
+typedef $$MediaItemsTableCreateCompanionBuilder = MediaItemsCompanion Function({
+  Value<int> id,
+  required String sha,
+  required String mime,
+  required Uint8List bytes,
+  required int createdAt,
+});
+typedef $$MediaItemsTableUpdateCompanionBuilder = MediaItemsCompanion Function({
+  Value<int> id,
+  Value<String> sha,
+  Value<String> mime,
+  Value<Uint8List> bytes,
+  Value<int> createdAt,
+});
+
+class $$MediaItemsTableFilterComposer
+    extends Composer<_$AppDatabase, $MediaItemsTable> {
+  $$MediaItemsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get sha => $composableBuilder(
+    column: $table.sha,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get mime => $composableBuilder(
+    column: $table.mime,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<Uint8List> get bytes => $composableBuilder(
+    column: $table.bytes,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$MediaItemsTableOrderingComposer
+    extends Composer<_$AppDatabase, $MediaItemsTable> {
+  $$MediaItemsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get sha => $composableBuilder(
+    column: $table.sha,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get mime => $composableBuilder(
+    column: $table.mime,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<Uint8List> get bytes => $composableBuilder(
+    column: $table.bytes,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$MediaItemsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $MediaItemsTable> {
+  $$MediaItemsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get sha =>
+      $composableBuilder(column: $table.sha, builder: (column) => column);
+
+  GeneratedColumn<String> get mime =>
+      $composableBuilder(column: $table.mime, builder: (column) => column);
+
+  GeneratedColumn<Uint8List> get bytes =>
+      $composableBuilder(column: $table.bytes, builder: (column) => column);
+
+  GeneratedColumn<int> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+}
+
+class $$MediaItemsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $MediaItemsTable,
+          MediaItem,
+          $$MediaItemsTableFilterComposer,
+          $$MediaItemsTableOrderingComposer,
+          $$MediaItemsTableAnnotationComposer,
+          $$MediaItemsTableCreateCompanionBuilder,
+          $$MediaItemsTableUpdateCompanionBuilder,
+          (
+            MediaItem,
+            BaseReferences<_$AppDatabase, $MediaItemsTable, MediaItem>,
+          ),
+          MediaItem,
+          PrefetchHooks Function()
+        > {
+  $$MediaItemsTableTableManager(_$AppDatabase db, $MediaItemsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$MediaItemsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$MediaItemsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$MediaItemsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> sha = const Value.absent(),
+                Value<String> mime = const Value.absent(),
+                Value<Uint8List> bytes = const Value.absent(),
+                Value<int> createdAt = const Value.absent(),
+              }) => MediaItemsCompanion(
+                id: id,
+                sha: sha,
+                mime: mime,
+                bytes: bytes,
+                createdAt: createdAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String sha,
+                required String mime,
+                required Uint8List bytes,
+                required int createdAt,
+              }) => MediaItemsCompanion.insert(
+                id: id,
+                sha: sha,
+                mime: mime,
+                bytes: bytes,
+                createdAt: createdAt,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$MediaItemsTable, MediaItem>(table),
+                  BaseReferences<_$AppDatabase, $MediaItemsTable, MediaItem>(
+                    db,
+                    table,
+                    e,
+                  ),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$MediaItemsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $MediaItemsTable,
+      MediaItem,
+      $$MediaItemsTableFilterComposer,
+      $$MediaItemsTableOrderingComposer,
+      $$MediaItemsTableAnnotationComposer,
+      $$MediaItemsTableCreateCompanionBuilder,
+      $$MediaItemsTableUpdateCompanionBuilder,
+      (MediaItem, BaseReferences<_$AppDatabase, $MediaItemsTable, MediaItem>),
+      MediaItem,
+      PrefetchHooks Function()
+    >;
 typedef $$PromptLogsTableCreateCompanionBuilder = PromptLogsCompanion Function({
   Value<int> id,
   required int createdAt,
@@ -11165,6 +11859,8 @@ class $AppDatabaseManager {
       $$ReviewLogsTableTableManager(_db, _db.reviewLogs);
   $$ActivityBucketsTableTableManager get activityBuckets =>
       $$ActivityBucketsTableTableManager(_db, _db.activityBuckets);
+  $$MediaItemsTableTableManager get mediaItems =>
+      $$MediaItemsTableTableManager(_db, _db.mediaItems);
   $$PromptLogsTableTableManager get promptLogs =>
       $$PromptLogsTableTableManager(_db, _db.promptLogs);
   $$InterestLogsTableTableManager get interestLogs =>

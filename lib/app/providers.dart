@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter/services.dart' show AssetBundle, rootBundle;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -11,6 +12,7 @@ import '../data/error_log.dart';
 import '../data/card_edit_service.dart';
 import '../data/import_service.dart';
 import '../data/learn_service.dart';
+import '../data/media_service.dart';
 import '../data/optimizer_service.dart';
 import '../data/outline_service.dart';
 import '../data/params_repo.dart';
@@ -22,6 +24,7 @@ import '../data/review_service.dart';
 import '../data/settings_repo.dart';
 import '../data/stats_service.dart';
 import 'bootstrap.dart';
+import 'device_services.dart';
 import 'share_service.dart';
 
 /// Where bundled starter subjects are read from (overridden in tests).
@@ -43,6 +46,12 @@ final errorLogProvider = Provider((ref) =>
 final promptSharerProvider = Provider<PromptSharer>((_) => const SharePlusPromptSharer());
 final shareInboxProvider = Provider<ShareInbox>((_) => const ChannelShareInbox());
 final reminderBackendProvider = Provider<ReminderBackend>((_) => LocalNotificationsBackend());
+final imagePickerProvider = Provider<ImagePickerService>((_) => const GalleryImagePicker());
+final speakerProvider = Provider<Speaker>((ref) {
+  final s = PhoneSpeaker();
+  ref.onDispose(s.stop);
+  return s;
+});
 final settingsRepoProvider = Provider((ref) => SettingsRepo(ref.watch(dbProvider)));
 final paramsRepoProvider =
     Provider((ref) => ParamsRepo(ref.watch(dbProvider), ref.watch(settingsRepoProvider)));
@@ -56,6 +65,11 @@ final importServiceProvider = Provider((ref) => ImportService(ref.watch(dbProvid
 final cardEditServiceProvider = Provider((ref) => CardEditService(ref.watch(dbProvider), ref.watch(settingsRepoProvider)));
 final reminderServiceProvider =
     Provider((ref) => ReminderService(ref.watch(settingsRepoProvider), ref.watch(reminderBackendProvider)));
+final mediaServiceProvider = Provider((ref) => MediaService(ref.watch(dbProvider)));
+
+/// A card picture's bytes by id (null if missing). Cached while a screen shows it.
+final mediaBytesProvider = FutureProvider.autoDispose.family<Uint8List?, String>(
+    (ref, sha) => ref.watch(mediaServiceProvider).bytes(sha));
 final retireServiceProvider = Provider((ref) => RetireService(ref.watch(dbProvider)));
 final planServiceProvider = Provider((ref) =>
     PlanService(ref.watch(dbProvider), ref.watch(settingsRepoProvider), ref.watch(paramsRepoProvider)));

@@ -65,6 +65,7 @@ class _DiagnosticsScreenState extends ConsumerState<DiagnosticsScreen> {
           ..limit(3))
         .get();
     final fit = await settings.getInt('optimizer_last_fit_ms', 0);
+    final media = await ref.read(mediaServiceProvider).usage();
     _facts = {
       'Cards': '${f.cards}',
       'Reviews': '${f.reviews}',
@@ -74,6 +75,7 @@ class _DiagnosticsScreenState extends ConsumerState<DiagnosticsScreen> {
           : backups
               .map((b) => '${DateTime.fromMillisecondsSinceEpoch(b.ts, isUtc: true).toIso8601String().substring(0, 16)} ${b.ok ? 'ok' : 'FAILED: ${b.error}'}')
               .join('; '),
+      if (media.count > 0) 'Pictures': '${media.count} (${(media.bytes / 1e6).toStringAsFixed(1)} MB, inside every backup)',
       if (fit > 0) 'Last memory fit took': '${(fit / 1000).toStringAsFixed(1)} s',
     };
     final log = ref.read(errorLogProvider);

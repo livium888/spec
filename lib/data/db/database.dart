@@ -4,7 +4,7 @@ part 'database.g.dart';
 
 /// Bump together with a migration step in [AppDatabase.migration].
 /// Also checked by RestoreBackup against `PRAGMA user_version` of a backup file.
-const int kSchemaVersion = 6;
+const int kSchemaVersion = 7;
 
 class Domains extends Table {
   @override
@@ -20,6 +20,24 @@ class Domains extends Table {
 
   /// v6: target recall for this subject (0.70 to 0.97). Null: the app-wide target.
   RealColumn get retention => real().nullable()();
+
+  /// v7: read cards of this subject aloud in this language (BCP-47, e.g. "es-ES"); null = off.
+  TextColumn get speechLang => text().nullable()();
+
+  /// Which side of the card is written in that language: 'front' or 'back'.
+  TextColumn get speechSide => text().withDefault(const Constant('back'))();
+}
+
+/// v7: pictures attached to cards, stored inside the database so they travel with every backup.
+/// A note refers to one by its SHA-256 (field "image"). Nothing here affects scheduling.
+class MediaItems extends Table {
+  @override
+  String get tableName => 'media';
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get sha => text().unique()();
+  TextColumn get mime => text()();
+  BlobColumn get bytes => blob()();
+  IntColumn get createdAt => integer()();
 }
 
 class SyllabusItems extends Table {
@@ -197,6 +215,7 @@ class Settings extends Table {
   FsrsParamsTable,
   ReviewLogs,
   ActivityBuckets,
+  MediaItems,
   PromptLogs,
   InterestLogs,
   EngineDecisions,
@@ -232,6 +251,11 @@ class AppDatabase extends _$AppDatabase {
           if (from < 6) {
             await m.addColumn(cards, cards.retiredAt);
             await m.addColumn(domains, domains.retention);
+          }
+          if (from < 7) {
+            await m.createTable(mediaItems);
+            await m.addColumn(domains, domains.speechLang);
+            await m.addColumn(domains, domains.speechSide);
           }
         },
         beforeOpen: (details) async {

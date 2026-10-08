@@ -6,6 +6,7 @@ import '../domain/card_edit.dart';
 import '../domain/import_parser.dart';
 import 'activity_cache.dart';
 import 'db/database.dart';
+import 'media_service.dart';
 import 'settings_repo.dart';
 
 class NoteRow {
@@ -88,7 +89,8 @@ class CardEditService {
     if (errors.isNotEmpty) return errors;
 
     final fields = Map<String, dynamic>.from(n.fields);
-    const optional = ['why_it_matters', 'example', 'memory_hook'];
+    const optional = ['why_it_matters', 'example', 'memory_hook', 'image', 'image_side', 'image_alt'];
+    final oldImage = n.fields['image'] as String?;
     for (final e in edited.entries) {
       final v = e.value.trim();
       if (v.isEmpty && optional.contains(e.key)) {
@@ -115,11 +117,19 @@ class CardEditService {
         }
       }
     });
+    final newImage = fields['image'] as String?;
+    if (oldImage != null && oldImage != newImage) await MediaService(db).deleteIfOrphan(oldImage);
     return const [];
   }
 
   /// Permanently removes the note, its cards and their review history.
-  Future<void> delete(int noteId) => db.transaction(() async {
+  Future<void> delete(int noteId) async {
+    final image = (await note(noteId))?.fields['image'] as String?;
+    await _delete(noteId);
+    await MediaService(db).deleteIfOrphan(image); // a picture nothing refers to any more is removed too
+  }
+
+  Future<void> _delete(int noteId) => db.transaction(() async {
         await db.customStatement(
             'DELETE FROM review_log WHERE card_id IN (SELECT id FROM card WHERE note_id = ?)', [noteId]);
         await db.customStatement('DELETE FROM card WHERE note_id = ?', [noteId]);
