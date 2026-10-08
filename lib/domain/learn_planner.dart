@@ -158,21 +158,27 @@ class LearnPlanner {
     this.prereqFraction = 0.7,
     this.minRoom = 3,
     this.revisitBaseMonths = 3,
+    this.enforceTimeRoom = true,
   });
 
   /// First revisit comes this many months after a topic was last extended;
   /// each later round waits twice as long (3, 6, 12, 24 ... months), capped at 12 years.
   final int revisitBaseMonths;
 
+  /// When true, a prompt asks for fewer cards if the time budget is nearly used up. The app turns this
+  /// off: how many cards to ask for is the learner's call ("cards per prompt", the daily limit).
+  final bool enforceTimeRoom;
+
   static const maxCooldownDays = 12 * 365.0;
 
-  LearnPlanner copyWith({int? revisitBaseMonths}) => LearnPlanner(
-        baseCount: baseCount,
+  LearnPlanner copyWith({int? revisitBaseMonths, int? baseCount, bool? enforceTimeRoom}) => LearnPlanner(
+        baseCount: baseCount ?? this.baseCount,
         wipLimit: wipLimit,
         exploreEps: exploreEps,
         prereqFraction: prereqFraction,
         minRoom: minRoom,
         revisitBaseMonths: revisitBaseMonths ?? this.revisitBaseMonths,
+        enforceTimeRoom: enforceTimeRoom ?? this.enforceTimeRoom,
       );
 
   /// Days a finished topic rests before it may be offered again.
@@ -226,7 +232,9 @@ class LearnPlanner {
         });
 
     final room = capacity.cardsRoom;
-    int sized(int wanted) => wanted.clamp(1, 1 << 20).clamp(1, room < minRoom ? minRoom : room);
+    int sized(int wanted) => enforceTimeRoom
+        ? wanted.clamp(1, 1 << 20).clamp(1, room < minRoom ? minRoom : room)
+        : wanted.clamp(1, 1 << 20);
     double jitter(ItemStats it, int salt) => unitFromSeed(seed * 7919 + it.id * 31 + salt) * 1e-6;
 
     final byDomain = <int, List<ItemStats>>{};

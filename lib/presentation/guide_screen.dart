@@ -99,6 +99,12 @@ class GuideScreen extends StatelessWidget {
           para('Settings > Daily reminder: one short, friendly nudge a day at the time you choose. If you have already done today\'s reviews, '
               'the next one is tomorrow. Some phones stop background reminders to save battery; if it does not appear, check the phone\'s battery settings for this app.'),
 
+          heading('Your numbers are yours'),
+          para('Settings > New cards per day is your own number, any whole number you like (10,000 if you want), and the app uses it exactly. '
+              'Cards per prompt is how many cards one "Learn something new" asks your AI for (1 to 200). The advice card only advises: it never blocks you or '
+              'shrinks your numbers. When you reach your own daily limit it says so and offers "Add more anyway". '
+              'If you do want the limit to shrink when reviews pile up, there is a switch for that, off by default.'),
+
           heading('Making the cards fit you'),
           para('Settings > About you: a sentence or two (your job, your interests). It goes into the prompts so examples are about things you care about. '
               'Settings also has your daily minutes, which the app uses to decide how much new material is sensible.'),

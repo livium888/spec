@@ -38,7 +38,7 @@ class PromptResultScreen extends ConsumerWidget {
   Future<void> _tryAlternative(BuildContext context, WidgetRef ref) async {
     final learn = ref.read(learnServiceProvider);
     final alt = alternative!;
-    final cap = advice == null ? alt.count : alt.count.clamp(1, advice!.recommendedNewCards < 1 ? 3 : advice!.recommendedNewCards);
+    final cap = advice == null || advice!.limitReached ? alt.count : alt.count.clamp(1, advice!.dailyLimitLeft < 1 ? 1 : advice!.dailyLimitLeft);
     await learn.abandonPending(prompt.logId); // the first prompt will not be used
     final g = await learn.choose(alt.action == LearnAction.remediate ? alt : alt.withCount(cap), view!);
     if (!context.mounted) return;

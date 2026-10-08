@@ -2,12 +2,17 @@ import '../domain/day_clock.dart';
 import 'db/database.dart';
 
 /// Key/value settings stored in the DB so they travel inside backups.
+/// Largest "new cards per day" the settings accept. Effectively unlimited: the learner decides.
+const int kMaxNewPerDay = 100000;
+
 class SettingsRepo {
   SettingsRepo(this.db);
   final AppDatabase db;
 
   static const newPerDay = 'new_per_day';
   static const backlogDivisor = 'backlog_divisor';
+  static const backlogShrink = 'backlog_shrink'; // '1': the daily new-card limit shrinks when reviews pile up (off by default)
+  static const cardsPerPrompt = 'cards_per_prompt'; // how many cards one "Learn something new" prompt asks for (1-200)
   static const rolloverHour = 'rollover_hour';
   static const desiredRetention = 'desired_retention';
   static const learningSteps = 'learning_steps_min'; // "1,10"

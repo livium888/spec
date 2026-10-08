@@ -88,6 +88,7 @@ void main() {
   shareWidgetTests();
   reminderWidgetTests();
   phase2WidgetTests();
+  manualControlWidgetTests();
   testWidgets('ONE press: Home -> prompt screen, no choosing, with the reasons and the advice', (t) async {
     final db = await boot(t, seed: true);
     expect(find.textContaining('Good time to learn'), findsOneWidget); // advice on Home
@@ -148,13 +149,13 @@ void main() {
     expect(find.text('Your prompt'), findsNothing);
     expect(find.text('No new cards today'), findsOneWidget);
     expect(find.text('OK, I will stop here'), findsOneWidget);
-    expect(find.textContaining('Add just 3 cards anyway'), findsOneWidget);
+    expect(find.textContaining('more anyway'), findsOneWidget);
 
-    await t.tap(find.textContaining('Add just 3 cards anyway'));
+    await t.tap(find.textContaining('more anyway'));
     await settle(t);
     expect(find.text('Your prompt'), findsOneWidget);
     final logs = await t.runAsync(() => db.select(db.promptLogs).get());
-    expect(logs!.single.cardsRequested, 3);
+    expect(logs!.single.cardsRequested, 10); // the learner's own prompt size, not a smaller number picked for them
     await done(t, db);
   });
 
@@ -625,6 +626,46 @@ void phase2WidgetTests() {
     await settle(t);
     final r = await t.runAsync(() => db.select(db.domains).get());
     expect(r!.single.retention, 0.80);
+    await done(t, db);
+  });
+}
+
+void manualControlWidgetTests() {
+  testWidgets('a heavy review backlog is only advice: ONE press still gives a prompt, with the advice shown on it', (t) async {
+    final db = await boot(t, seed: true, settings: {'guide_seen': '1', 'daily_minutes': '5'}, prepare: (db) async {
+      final imp = ImportService(db);
+      await imp.commit(await imp.preview(jsonEncode({
+        'domain': 'Bio',
+        'syllabus_item': null,
+        'cards': [
+          for (var i = 0; i < 120; i++)
+            {'type': 'basic', 'front': 'Old card $i?', 'back': 'A', 'source_type': 'quote', 'source_ref': 'b', 'supporting_quote': 'q', 'confidence': 'high'}
+        ]
+      })));
+      await db.customStatement("UPDATE card SET state='review', stability=3, difficulty=5, reps=3, due=1");
+    });
+    await t.tap(find.text('Learn something new'));
+    await until(t, find.text('Your prompt'));
+    await settle(t);
+    expect(find.text('Your prompt'), findsOneWidget);
+    expect(find.textContaining('Hold off on new cards'), findsWidgets); // the advice is shown, not enforced
+    final logs = await t.runAsync(() => db.select(db.promptLogs).get());
+    expect(logs!.single.cardsRequested, 10); // not shrunk to 3 by the time budget
+    await done(t, db);
+  });
+
+  testWidgets('Settings: any daily number is accepted, 10,000 included, and used exactly', (t) async {
+    final db = await boot(t, settings: {'guide_seen': '1'});
+    await t.tap(find.byTooltip('Settings and backup'));
+    await settle(t);
+    await t.scrollUntilVisible(find.text('New cards per day'), 300, scrollable: find.byType(Scrollable).first);
+    await t.enterText(find.widgetWithText(TextField, 'New cards per day'), '10000');
+    await t.scrollUntilVisible(find.text('Save settings'), 300, scrollable: find.byType(Scrollable).first);
+    await t.tap(find.text('Save settings'));
+    await settle(t);
+    expect(find.textContaining('any whole number'), findsNothing); // no error
+    final v = await t.runAsync(() => SettingsRepo(db).get('new_per_day'));
+    expect(v, '10000');
     await done(t, db);
   });
 }

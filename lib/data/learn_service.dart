@@ -228,7 +228,9 @@ class LearnService {
       GROUP BY n.syllabus_item_id''';
 
   Future<LearnPlanner> _planner() async => planner.copyWith(
-      revisitBaseMonths: (await settings.getInt(SettingsRepo.revisitMonths, 3)).clamp(1, 24));
+      revisitBaseMonths: (await settings.getInt(SettingsRepo.revisitMonths, 3)).clamp(1, 24),
+      baseCount: (await settings.getInt(SettingsRepo.cardsPerPrompt, 10)).clamp(1, 200),
+      enforceTimeRoom: false);
 
   /// 0 = never offer this subject, 1 low, 2 normal, 3 high.
   Future<void> setSubjectWeight(int domainId, int weight) =>
@@ -521,6 +523,8 @@ class LearnService {
       lapseRate30d: i(r['revonly']) == 0 ? null : i(r['lapsed']) / i(r['revonly']),
       leechCount: i(leech['n']),
       daysSinceLastSession: lastMs == null ? null : (nowMs - lastMs) / _day,
+      baseCount: (await settings.getInt(SettingsRepo.cardsPerPrompt, 10)).clamp(1, 200),
+      limitShrinks: await settings.get(SettingsRepo.backlogShrink) == '1',
     ));
   }
 

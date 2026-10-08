@@ -27,6 +27,8 @@ class SettingsScreen extends ConsumerStatefulWidget {
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   final _newPerDay = TextEditingController();
   final _divisor = TextEditingController();
+  final _perPrompt = TextEditingController();
+  bool _shrink = false;
   final _retention = TextEditingController();
   final _steps = TextEditingController();
   final _relearn = TextEditingController();
@@ -48,7 +50,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   @override
   void dispose() {
-    for (final c in [_newPerDay, _divisor, _retention, _steps, _relearn, _rollover, _minutes, _revisit, _profile]) {
+    for (final c in [_newPerDay, _divisor, _perPrompt, _retention, _steps, _relearn, _rollover, _minutes, _revisit, _profile]) {
       c.dispose();
     }
     super.dispose();
@@ -58,6 +60,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final s = ref.read(settingsRepoProvider);
     _newPerDay.text = '${await s.getInt(SettingsRepo.newPerDay, 10)}';
     _divisor.text = '${await s.getInt(SettingsRepo.backlogDivisor, 25)}';
+    _perPrompt.text = '${await s.getInt(SettingsRepo.cardsPerPrompt, 10)}';
+    _shrink = await s.get(SettingsRepo.backlogShrink) == '1';
     _retention.text = '${await s.getDouble(SettingsRepo.desiredRetention, 0.90)}';
     _steps.text = (await s.getIntList(SettingsRepo.learningSteps, [1, 10])).join(',');
     _relearn.text = (await s.getIntList(SettingsRepo.relearningSteps, [10])).join(',');
@@ -75,6 +79,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     String? err;
     final n = int.tryParse(_newPerDay.text.trim());
     final d = int.tryParse(_divisor.text.trim());
+    final pp = int.tryParse(_perPrompt.text.trim());
     final r = double.tryParse(_retention.text.trim());
     final h = int.tryParse(_rollover.text.trim());
     final mins = int.tryParse(_minutes.text.trim());
@@ -88,11 +93,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
     final ls = parse(_steps.text);
     final rs = parse(_relearn.text);
-    if (n == null || n < 0 || n > 500) err = 'New cards per day must be 0-500.';
+    if (n == null || n < 0 || n > kMaxNewPerDay) err = 'New cards per day: any whole number from 0 to $kMaxNewPerDay.';
+    if (pp == null || pp < 1 || pp > 200) err = 'Cards per prompt must be 1-200 (an AI cannot answer with more than 200 cards at once).';
     if (d == null || d < 1) err = 'Backlog divisor must be 1 or more.';
     if (r == null || r < 0.7 || r > 0.99) err = 'Desired retention must be between 0.70 and 0.99.';
     if (h == null || h < 0 || h > 23) err = 'Day rollover hour must be 0-23.';
-    if (mins == null || mins < 5 || mins > 240) err = 'Daily study time must be 5-240 minutes.';
+    if (mins == null || mins < 5 || mins > 1440) err = 'Daily study time must be 5-1440 minutes.';
     if (rev == null || rev < 1 || rev > 24) err = 'First revisit delay must be 1-24 months.';
     if (_profile.text.length > kMaxProfileChars) err = 'Keep "About you" under $kMaxProfileChars characters.';
     if (ls == null) err = 'Learning steps: minutes separated by commas, e.g. 1,10.';
@@ -103,6 +109,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     }
     await s.set(SettingsRepo.newPerDay, '$n');
     await s.set(SettingsRepo.backlogDivisor, '$d');
+    await s.set(SettingsRepo.cardsPerPrompt, '$pp');
+    await s.set(SettingsRepo.backlogShrink, _shrink ? '1' : '0');
     await s.set(SettingsRepo.desiredRetention, '$r');
     await s.set(SettingsRepo.learningSteps, ls!.join(','));
     await s.set(SettingsRepo.relearningSteps, rs!.join(','));
@@ -288,8 +296,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       .push(MaterialPageRoute<void>(builder: (_) => const SubjectsScreen())),
                 ),
                 const SizedBox(height: 16),
-                field(_newPerDay, 'New cards per day'),
-                field(_divisor, 'Backlog divisor', help: 'Daily new limit shrinks by 1 for every this-many due reviews.'),
+                field(_newPerDay, 'New cards per day', help: 'Your number, used exactly. Any whole number you like.'),
+                field(_perPrompt, 'Cards per prompt', help: 'How many cards one "Learn something new" asks your AI for (1-200).'),
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('Shrink the daily limit when many reviews are due'),
+                  subtitle: const Text('Off by default. When on, the limit drops by 1 for every N due reviews.'),
+                  value: _shrink,
+                  onChanged: (v) => setState(() => _shrink = v),
+                ),
+                if (_shrink) field(_divisor, 'Reviews per card taken off the limit'),
                 field(_retention, 'Desired retention', help: '0.90 = aim to remember 90% at review time.'),
                 field(_steps, 'Learning steps (minutes)', number: false, help: 'e.g. 1,10'),
                 field(_relearn, 'Relearning steps (minutes)', number: false, help: 'e.g. 10'),
@@ -312,7 +328,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   ),
                 ),
                 field(_revisit, 'Bring finished topics back after (months)', help: 'First delay; each later round waits twice as long (3, 6, 12, 24 ... up to 12 years).'),
-                field(_minutes, 'Daily study time (minutes)', help: 'Used by "Learn something new" to decide how many new cards fit.'),
+                field(_minutes, 'Daily study time (minutes)', help: 'Only used to estimate your review time and to give advice. It never limits you.'),
                 FilledButton(
                     style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(56)),
                     onPressed: _saveSettings,

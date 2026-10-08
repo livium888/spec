@@ -47,7 +47,9 @@ class QueueService {
     final dueReviewCount = reviews.length;
 
     final introduced = await _introducedToday(dayStart, domainId);
-    final limit = backlogAdjustedNewLimit(base, dueReviewCount, divisor: divisor);
+    // The learner's own number is used as it is, unless they switched the backlog shrink on.
+    final shrink = await settings.get(SettingsRepo.backlogShrink) == '1';
+    final limit = shrink ? backlogAdjustedNewLimit(base, dueReviewCount, divisor: divisor) : (base < 0 ? 0 : base);
     final remaining = (limit - introduced).clamp(0, limit);
     final newCards = remaining == 0
         ? <StudyCard>[]

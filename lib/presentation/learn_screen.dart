@@ -71,9 +71,9 @@ class _LearnScreenState extends ConsumerState<LearnScreen> {
 
       final top = v.plan.options.first;
       final adv = v.advice;
-      final fixing = top.action == LearnAction.remediate && adv.level != AdviceLevel.stop;
-      if (!fixing && (adv.level == AdviceLevel.wait || adv.level == AdviceLevel.stop)) {
-        return; // the advice card explains and lets the learner decide
+      final fixing = top.action == LearnAction.remediate && !adv.limitReached;
+      if (!fixing && _holdBack(adv)) {
+        return; // their own daily limit is used up: the advice card says so and lets them add more anyway
       }
       await _generate(top, v, count: fixing ? top.count : _cap(top.count, adv));
     } catch (e) {
@@ -81,7 +81,8 @@ class _LearnScreenState extends ConsumerState<LearnScreen> {
     }
   }
 
-  bool _holdBack(Advice a) => a.level == AdviceLevel.wait || a.level == AdviceLevel.stop;
+  /// Only the learner's own daily limit holds a prompt back. Everything else the advisor says is advice.
+  bool _holdBack(Advice a) => a.limitReached;
 
   Future<void> _generateGrowth(GrowthOption g, LearnView v) async {
     if (_busy) return;
@@ -99,9 +100,11 @@ class _LearnScreenState extends ConsumerState<LearnScreen> {
     }
   }
 
+  /// Ask for what the learner's own settings allow: the prompt size, but no more than their daily limit has left.
   int _cap(int wanted, Advice a) {
-    final r = a.recommendedNewCards < 1 ? 3 : a.recommendedNewCards;
-    return wanted < r ? wanted : r;
+    if (a.limitReached) return wanted;
+    final left = a.dailyLimitLeft < 1 ? 1 : a.dailyLimitLeft;
+    return wanted < left ? wanted : left;
   }
 
   Future<void> _replaceWith(Widget page) async {
@@ -169,7 +172,7 @@ class _LearnScreenState extends ConsumerState<LearnScreen> {
     final t = Theme.of(context).textTheme;
     final gated = !widget.showOptions &&
         plan.options.isNotEmpty &&
-        (adv.level == AdviceLevel.wait || adv.level == AdviceLevel.stop) &&
+        _holdBack(adv) &&
         plan.options.first.action != LearnAction.remediate;
     // On the automatic path a prompt is being generated: show progress, not a list.
     if (!widget.showOptions && v.pending != null) return _working();
@@ -183,13 +186,13 @@ class _LearnScreenState extends ConsumerState<LearnScreen> {
         FilledButton(
           style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(52)),
           onPressed: () => Navigator.of(context).maybePop(),
-          child: Text(adv.level == AdviceLevel.stop ? 'OK, I will stop here' : 'OK, reviews first'),
+          child: const Text('OK, I will stop here'),
         ),
         const SizedBox(height: 8),
         OutlinedButton(
           style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(52)),
-          onPressed: _busy ? null : () => _generate(plan.options.first, v, count: 3),
-          child: Text('Add just 3 cards anyway: ${plan.options.first.headline}'),
+          onPressed: _busy ? null : () => _generate(plan.options.first, v, count: plan.options.first.count),
+          child: Text('Add ${plan.options.first.count} more anyway: ${plan.options.first.headline}'),
         ),
       ],
       if (!gated) ...[

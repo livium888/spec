@@ -229,6 +229,7 @@ void main() {
 
     test('queue applies the backlog shrink and counts new cards already introduced today', () async {
       await e.settings.set(SettingsRepo.newPerDay, '4');
+      await e.settings.set(SettingsRepo.backlogShrink, '1'); // opt-in
       await e.settings.set(SettingsRepo.backlogDivisor, '2'); // 2 due reviews -> -1
       await e.addBasic(10, now: t0);
       var cards = await e.allCards();

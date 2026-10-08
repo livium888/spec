@@ -33,6 +33,7 @@ class AdviceInput {
     this.leechCount = 0,
     this.daysSinceLastSession,
     this.baseCount = 10,
+    this.limitShrinks = false,
   });
 
   /// Reviews + learning cards still due today.
@@ -56,6 +57,9 @@ class AdviceInput {
   final int leechCount;
   final double? daysSinceLastSession;
   final int baseCount;
+
+  /// True when the learner switched on "shrink the new-card limit when reviews pile up".
+  final bool limitShrinks;
 }
 
 class Advice {
@@ -66,6 +70,8 @@ class Advice {
     required this.recommendedNewCards,
     required this.reviewsFirst,
     required this.minutesLeftToday,
+    this.limitReached = false,
+    this.dailyLimitLeft = 0,
   });
   final AdviceLevel level;
   final String headline;
@@ -79,6 +85,10 @@ class Advice {
   /// True when reviews are still due and should come before new cards.
   final bool reviewsFirst;
   final double minutesLeftToday;
+
+  /// The learner's own daily new-card limit is used up (the only thing that holds back a prompt).
+  final bool limitReached;
+  final int dailyLimitLeft;
 
   /// One short line for tight spaces (Home card subtitle).
   String get summary => reasons.isEmpty ? headline : reasons.first;
@@ -142,6 +152,8 @@ class StudyAdvisor {
           recommendedNewCards: level == AdviceLevel.wait || level == AdviceLevel.stop ? 0 : n,
           reviewsFirst: i.dueToday > 0,
           minutesLeftToday: leftMin,
+          limitReached: limitLeft == 0,
+          dailyLimitLeft: limitLeft,
         );
 
     // ---- STOP: the day is done -------------------------------------------------
@@ -151,8 +163,8 @@ class StudyAdvisor {
         if (added > 0)
           'You already added $added new card${added == 1 ? '' : 's'} today, which is today\'s limit (${i.newLimit}).'
         else
-          'Today\'s new-card limit is ${i.newLimit}. Either your "new cards per day" setting is low, or it shrank because many reviews are due.',
-        'The limit shrinks automatically when many reviews are due, so that new cards do not bury you.',
+          'Today\'s new-card limit is ${i.newLimit}${i.limitShrinks ? ' (your setting, reduced because many reviews are due)' : ', your own setting in Settings'}.',
+        if (i.limitShrinks) 'You switched on shrinking the limit when many reviews are due, so that new cards do not bury you.',
         ...facts,
         if (added > 0) 'Tomorrow is a good time for the next topic.',
       ], 0);
