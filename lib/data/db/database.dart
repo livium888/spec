@@ -4,7 +4,7 @@ part 'database.g.dart';
 
 /// Bump together with a migration step in [AppDatabase.migration].
 /// Also checked by RestoreBackup against `PRAGMA user_version` of a backup file.
-const int kSchemaVersion = 5;
+const int kSchemaVersion = 6;
 
 class Domains extends Table {
   @override
@@ -17,6 +17,9 @@ class Domains extends Table {
   // and whether finished topics come back later for deeper cards.
   IntColumn get learnWeight => integer().withDefault(const Constant(2))();
   BoolColumn get revisit => boolean().withDefault(const Constant(true))();
+
+  /// v6: target recall for this subject (0.70 to 0.97). Null: the app-wide target.
+  RealColumn get retention => real().nullable()();
 }
 
 class SyllabusItems extends Table {
@@ -79,6 +82,10 @@ class Cards extends Table {
   IntColumn get lastReview => integer().nullable()();
   BoolColumn get suspended => boolean().withDefault(const Constant(false))();
   IntColumn get buriedUntil => integer().nullable()();
+
+  /// Set when the learner retired this card as mastered (it is also suspended). Reversible;
+  /// scheduling fields and history are untouched, so replay == live still holds.
+  IntColumn get retiredAt => integer().nullable()();
 }
 
 class FsrsParamsTable extends Table {
@@ -221,6 +228,10 @@ class AppDatabase extends _$AppDatabase {
           }
           if (from < 5) {
             await m.alterTable(TableMigration(promptLogs)); // domain_id becomes nullable
+          }
+          if (from < 6) {
+            await m.addColumn(cards, cards.retiredAt);
+            await m.addColumn(domains, domains.retention);
           }
         },
         beforeOpen: (details) async {

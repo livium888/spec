@@ -103,6 +103,13 @@ class GuideScreen extends StatelessWidget {
           para('Settings > About you: a sentence or two (your job, your interests). It goes into the prompts so examples are about things you care about. '
               'Settings also has your daily minutes, which the app uses to decide how much new material is sensible.'),
 
+          heading('Keeping your review time sustainable'),
+          para('Every card you add costs reviews for the rest of your life, so the daily time creeps up. Library > Looking ahead shows how much time '
+              'your cards will need in 6 months, 1, 2, 5 and 10 years, lets you try different numbers of new cards a day, and tells you what pace fits your daily budget.'),
+          para('Three ways to bring it down: add fewer cards a day; retire cards you have mastered (Library > Retire mastered cards: they leave your reviews but '
+              'stay in your library, and you can bring them back); or choose a lower target recall for subjects where an occasional miss is fine '
+              '(Settings > Subjects and topics > Target recall).'),
+
           heading('Fitting the app to your memory'),
           para('Out of the box the app schedules reviews using averages from many learners. After about a thousand reviews it can fit its '
               'memory model to YOU, so cards come back when you personally are about to forget. Open Settings > Memory model: it tells you '

@@ -235,6 +235,12 @@ class LearnService {
       (db.update(db.domains)..where((d) => d.id.equals(domainId)))
           .write(DomainsCompanion(learnWeight: Value(weight.clamp(0, 3))));
 
+  /// Target recall for one subject (0.70 to 0.97); null = the app-wide target. A lower target means
+  /// longer gaps and fewer reviews. Applies to reviews from now on.
+  Future<void> setSubjectRetention(int domainId, double? retention) =>
+      (db.update(db.domains)..where((d) => d.id.equals(domainId)))
+          .write(DomainsCompanion(retention: Value(retention == null ? null : double.parse(retention.clamp(0.70, 0.97).toStringAsFixed(3)))));
+
   /// Whether finished topics of this subject come back for deeper cards.
   Future<void> setSubjectRevisit(int domainId, bool on) =>
       (db.update(db.domains)..where((d) => d.id.equals(domainId)))

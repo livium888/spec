@@ -16,6 +16,8 @@ import '../data/outline_service.dart';
 import '../data/params_repo.dart';
 import '../data/queue_service.dart';
 import '../data/reminder_service.dart';
+import '../data/plan_service.dart';
+import '../data/retire_service.dart';
 import '../data/review_service.dart';
 import '../data/settings_repo.dart';
 import '../data/stats_service.dart';
@@ -54,6 +56,9 @@ final importServiceProvider = Provider((ref) => ImportService(ref.watch(dbProvid
 final cardEditServiceProvider = Provider((ref) => CardEditService(ref.watch(dbProvider), ref.watch(settingsRepoProvider)));
 final reminderServiceProvider =
     Provider((ref) => ReminderService(ref.watch(settingsRepoProvider), ref.watch(reminderBackendProvider)));
+final retireServiceProvider = Provider((ref) => RetireService(ref.watch(dbProvider)));
+final planServiceProvider = Provider((ref) =>
+    PlanService(ref.watch(dbProvider), ref.watch(settingsRepoProvider), ref.watch(paramsRepoProvider)));
 final optimizerServiceProvider = Provider((ref) => OptimizerService(
     ref.watch(dbProvider), ref.watch(settingsRepoProvider), ref.watch(paramsRepoProvider)));
 final outlineServiceProvider = Provider((ref) => OutlineService(ref.watch(dbProvider)));

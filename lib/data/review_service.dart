@@ -68,7 +68,8 @@ class ReviewService {
     return db.transaction(() async {
       final row = await (db.select(db.cards)..where((c) => c.id.equals(cardId))).getSingle();
       final before = snapshotOf(row);
-      final paramsId = await params.activeId(now: t);
+      final note = await (db.select(db.notes)..where((n) => n.id.equals(row.noteId))).getSingle();
+      final paramsId = await params.idForDomain(note.domainId, now: t);
       final scheduler = await params.schedulerFor(paramsId);
 
       final res = scheduler.review(before, rating, t);

@@ -64,7 +64,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
       Map<int, Duration> pv = {};
       if (next != null) {
         final params = ref.read(paramsRepoProvider);
-        final sched = await params.schedulerFor(await params.activeId());
+        final sched = await params.schedulerForDomain(next.domainId);
         pv = sched.preview(next.snapshot, DateTime.now().toUtc());
       }
       if (!mounted) return;

@@ -30,9 +30,19 @@ class _SubjectsScreenState extends ConsumerState<SubjectsScreen> {
     _load();
   }
 
+  double _globalRetention = 0.90;
+
+  /// The menu offers four values; show the closest one for anything stored in between.
+  static double? _nearest(double? v) {
+    if (v == null) return null;
+    const options = [0.80, 0.85, 0.90, 0.95];
+    return options.reduce((a, b) => (a - v).abs() <= (b - v).abs() ? a : b);
+  }
+
   Future<void> _load() async {
     try {
       final db = ref.read(dbProvider);
+      _globalRetention = await ref.read(settingsRepoProvider).getDouble('desired_retention', 0.90);
       await ref.read(learnServiceProvider).refreshStatuses();
       final out = <_Subject>[];
       for (final d in await (db.select(db.domains)..where((x) => x.active.equals(true))).get()) {
@@ -129,6 +139,22 @@ class _SubjectsScreenState extends ConsumerState<SubjectsScreen> {
             value: d.revisit,
             onChanged: (v) async {
               await learn.setSubjectRevisit(d.id, v);
+              _load();
+            },
+          ),
+          const SizedBox(height: 4),
+          Text('Target recall', style: t.labelMedium),
+          const SizedBox(height: 4),
+          DropdownButtonFormField<double?>(
+            initialValue: _nearest(d.retention),
+            isExpanded: true,
+            decoration: const InputDecoration(isDense: true, helperText: 'Lower means fewer reviews, but you forget a little more.', helperMaxLines: 2),
+            items: [
+              DropdownMenuItem(value: null, child: Text('Same as everything else (${(_globalRetention * 100).round()}%)')),
+              for (final v in const [0.80, 0.85, 0.90, 0.95]) DropdownMenuItem(value: v, child: Text('${(v * 100).round()}%')),
+            ],
+            onChanged: (v) async {
+              await learn.setSubjectRetention(d.id, v);
               _load();
             },
           ),

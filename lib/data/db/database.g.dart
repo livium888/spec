@@ -82,6 +82,17 @@ class $DomainsTable extends Domains with TableInfo<$DomainsTable, Domain> {
     ),
     defaultValue: const Constant(true),
   );
+  static const VerificationMeta _retentionMeta = const VerificationMeta(
+    'retention',
+  );
+  @override
+  late final GeneratedColumn<double> retention = GeneratedColumn<double>(
+    'retention',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -90,6 +101,7 @@ class $DomainsTable extends Domains with TableInfo<$DomainsTable, Domain> {
     createdAt,
     learnWeight,
     revisit,
+    retention,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -143,6 +155,12 @@ class $DomainsTable extends Domains with TableInfo<$DomainsTable, Domain> {
         revisit.isAcceptableOrUnknown(data['revisit']!, _revisitMeta),
       );
     }
+    if (data.containsKey('retention')) {
+      context.handle(
+        _retentionMeta,
+        retention.isAcceptableOrUnknown(data['retention']!, _retentionMeta),
+      );
+    }
     return context;
   }
 
@@ -176,6 +194,10 @@ class $DomainsTable extends Domains with TableInfo<$DomainsTable, Domain> {
         DriftSqlType.bool,
         data['${effectivePrefix}revisit'],
       )!,
+      retention: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}retention'],
+      ),
     );
   }
 
@@ -192,6 +214,9 @@ class Domain extends DataClass implements Insertable<Domain> {
   final int createdAt;
   final int learnWeight;
   final bool revisit;
+
+  /// v6: target recall for this subject (0.70 to 0.97). Null: the app-wide target.
+  final double? retention;
   const Domain({
     required this.id,
     required this.name,
@@ -199,6 +224,7 @@ class Domain extends DataClass implements Insertable<Domain> {
     required this.createdAt,
     required this.learnWeight,
     required this.revisit,
+    this.retention,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -209,6 +235,9 @@ class Domain extends DataClass implements Insertable<Domain> {
     map['created_at'] = Variable<int>(createdAt);
     map['learn_weight'] = Variable<int>(learnWeight);
     map['revisit'] = Variable<bool>(revisit);
+    if (!nullToAbsent || retention != null) {
+      map['retention'] = Variable<double>(retention);
+    }
     return map;
   }
 
@@ -220,6 +249,9 @@ class Domain extends DataClass implements Insertable<Domain> {
       createdAt: Value(createdAt),
       learnWeight: Value(learnWeight),
       revisit: Value(revisit),
+      retention: retention == null && nullToAbsent
+          ? const Value.absent()
+          : Value(retention),
     );
   }
 
@@ -235,6 +267,7 @@ class Domain extends DataClass implements Insertable<Domain> {
       createdAt: serializer.fromJson<int>(json['createdAt']),
       learnWeight: serializer.fromJson<int>(json['learnWeight']),
       revisit: serializer.fromJson<bool>(json['revisit']),
+      retention: serializer.fromJson<double?>(json['retention']),
     );
   }
   @override
@@ -247,6 +280,7 @@ class Domain extends DataClass implements Insertable<Domain> {
       'createdAt': serializer.toJson<int>(createdAt),
       'learnWeight': serializer.toJson<int>(learnWeight),
       'revisit': serializer.toJson<bool>(revisit),
+      'retention': serializer.toJson<double?>(retention),
     };
   }
 
@@ -257,6 +291,7 @@ class Domain extends DataClass implements Insertable<Domain> {
     int? createdAt,
     int? learnWeight,
     bool? revisit,
+    Value<double?> retention = const Value.absent(),
   }) => Domain(
     id: id ?? this.id,
     name: name ?? this.name,
@@ -264,6 +299,7 @@ class Domain extends DataClass implements Insertable<Domain> {
     createdAt: createdAt ?? this.createdAt,
     learnWeight: learnWeight ?? this.learnWeight,
     revisit: revisit ?? this.revisit,
+    retention: retention.present ? retention.value : this.retention,
   );
   Domain copyWithCompanion(DomainsCompanion data) {
     return Domain(
@@ -275,6 +311,7 @@ class Domain extends DataClass implements Insertable<Domain> {
           ? data.learnWeight.value
           : this.learnWeight,
       revisit: data.revisit.present ? data.revisit.value : this.revisit,
+      retention: data.retention.present ? data.retention.value : this.retention,
     );
   }
 
@@ -286,14 +323,15 @@ class Domain extends DataClass implements Insertable<Domain> {
           ..write('active: $active, ')
           ..write('createdAt: $createdAt, ')
           ..write('learnWeight: $learnWeight, ')
-          ..write('revisit: $revisit')
+          ..write('revisit: $revisit, ')
+          ..write('retention: $retention')
           ..write(')'))
         .toString();
   }
 
   @override
   int get hashCode =>
-      Object.hash(id, name, active, createdAt, learnWeight, revisit);
+      Object.hash(id, name, active, createdAt, learnWeight, revisit, retention);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -303,7 +341,8 @@ class Domain extends DataClass implements Insertable<Domain> {
           other.active == this.active &&
           other.createdAt == this.createdAt &&
           other.learnWeight == this.learnWeight &&
-          other.revisit == this.revisit);
+          other.revisit == this.revisit &&
+          other.retention == this.retention);
 }
 
 class DomainsCompanion extends UpdateCompanion<Domain> {
@@ -313,6 +352,7 @@ class DomainsCompanion extends UpdateCompanion<Domain> {
   final Value<int> createdAt;
   final Value<int> learnWeight;
   final Value<bool> revisit;
+  final Value<double?> retention;
   const DomainsCompanion({
     this.id = const Value.absent(),
     this.name = const Value.absent(),
@@ -320,6 +360,7 @@ class DomainsCompanion extends UpdateCompanion<Domain> {
     this.createdAt = const Value.absent(),
     this.learnWeight = const Value.absent(),
     this.revisit = const Value.absent(),
+    this.retention = const Value.absent(),
   });
   DomainsCompanion.insert({
     this.id = const Value.absent(),
@@ -328,6 +369,7 @@ class DomainsCompanion extends UpdateCompanion<Domain> {
     required int createdAt,
     this.learnWeight = const Value.absent(),
     this.revisit = const Value.absent(),
+    this.retention = const Value.absent(),
   }) : name = Value(name),
        createdAt = Value(createdAt);
   static Insertable<Domain> custom({
@@ -337,6 +379,7 @@ class DomainsCompanion extends UpdateCompanion<Domain> {
     Expression<int>? createdAt,
     Expression<int>? learnWeight,
     Expression<bool>? revisit,
+    Expression<double>? retention,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -345,6 +388,7 @@ class DomainsCompanion extends UpdateCompanion<Domain> {
       if (createdAt != null) 'created_at': createdAt,
       if (learnWeight != null) 'learn_weight': learnWeight,
       if (revisit != null) 'revisit': revisit,
+      if (retention != null) 'retention': retention,
     });
   }
 
@@ -355,6 +399,7 @@ class DomainsCompanion extends UpdateCompanion<Domain> {
     Value<int>? createdAt,
     Value<int>? learnWeight,
     Value<bool>? revisit,
+    Value<double?>? retention,
   }) {
     return DomainsCompanion(
       id: id ?? this.id,
@@ -363,6 +408,7 @@ class DomainsCompanion extends UpdateCompanion<Domain> {
       createdAt: createdAt ?? this.createdAt,
       learnWeight: learnWeight ?? this.learnWeight,
       revisit: revisit ?? this.revisit,
+      retention: retention ?? this.retention,
     );
   }
 
@@ -387,6 +433,9 @@ class DomainsCompanion extends UpdateCompanion<Domain> {
     if (revisit.present) {
       map['revisit'] = Variable<bool>(revisit.value);
     }
+    if (retention.present) {
+      map['retention'] = Variable<double>(retention.value);
+    }
     return map;
   }
 
@@ -398,7 +447,8 @@ class DomainsCompanion extends UpdateCompanion<Domain> {
           ..write('active: $active, ')
           ..write('createdAt: $createdAt, ')
           ..write('learnWeight: $learnWeight, ')
-          ..write('revisit: $revisit')
+          ..write('revisit: $revisit, ')
+          ..write('retention: $retention')
           ..write(')'))
         .toString();
   }
@@ -1982,6 +2032,17 @@ class $CardsTable extends Cards with TableInfo<$CardsTable, Card> {
     type: DriftSqlType.int,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _retiredAtMeta = const VerificationMeta(
+    'retiredAt',
+  );
+  @override
+  late final GeneratedColumn<int> retiredAt = GeneratedColumn<int>(
+    'retired_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -1997,6 +2058,7 @@ class $CardsTable extends Cards with TableInfo<$CardsTable, Card> {
     lastReview,
     suspended,
     buriedUntil,
+    retiredAt,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -2092,6 +2154,12 @@ class $CardsTable extends Cards with TableInfo<$CardsTable, Card> {
         ),
       );
     }
+    if (data.containsKey('retired_at')) {
+      context.handle(
+        _retiredAtMeta,
+        retiredAt.isAcceptableOrUnknown(data['retired_at']!, _retiredAtMeta),
+      );
+    }
     return context;
   }
 
@@ -2153,6 +2221,10 @@ class $CardsTable extends Cards with TableInfo<$CardsTable, Card> {
         DriftSqlType.int,
         data['${effectivePrefix}buried_until'],
       ),
+      retiredAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}retired_at'],
+      ),
     );
   }
 
@@ -2176,6 +2248,10 @@ class Card extends DataClass implements Insertable<Card> {
   final int? lastReview;
   final bool suspended;
   final int? buriedUntil;
+
+  /// Set when the learner retired this card as mastered (it is also suspended). Reversible;
+  /// scheduling fields and history are untouched, so replay == live still holds.
+  final int? retiredAt;
   const Card({
     required this.id,
     required this.noteId,
@@ -2190,6 +2266,7 @@ class Card extends DataClass implements Insertable<Card> {
     this.lastReview,
     required this.suspended,
     this.buriedUntil,
+    this.retiredAt,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -2214,6 +2291,9 @@ class Card extends DataClass implements Insertable<Card> {
     map['suspended'] = Variable<bool>(suspended);
     if (!nullToAbsent || buriedUntil != null) {
       map['buried_until'] = Variable<int>(buriedUntil);
+    }
+    if (!nullToAbsent || retiredAt != null) {
+      map['retired_at'] = Variable<int>(retiredAt);
     }
     return map;
   }
@@ -2241,6 +2321,9 @@ class Card extends DataClass implements Insertable<Card> {
       buriedUntil: buriedUntil == null && nullToAbsent
           ? const Value.absent()
           : Value(buriedUntil),
+      retiredAt: retiredAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(retiredAt),
     );
   }
 
@@ -2263,6 +2346,7 @@ class Card extends DataClass implements Insertable<Card> {
       lastReview: serializer.fromJson<int?>(json['lastReview']),
       suspended: serializer.fromJson<bool>(json['suspended']),
       buriedUntil: serializer.fromJson<int?>(json['buriedUntil']),
+      retiredAt: serializer.fromJson<int?>(json['retiredAt']),
     );
   }
   @override
@@ -2282,6 +2366,7 @@ class Card extends DataClass implements Insertable<Card> {
       'lastReview': serializer.toJson<int?>(lastReview),
       'suspended': serializer.toJson<bool>(suspended),
       'buriedUntil': serializer.toJson<int?>(buriedUntil),
+      'retiredAt': serializer.toJson<int?>(retiredAt),
     };
   }
 
@@ -2299,6 +2384,7 @@ class Card extends DataClass implements Insertable<Card> {
     Value<int?> lastReview = const Value.absent(),
     bool? suspended,
     Value<int?> buriedUntil = const Value.absent(),
+    Value<int?> retiredAt = const Value.absent(),
   }) => Card(
     id: id ?? this.id,
     noteId: noteId ?? this.noteId,
@@ -2313,6 +2399,7 @@ class Card extends DataClass implements Insertable<Card> {
     lastReview: lastReview.present ? lastReview.value : this.lastReview,
     suspended: suspended ?? this.suspended,
     buriedUntil: buriedUntil.present ? buriedUntil.value : this.buriedUntil,
+    retiredAt: retiredAt.present ? retiredAt.value : this.retiredAt,
   );
   Card copyWithCompanion(CardsCompanion data) {
     return Card(
@@ -2335,6 +2422,7 @@ class Card extends DataClass implements Insertable<Card> {
       buriedUntil: data.buriedUntil.present
           ? data.buriedUntil.value
           : this.buriedUntil,
+      retiredAt: data.retiredAt.present ? data.retiredAt.value : this.retiredAt,
     );
   }
 
@@ -2353,7 +2441,8 @@ class Card extends DataClass implements Insertable<Card> {
           ..write('lapses: $lapses, ')
           ..write('lastReview: $lastReview, ')
           ..write('suspended: $suspended, ')
-          ..write('buriedUntil: $buriedUntil')
+          ..write('buriedUntil: $buriedUntil, ')
+          ..write('retiredAt: $retiredAt')
           ..write(')'))
         .toString();
   }
@@ -2373,6 +2462,7 @@ class Card extends DataClass implements Insertable<Card> {
     lastReview,
     suspended,
     buriedUntil,
+    retiredAt,
   );
   @override
   bool operator ==(Object other) =>
@@ -2390,7 +2480,8 @@ class Card extends DataClass implements Insertable<Card> {
           other.lapses == this.lapses &&
           other.lastReview == this.lastReview &&
           other.suspended == this.suspended &&
-          other.buriedUntil == this.buriedUntil);
+          other.buriedUntil == this.buriedUntil &&
+          other.retiredAt == this.retiredAt);
 }
 
 class CardsCompanion extends UpdateCompanion<Card> {
@@ -2407,6 +2498,7 @@ class CardsCompanion extends UpdateCompanion<Card> {
   final Value<int?> lastReview;
   final Value<bool> suspended;
   final Value<int?> buriedUntil;
+  final Value<int?> retiredAt;
   const CardsCompanion({
     this.id = const Value.absent(),
     this.noteId = const Value.absent(),
@@ -2421,6 +2513,7 @@ class CardsCompanion extends UpdateCompanion<Card> {
     this.lastReview = const Value.absent(),
     this.suspended = const Value.absent(),
     this.buriedUntil = const Value.absent(),
+    this.retiredAt = const Value.absent(),
   });
   CardsCompanion.insert({
     this.id = const Value.absent(),
@@ -2436,6 +2529,7 @@ class CardsCompanion extends UpdateCompanion<Card> {
     this.lastReview = const Value.absent(),
     this.suspended = const Value.absent(),
     this.buriedUntil = const Value.absent(),
+    this.retiredAt = const Value.absent(),
   }) : noteId = Value(noteId),
        due = Value(due);
   static Insertable<Card> custom({
@@ -2452,6 +2546,7 @@ class CardsCompanion extends UpdateCompanion<Card> {
     Expression<int>? lastReview,
     Expression<bool>? suspended,
     Expression<int>? buriedUntil,
+    Expression<int>? retiredAt,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -2467,6 +2562,7 @@ class CardsCompanion extends UpdateCompanion<Card> {
       if (lastReview != null) 'last_review': lastReview,
       if (suspended != null) 'suspended': suspended,
       if (buriedUntil != null) 'buried_until': buriedUntil,
+      if (retiredAt != null) 'retired_at': retiredAt,
     });
   }
 
@@ -2484,6 +2580,7 @@ class CardsCompanion extends UpdateCompanion<Card> {
     Value<int?>? lastReview,
     Value<bool>? suspended,
     Value<int?>? buriedUntil,
+    Value<int?>? retiredAt,
   }) {
     return CardsCompanion(
       id: id ?? this.id,
@@ -2499,6 +2596,7 @@ class CardsCompanion extends UpdateCompanion<Card> {
       lastReview: lastReview ?? this.lastReview,
       suspended: suspended ?? this.suspended,
       buriedUntil: buriedUntil ?? this.buriedUntil,
+      retiredAt: retiredAt ?? this.retiredAt,
     );
   }
 
@@ -2544,6 +2642,9 @@ class CardsCompanion extends UpdateCompanion<Card> {
     if (buriedUntil.present) {
       map['buried_until'] = Variable<int>(buriedUntil.value);
     }
+    if (retiredAt.present) {
+      map['retired_at'] = Variable<int>(retiredAt.value);
+    }
     return map;
   }
 
@@ -2562,7 +2663,8 @@ class CardsCompanion extends UpdateCompanion<Card> {
           ..write('lapses: $lapses, ')
           ..write('lastReview: $lastReview, ')
           ..write('suspended: $suspended, ')
-          ..write('buriedUntil: $buriedUntil')
+          ..write('buriedUntil: $buriedUntil, ')
+          ..write('retiredAt: $retiredAt')
           ..write(')'))
         .toString();
   }
@@ -5933,6 +6035,7 @@ typedef $$DomainsTableCreateCompanionBuilder = DomainsCompanion Function({
   required int createdAt,
   Value<int> learnWeight,
   Value<bool> revisit,
+  Value<double?> retention,
 });
 typedef $$DomainsTableUpdateCompanionBuilder = DomainsCompanion Function({
   Value<int> id,
@@ -5941,6 +6044,7 @@ typedef $$DomainsTableUpdateCompanionBuilder = DomainsCompanion Function({
   Value<int> createdAt,
   Value<int> learnWeight,
   Value<bool> revisit,
+  Value<double?> retention,
 });
 
 final class $$DomainsTableReferences
@@ -6057,6 +6161,11 @@ class $$DomainsTableFilterComposer
 
   ColumnFilters<bool> get revisit => $composableBuilder(
     column: $table.revisit,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get retention => $composableBuilder(
+    column: $table.retention,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -6199,6 +6308,11 @@ class $$DomainsTableOrderingComposer
     column: $table.revisit,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<double> get retention => $composableBuilder(
+    column: $table.retention,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$DomainsTableAnnotationComposer
@@ -6229,6 +6343,9 @@ class $$DomainsTableAnnotationComposer
 
   GeneratedColumn<bool> get revisit =>
       $composableBuilder(column: $table.revisit, builder: (column) => column);
+
+  GeneratedColumn<double> get retention =>
+      $composableBuilder(column: $table.retention, builder: (column) => column);
 
   Expression<T> syllabusItemsRefs<T extends Object>(
     Expression<T> Function($$SyllabusItemsTableAnnotationComposer a) f,
@@ -6370,6 +6487,7 @@ class $$DomainsTableTableManager
                 Value<int> createdAt = const Value.absent(),
                 Value<int> learnWeight = const Value.absent(),
                 Value<bool> revisit = const Value.absent(),
+                Value<double?> retention = const Value.absent(),
               }) => DomainsCompanion(
                 id: id,
                 name: name,
@@ -6377,6 +6495,7 @@ class $$DomainsTableTableManager
                 createdAt: createdAt,
                 learnWeight: learnWeight,
                 revisit: revisit,
+                retention: retention,
               ),
           createCompanionCallback:
               ({
@@ -6386,6 +6505,7 @@ class $$DomainsTableTableManager
                 required int createdAt,
                 Value<int> learnWeight = const Value.absent(),
                 Value<bool> revisit = const Value.absent(),
+                Value<double?> retention = const Value.absent(),
               }) => DomainsCompanion.insert(
                 id: id,
                 name: name,
@@ -6393,6 +6513,7 @@ class $$DomainsTableTableManager
                 createdAt: createdAt,
                 learnWeight: learnWeight,
                 revisit: revisit,
+                retention: retention,
               ),
           withReferenceMapper: (p0) => p0
               .map(
@@ -8074,6 +8195,7 @@ typedef $$CardsTableCreateCompanionBuilder = CardsCompanion Function({
   Value<int?> lastReview,
   Value<bool> suspended,
   Value<int?> buriedUntil,
+  Value<int?> retiredAt,
 });
 typedef $$CardsTableUpdateCompanionBuilder = CardsCompanion Function({
   Value<int> id,
@@ -8089,6 +8211,7 @@ typedef $$CardsTableUpdateCompanionBuilder = CardsCompanion Function({
   Value<int?> lastReview,
   Value<bool> suspended,
   Value<int?> buriedUntil,
+  Value<int?> retiredAt,
 });
 
 final class $$CardsTableReferences
@@ -8196,6 +8319,11 @@ class $$CardsTableFilterComposer extends Composer<_$AppDatabase, $CardsTable> {
 
   ColumnFilters<int> get buriedUntil => $composableBuilder(
     column: $table.buriedUntil,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get retiredAt => $composableBuilder(
+    column: $table.retiredAt,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -8317,6 +8445,11 @@ class $$CardsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get retiredAt => $composableBuilder(
+    column: $table.retiredAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$NotesTableOrderingComposer get noteId {
     final $$NotesTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -8391,6 +8524,9 @@ class $$CardsTableAnnotationComposer
     column: $table.buriedUntil,
     builder: (column) => column,
   );
+
+  GeneratedColumn<int> get retiredAt =>
+      $composableBuilder(column: $table.retiredAt, builder: (column) => column);
 
   $$NotesTableAnnotationComposer get noteId {
     final $$NotesTableAnnotationComposer composer = $composerBuilder(
@@ -8482,6 +8618,7 @@ class $$CardsTableTableManager
                 Value<int?> lastReview = const Value.absent(),
                 Value<bool> suspended = const Value.absent(),
                 Value<int?> buriedUntil = const Value.absent(),
+                Value<int?> retiredAt = const Value.absent(),
               }) => CardsCompanion(
                 id: id,
                 noteId: noteId,
@@ -8496,6 +8633,7 @@ class $$CardsTableTableManager
                 lastReview: lastReview,
                 suspended: suspended,
                 buriedUntil: buriedUntil,
+                retiredAt: retiredAt,
               ),
           createCompanionCallback:
               ({
@@ -8512,6 +8650,7 @@ class $$CardsTableTableManager
                 Value<int?> lastReview = const Value.absent(),
                 Value<bool> suspended = const Value.absent(),
                 Value<int?> buriedUntil = const Value.absent(),
+                Value<int?> retiredAt = const Value.absent(),
               }) => CardsCompanion.insert(
                 id: id,
                 noteId: noteId,
@@ -8526,6 +8665,7 @@ class $$CardsTableTableManager
                 lastReview: lastReview,
                 suspended: suspended,
                 buriedUntil: buriedUntil,
+                retiredAt: retiredAt,
               ),
           withReferenceMapper: (p0) => p0
               .map(

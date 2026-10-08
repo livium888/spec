@@ -191,3 +191,12 @@ Switch "Remind me every day"; when on, a button "Around HH:MM" opens the time pi
 
 ## Share in / out
 Prompt screen: "Send to my AI app" (share sheet). Anything shared to the app opens Import with the preview already showing; not-JSON text shows the normal "can't be imported" explanation; oversized text shows "too large" and does not open Import.
+
+## Looking ahead (Library, Progress)
+Explanation; verdict card (green: sustainable; amber: "You will outgrow your time budget in about N months" with the 5-year minutes and the pace that fits); slider "New cards a day" (0-80, debounced re-run); table (6 months, 1, 2, 5, 10 years: reviews and minutes a day, minutes red when over budget; a screen-reader label per row); notes on budget and seconds per review; "Ways to bring it down" (fewer cards, Retire mastered cards, Target recall per subject). States: working (spinner and text), error ("Could not work it out: ..."), result (the table dims with a spinner while a slider run is in progress).
+
+## Retire mastered cards (Library)
+Years selector (1, 2, 3), qualifying count with the honest saving, "Retire N cards" with a confirmation dialog, a live-region message, the retired list (newest 50, title, subject, years until next review, "Bring back"), "Bring back all retired cards". States: loading; none qualify ("No cards qualify yet"); some qualify; nothing retired.
+
+## Subjects and topics (addition)
+Per subject "Target recall": same as everything else, 80, 85, 90 or 95%, with the hint "Lower means fewer reviews, but you forget a little more."

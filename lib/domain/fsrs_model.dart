@@ -140,3 +140,52 @@ FitAccumulator evaluate(List<CardSeq> cards, List<double> w) {
   }
   return (n == 0 ? 0.0 : sum / n, n);
 }
+
+
+// ---- single steps, for simulating the future (workload forecast) -------------------------
+
+/// Memory state after the first answer of a card.
+(double stability, double difficulty) firstState(List<double> w, int g) =>
+    (math.max(w[g - 1], _stabMin), _clampD(w[4] - math.exp(w[5] * (g - 1)) + 1));
+
+/// Predicted chance of recalling after [dt] days with stability [stab].
+double retrievability(List<double> w, double dt, double stab) {
+  final decay = -w[20];
+  final factor = math.pow(0.9, 1 / decay) - 1;
+  return math.pow(1 + factor * dt / stab, decay).toDouble();
+}
+
+/// Memory state after answering [g] (1..4) [dt] whole days after the previous answer.
+/// Identical arithmetic to [forwardCard] (the test replays both side by side).
+(double stability, double difficulty) nextState(List<double> w, double stab, double diff, int dt, int g) {
+  final d0Easy = _clampD(w[4] - math.exp(w[5] * 3) + 1);
+  double next;
+  if (dt < 1) {
+    var inc = math.exp(w[17] * (g - 3 + w[18])) * math.pow(stab, -w[19]);
+    if (g >= 3) inc = math.max(inc, 1.0);
+    next = stab * inc;
+  } else {
+    final r = retrievability(w, dt.toDouble(), stab);
+    if (g == 1) {
+      final longTerm = w[11] * math.pow(diff, -w[12]) * (math.pow(stab + 1, w[13]) - 1) * math.exp((1 - r) * w[14]);
+      final shortTerm = stab / math.exp(w[17] * w[18]);
+      next = math.min(longTerm, shortTerm);
+    } else {
+      final hard = g == 2 ? w[15] : 1.0;
+      final easy = g == 4 ? w[16] : 1.0;
+      next = stab * (1 + math.exp(w[8]) * (11 - diff) * math.pow(stab, -w[9]) * (math.exp((1 - r) * w[10]) - 1) * hard * easy);
+    }
+  }
+  final delta = -(w[6] * (g - 3));
+  final damped = diff + (10.0 - diff) * delta / 9.0;
+  return (math.max(next, _stabMin), _clampD(w[7] * d0Easy + (1 - w[7]) * damped));
+}
+
+/// Days until a card of stability [stab] should be shown again for a target recall of [retention]
+/// (whole days, at least 1, at most [maxDays]), as the scheduler rounds it.
+int intervalDays(List<double> w, double stab, double retention, {int maxDays = 36500}) {
+  final decay = -w[20];
+  final factor = math.pow(0.9, 1 / decay) - 1;
+  final d = (stab / factor * (math.pow(retention, 1 / decay) - 1)).round();
+  return d.clamp(1, maxDays);
+}

@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:drift/drift.dart';
+
 import '../domain/models.dart';
 import '../domain/scheduler.dart';
 import 'db/database.dart';
@@ -56,6 +58,31 @@ class ParamsRepo {
     await settings.set(SettingsRepo.activeParamsId, '$id');
     return id;
   }
+
+  /// The params row for cards of [domainId]: the active one, unless the subject has its own target
+  /// recall, in which case a row with the SAME weights and steps but that retention (created once
+  /// and reused). Every review records the row it used, so replay stays exact.
+  Future<int> idForDomain(int domainId, {DateTime? now}) async {
+    final activeRowId = await activeId(now: now);
+    final dom = await (db.select(db.domains)..where((d) => d.id.equals(domainId))).getSingleOrNull();
+    final want = dom?.retention;
+    if (want == null) return activeRowId;
+    final active = await (db.select(db.fsrsParamsTable)..where((t) => t.id.equals(activeRowId))).getSingle();
+    if ((active.desiredRetention - want).abs() < 1e-9) return activeRowId;
+    final hit = await (db.select(db.fsrsParamsTable)
+          ..where((t) => t.paramsJson.equals(active.paramsJson) & t.desiredRetention.isBetweenValues(want - 1e-6, want + 1e-6))
+          ..limit(1))
+        .getSingleOrNull();
+    if (hit != null) return hit.id;
+    return db.into(db.fsrsParamsTable).insert(FsrsParamsTableCompanion.insert(
+          createdAt: (now ?? DateTime.now().toUtc()).millisecondsSinceEpoch,
+          version: active.version,
+          paramsJson: active.paramsJson,
+          desiredRetention: want,
+        ));
+  }
+
+  Future<Scheduler> schedulerForDomain(int domainId) async => schedulerFor(await idForDomain(domainId));
 
   /// Weights now in use.
   Future<List<double>> activeWeights() async => (await configFor(await activeId())).weights;

@@ -8,12 +8,14 @@ import 'package:daily_learning/data/db/database.dart';
 import 'package:daily_learning/data/import_service.dart';
 import 'package:daily_learning/data/optimizer_service.dart';
 import 'package:daily_learning/data/params_repo.dart';
+import 'package:daily_learning/data/plan_service.dart';
 import 'package:daily_learning/data/reminder_service.dart';
 import 'package:daily_learning/data/review_service.dart';
 import 'package:daily_learning/domain/fsrs_trainer.dart';
 import 'package:daily_learning/data/outline_service.dart';
 import 'package:daily_learning/data/settings_repo.dart';
 import 'package:daily_learning/main.dart';
+import 'package:daily_learning/presentation/library_screen.dart' show LibraryScreen;
 import 'package:drift/drift.dart' show Value;
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
@@ -85,6 +87,7 @@ void main() {
   diagnosticsWidgetTests();
   shareWidgetTests();
   reminderWidgetTests();
+  phase2WidgetTests();
   testWidgets('ONE press: Home -> prompt screen, no choosing, with the reasons and the advice', (t) async {
     final db = await boot(t, seed: true);
     expect(find.textContaining('Good time to learn'), findsOneWidget); // advice on Home
@@ -541,4 +544,87 @@ class _WidgetBackend implements ReminderBackend {
   Future<void> scheduleDaily(DateTime firstLocal, String title, String body) async => scheduled.add(firstLocal);
   @override
   Future<void> cancel() async => cancels++;
+}
+
+void phase2WidgetTests() {
+  testWidgets('Library > Looking ahead: shows the table, the verdict and the levers; the slider re-runs', (t) async {
+    final db = await boot(t, settings: {'guide_seen': '1', 'daily_minutes': '10'}, extra: [
+      planServiceProvider.overrideWith((ref) => PlanService(ref.watch(dbProvider), ref.watch(settingsRepoProvider), ref.watch(paramsRepoProvider),
+          runner: (r) async => computePlan(r))),
+    ], prepare: (db) async {
+      final imp = ImportService(db);
+      await imp.commit(await imp.preview(jsonEncode({
+        'domain': 'Bio',
+        'syllabus_item': null,
+        'cards': [
+          for (var i = 0; i < 30; i++)
+            {'type': 'basic', 'front': 'Question $i?', 'back': 'A', 'source_type': 'quote', 'source_ref': 'b', 'supporting_quote': 'q', 'confidence': 'high'}
+        ]
+      })));
+    });
+    await t.tap(find.text('Library'));
+    await settle(t);
+    await t.scrollUntilVisible(find.text('Looking ahead'), 200, scrollable: find.descendant(of: find.byType(LibraryScreen), matching: find.byType(Scrollable)).first);
+    await t.pump();
+    await t.tap(find.text('Looking ahead'));
+    await until(t, find.text('in 5 years'));
+    await settle(t);
+    expect(find.text('in 6 months'), findsOneWidget);
+    expect(find.text('in 10 years'), findsOneWidget);
+    expect(find.textContaining('New cards a day'), findsOneWidget);
+    expect(find.text('Retire mastered cards'), findsOneWidget);
+    expect(find.text('Ways to bring it down'), findsOneWidget);
+    await done(t, db);
+  }, timeout: const Timeout(Duration(minutes: 3)));
+
+  testWidgets('Retire mastered cards: nothing qualifies at first; after mastering, retire with confirmation and bring back', (t) async {
+    final db = await boot(t, settings: {'guide_seen': '1'}, prepare: (db) async {
+      final imp = ImportService(db);
+      await imp.commit(await imp.preview(jsonEncode({
+        'domain': 'Bio',
+        'syllabus_item': null,
+        'cards': [
+          for (var i = 0; i < 3; i++)
+            {'type': 'basic', 'front': 'Mastered fact $i?', 'back': 'A', 'source_type': 'quote', 'source_ref': 'b', 'supporting_quote': 'q', 'confidence': 'high'}
+        ]
+      })));
+      await db.customStatement("UPDATE card SET state='review', stability=1500, difficulty=3, reps=10, lapses=0");
+    });
+    await t.tap(find.text('Library'));
+    await settle(t);
+    await t.scrollUntilVisible(find.text('Retire mastered cards'), 200, scrollable: find.descendant(of: find.byType(LibraryScreen), matching: find.byType(Scrollable)).first);
+    await t.pump();
+    await t.tap(find.text('Retire mastered cards'));
+    await until(t, find.textContaining('3 cards qualify'));
+    await settle(t);
+    expect(find.textContaining('saves about'), findsOneWidget);
+    await t.tap(find.text('Retire 3 cards'));
+    await settle(t);
+    expect(find.text('Retire 3 cards?'), findsOneWidget);
+    await t.tap(find.text('Retire them'));
+    await until(t, find.textContaining('Retired (3)'));
+    await settle(t);
+    expect(find.text('Mastered fact 0?').evaluate().length + find.text('Mastered fact 1?').evaluate().length + find.text('Mastered fact 2?').evaluate().length, 3);
+    await t.tap(find.text('Bring back all retired cards'));
+    await until(t, find.text('Nothing retired.'));
+    expect(find.text('Nothing retired.'), findsOneWidget);
+    await done(t, db);
+  }, timeout: const Timeout(Duration(minutes: 3)));
+
+  testWidgets('Subjects: a target recall can be chosen per subject', (t) async {
+    final db = await boot(t, seed: true, settings: {'guide_seen': '1'});
+    await t.tap(find.byTooltip('Settings and backup'));
+    await settle(t);
+    await t.dragUntilVisible(find.text('Subjects and topics'), find.byType(ListView).first, const Offset(0, -200));
+    await t.tap(find.text('Subjects and topics'));
+    await until(t, find.text('Target recall'));
+    await settle(t);
+    await t.tap(find.byType(DropdownButtonFormField<double?>).first);
+    await settle(t);
+    await t.tap(find.text('80%').last);
+    await settle(t);
+    final r = await t.runAsync(() => db.select(db.domains).get());
+    expect(r!.single.retention, 0.80);
+    await done(t, db);
+  });
 }

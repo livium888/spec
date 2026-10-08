@@ -7,7 +7,9 @@ import 'browse_cards_screen.dart';
 import 'home_screen.dart';
 import 'import_screen.dart';
 import 'new_subject_screen.dart';
+import 'plan_ahead_screen.dart';
 import 'prompt_screen.dart';
+import 'retire_screen.dart';
 import 'starter_library_screen.dart';
 import 'subjects_screen.dart';
 import 'theme/tokens.dart';
@@ -80,7 +82,9 @@ class LibraryScreen extends ConsumerWidget {
         action(Icons.add_card, 'Add a card', 'Write a single card yourself', const AddCardScreen()),
         const SectionTitle('Manage'),
         action(Icons.search, 'Browse, edit or delete cards', 'Find any card you have', const BrowseCardsScreen()),
-        action(Icons.tune, 'Subjects and topics', 'How often each appears, skip, revisit', const SubjectsScreen()),
+        action(Icons.trending_up, 'Looking ahead', 'How much review time your library will need in the coming years', const PlanAheadScreen()),
+        action(Icons.archive_outlined, 'Retire mastered cards', 'Stop reviewing what you have known for years', const RetireScreen()),
+        action(Icons.tune, 'Subjects and topics', 'How often each appears, skip, revisit, target recall', const SubjectsScreen()),
       ]),
     );
   }

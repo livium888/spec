@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../app/providers.dart';
 import '../data/stats_service.dart';
 import '../domain/milestones.dart';
+import 'plan_ahead_screen.dart';
 import 'theme/app_theme.dart';
 import 'theme/tokens.dart';
 import 'widgets/activity_heatmap.dart';
@@ -98,6 +99,22 @@ class ProgressBody extends StatelessWidget {
       SoftCard(child: _MemoryBar(s)),
       const SectionTitle('Coming up'),
       SoftCard(child: _Forecast(s.forecast)),
+      const SizedBox(height: Sp.s),
+      SoftCard(
+        onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const PlanAheadScreen())),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        child: Row(children: [
+          Icon(Icons.trending_up, color: AppColors.of(context).accent),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text('Looking ahead', style: Theme.of(context).textTheme.titleSmall),
+              Text('How much review time your library will need in the coming years', style: Theme.of(context).textTheme.bodySmall),
+            ]),
+          ),
+          Icon(Icons.chevron_right, color: AppColors.of(context).inkSoft),
+        ]),
+      ),
       const SectionTitle('Milestones'),
       GridView.count(
         crossAxisCount: 3,

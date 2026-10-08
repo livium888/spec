@@ -90,6 +90,14 @@ void main() {
         modelS.add(s);
         modelD.add(d);
       });
+      // The single-step helpers used by the workload forecast agree with it too.
+      var (hs, hd) = firstState(w, ratings[0]);
+      expect(hs, closeTo(modelS[0], 1e-12));
+      for (var i = 1; i < 30; i++) {
+        (hs, hd) = nextState(w, hs, hd, dts[i], ratings[i]);
+        expect(hs, closeTo(modelS[i], 1e-9 * math.max(1, modelS[i])), reason: 'helper trial $trial step $i');
+        expect(hd, closeTo(modelD[i], 1e-9));
+      }
       expect(modelS.length, 30);
       for (var i = 0; i < 30; i++) {
         expect(modelS[i], closeTo(liveS[i], 1e-9 * math.max(1, liveS[i])), reason: 'trial $trial step $i stability');
