@@ -14,6 +14,7 @@ import 'advice_card.dart';
 import 'format.dart';
 import 'theme/app_theme.dart';
 import 'theme/subject_style.dart';
+import 'edit_card_screen.dart';
 import 'theme/tokens.dart';
 import 'widgets/confetti.dart';
 import 'widgets/progress_ring.dart';
@@ -155,6 +156,18 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
     }
   }
 
+  Future<void> _edit() async {
+    final c = _current;
+    if (c == null) return;
+    final outcome = await Navigator.of(context)
+        .push<EditOutcome>(MaterialPageRoute(builder: (_) => EditCardScreen(noteId: c.noteId)));
+    if (outcome == null || !mounted) return;
+    if (outcome == EditOutcome.deleted) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Card deleted.')));
+    }
+    await _load();
+  }
+
   Future<void> _suspend() async {
     final c = _current;
     if (c == null) return;
@@ -257,6 +270,8 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                 ),
               ),
               IconButton(tooltip: 'Undo last answer', icon: const Icon(Icons.undo), onPressed: _busy ? null : _undo),
+              if (_current != null)
+                IconButton(tooltip: 'Edit or delete this card', icon: const Icon(Icons.edit_outlined), onPressed: _edit),
               if (_current != null)
                 IconButton(tooltip: 'Suspend this card', icon: const Icon(Icons.pause_circle_outline), onPressed: _suspend),
             ]),

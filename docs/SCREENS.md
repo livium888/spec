@@ -127,7 +127,28 @@ Greeting + date; hero card (progress ring with cards left, headline, streak with
 Streak card (current, best); 17-week activity heatmap with a text summary; long-term memory count and 30-day recall; stacked bar New / Learning / Growing / Long-term; 7-day forecast bars; milestones (earned or n/goal).
 
 ## Library
-Subject tiles (2 columns) and the ways to add: starter library, paste an answer, new subject, custom prompt, add a card; Subjects and topics settings.
+Subject tiles (2 columns) and the ways to add: starter library, paste an answer, new subject, custom prompt, add a card; Browse cards; Subjects and topics settings.
 
 ## Review (current)
-Close, thin progress bar, undo, suspend. Large card: subject tag, state tag, "Unverified" tag, question in serif. Tap anywhere (or "Show answer") to reveal: short answer, then Why it matters / Example / Memory hook. Four colour-coded rating buttons with next interval. End: ring, summary (cards, time, % remembered), streak, advice, "Back to home".
+Close, thin progress bar, undo, edit/delete, suspend. Large card: subject tag, state tag, "Unverified" tag, question in serif. Tap anywhere (or "Show answer") to reveal: short answer, then Why it matters / Example / Memory hook. Four colour-coded rating buttons with next interval. End: ring, summary (cards, time, % remembered), streak, advice, "Back to home".
+
+## Browse cards (Library -> Browse, edit or delete cards)
+Search box (literal match on question/answer text, 300 ms debounce), newest first, 50 per page with "Show more"; tap a row to edit.
+
+| State | Shows |
+|---|---|
+| Loading | spinner |
+| Empty, no search | "No cards yet." |
+| Empty, search | "No card matches that." |
+| Error | "Could not load: ..." |
+| Success | rows: question (2 lines), subject, kind |
+
+## Edit card
+Fields by kind (basic: Question, Answer; cloze: Text with gaps, Answer extra) plus optional Why it matters, Example, Memory hook. Save validates with the same limits as import; errors appear in a live region under the fields and nothing is saved. Delete (app bar) asks for confirmation naming how many cards and reviews go.
+
+| State | Shows |
+|---|---|
+| Loading | spinner |
+| Not found (deleted elsewhere) | "This card no longer exists." |
+| Invalid | red messages, fields kept |
+| Saved / Deleted | pops with a result; the caller reloads |

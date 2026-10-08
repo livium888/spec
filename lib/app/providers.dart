@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/backup/backup_service.dart';
 import '../data/db/database.dart';
 import '../data/engine_service.dart';
+import '../data/card_edit_service.dart';
 import '../data/import_service.dart';
 import '../data/learn_service.dart';
 import '../data/outline_service.dart';
@@ -38,6 +39,7 @@ final statsServiceProvider =
 final queueServiceProvider =
     Provider((ref) => QueueService(ref.watch(dbProvider), ref.watch(settingsRepoProvider)));
 final importServiceProvider = Provider((ref) => ImportService(ref.watch(dbProvider)));
+final cardEditServiceProvider = Provider((ref) => CardEditService(ref.watch(dbProvider)));
 final outlineServiceProvider = Provider((ref) => OutlineService(ref.watch(dbProvider)));
 final learnServiceProvider = Provider((ref) => LearnService(
     ref.watch(dbProvider), ref.watch(settingsRepoProvider), ref.watch(queueServiceProvider)));

@@ -90,19 +90,28 @@ class LearnService {
 
   /// Persist todo -> active -> done transitions derived from card counts.
   Future<void> refreshStatuses() async {
-    final rows = await db.customSelect('''
-      SELECT s.id, s.status, s.target_cards,
-        (SELECT COUNT(*) FROM card c JOIN note n ON n.id = c.note_id WHERE n.syllabus_item_id = s.id) AS cards
-      FROM syllabus_item s''').get();
+    final cards = await db.customSelect(_cardsPerItemSql).get();
+    final count = {for (final r in cards) r.read<int>('item'): r.read<int>('cards')};
+    final rows = await db.customSelect('SELECT id, status, target_cards FROM syllabus_item').get();
     for (final r in rows) {
       final stored = r.read<String>('status');
-      final next = LearnPlanner.effectiveStatus(stored, r.read<int>('cards'), r.read<int>('target_cards'));
+      final next =
+          LearnPlanner.effectiveStatus(stored, count[r.read<int>('id')] ?? 0, r.read<int>('target_cards'));
       if (next != stored) {
         await (db.update(db.syllabusItems)..where((x) => x.id.equals(r.read<int>('id'))))
             .write(SyllabusItemsCompanion(status: Value(next)));
       }
     }
   }
+
+  // One grouped pass each, never a correlated subquery per topic: the per-topic form
+  // rescanned note/card/review_log once per topic and took 34 s at 25,000 cards.
+  static const _cardsPerItemSql = '''
+      SELECT n.syllabus_item_id AS item, COUNT(*) AS cards,
+             SUM(CASE WHEN c.lapses >= 8 THEN 1 ELSE 0 END) AS leeches
+      FROM card c JOIN note n ON n.id = c.note_id
+      WHERE n.syllabus_item_id IS NOT NULL
+      GROUP BY n.syllabus_item_id''';
 
   Future<LearnPlanner> _planner() async => planner.copyWith(
       revisitBaseMonths: (await settings.getInt(SettingsRepo.revisitMonths, 3)).clamp(1, 24));
@@ -277,22 +286,30 @@ class LearnService {
       prereqs.putIfAbsent(e.itemId, () => []).add(e.prereqId);
     }
     final rows = await db.customSelect('''
-      SELECT s.id, s.domain_id, d.name AS dname, s.title, s.position, s.status, s.target_cards, s.rounds,
-        (SELECT MAX(n.created_at) FROM note n WHERE n.syllabus_item_id = s.id) AS last_covered,
-        (SELECT COUNT(*) FROM card c JOIN note n ON n.id = c.note_id
-           WHERE n.syllabus_item_id = s.id) AS cards,
-        (SELECT COUNT(*) FROM card c JOIN note n ON n.id = c.note_id
-           WHERE n.syllabus_item_id = s.id AND c.lapses >= 8) AS leeches,
-        (SELECT COUNT(*) FROM review_log l JOIN card c ON c.id = l.card_id JOIN note n ON n.id = c.note_id
-           WHERE n.syllabus_item_id = s.id AND l.revoked_at IS NULL AND l.reviewed_at >= ?
-             AND l.state_before = 'review') AS rev30,
-        (SELECT COUNT(*) FROM review_log l JOIN card c ON c.id = l.card_id JOIN note n ON n.id = c.note_id
-           WHERE n.syllabus_item_id = s.id AND l.revoked_at IS NULL AND l.reviewed_at >= ?
-             AND l.state_before = 'review' AND l.rating = 1) AS lap30
+      SELECT s.id, s.domain_id, d.name AS dname, s.title, s.position, s.status, s.target_cards, s.rounds
       FROM syllabus_item s JOIN domain d ON d.id = s.domain_id
       WHERE d.active = 1
-      ORDER BY s.domain_id, s.position''',
-        variables: [Variable.withInt(since), Variable.withInt(since)]).get();
+      ORDER BY s.domain_id, s.position''').get();
+    final cards = {
+      for (final r in await db.customSelect(_cardsPerItemSql).get()) r.read<int>('item'): r
+    };
+    final lastCovered = {
+      for (final r in await db.customSelect(
+          'SELECT syllabus_item_id AS item, MAX(created_at) AS m FROM note '
+          'WHERE syllabus_item_id IS NOT NULL GROUP BY syllabus_item_id').get())
+        r.read<int>('item'): r.read<int?>('m')
+    };
+    // Only the last 30 days of the log are read (review_log_time_idx), then grouped.
+    final recent = {
+      for (final r in await db.customSelect('''
+        SELECT n.syllabus_item_id AS item, COUNT(*) AS rev,
+               SUM(CASE WHEN l.rating = 1 THEN 1 ELSE 0 END) AS lap
+        FROM review_log l JOIN card c ON c.id = l.card_id JOIN note n ON n.id = c.note_id
+        WHERE l.reviewed_at >= ? AND l.revoked_at IS NULL AND l.state_before = 'review'
+          AND n.syllabus_item_id IS NOT NULL
+        GROUP BY n.syllabus_item_id''', variables: [Variable.withInt(since)]).get())
+        r.read<int>('item'): r
+    };
     final nowMs = t.millisecondsSinceEpoch;
     return [
       for (final r in rows)
@@ -304,15 +321,15 @@ class LearnService {
           position: r.read<int>('position'),
           status: r.read<String>('status'),
           targetCards: r.read<int>('target_cards'),
-          cardCount: r.read<int>('cards'),
-          reviews30d: r.read<int>('rev30'),
-          lapses30d: r.read<int>('lap30'),
-          leechCount: r.read<int>('leeches'),
+          cardCount: cards[r.read<int>('id')]?.read<int>('cards') ?? 0,
+          reviews30d: recent[r.read<int>('id')]?.read<int>('rev') ?? 0,
+          lapses30d: (recent[r.read<int>('id')]?.data['lap'] as num?)?.toInt() ?? 0,
+          leechCount: (cards[r.read<int>('id')]?.data['leeches'] as num?)?.toInt() ?? 0,
           prereqIds: prereqs[r.read<int>('id')] ?? const [],
           rounds: r.read<int>('rounds'),
-          daysSinceCovered: r.read<int?>('last_covered') == null
+          daysSinceCovered: lastCovered[r.read<int>('id')] == null
               ? null
-              : (nowMs - r.read<int>('last_covered')) / _day,
+              : (nowMs - lastCovered[r.read<int>('id')]!) / _day,
         )
     ];
   }

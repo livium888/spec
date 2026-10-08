@@ -1,8 +1,10 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:daily_learning/app/bootstrap.dart';
 import 'package:daily_learning/app/providers.dart';
 import 'package:daily_learning/data/db/database.dart';
+import 'package:daily_learning/data/import_service.dart';
 import 'package:daily_learning/data/outline_service.dart';
 import 'package:daily_learning/data/settings_repo.dart';
 import 'package:daily_learning/main.dart';
@@ -65,6 +67,7 @@ Future<void> done(WidgetTester t, AppDatabase db) async {
 }
 
 void main() {
+  editDeleteWidgetTests();
   testWidgets('ONE press: Home -> prompt screen, no choosing, with the reasons and the advice', (t) async {
     final db = await boot(t, seed: true);
     expect(find.textContaining('Good time to learn'), findsOneWidget); // advice on Home
@@ -188,6 +191,49 @@ void main() {
     expect(find.textContaining('Paused: no new prompts'), findsOneWidget);
     final dm = await t.runAsync(() => db.select(db.domains).getSingle());
     expect(dm!.learnWeight, 0);
+    await done(t, db);
+  });
+}
+
+void editDeleteWidgetTests() {
+  testWidgets('Library -> Browse -> edit text, then delete with confirmation', (t) async {
+    final db = await boot(t);
+    await t.runAsync(() async {
+      final svc = ImportService(db);
+      await svc.commit(await svc.preview(jsonEncode({
+        'domain': 'Bio',
+        'syllabus_item': null,
+        'cards': [
+          {'type': 'basic', 'front': 'What powers the cell?', 'back': 'Mitochondria',
+           'source_type': 'quote', 'source_ref': 'b', 'supporting_quote': 'q', 'confidence': 'high'}
+        ]
+      })));
+    });
+    await t.tap(find.text('Library'));
+    await settle(t);
+    await t.dragUntilVisible(find.text('Browse, edit or delete cards'), find.byType(ListView).first, const Offset(0, -200));
+    await t.tap(find.text('Browse, edit or delete cards'));
+    await until(t, find.text('What powers the cell?'));
+    await settle(t);
+    await t.tap(find.text('What powers the cell?'));
+    await until(t, find.text('Save changes'));
+    await settle(t);
+    await t.enterText(find.widgetWithText(TextField, 'Question'), 'What makes ATP?');
+    await t.tap(find.text('Save changes'));
+    await until(t, find.text('What makes ATP?'));
+    await settle(t);
+    expect(find.text('What makes ATP?'), findsOneWidget);
+
+    await t.tap(find.text('What makes ATP?'));
+    await until(t, find.text('Save changes'));
+    await settle(t);
+    await t.tap(find.byTooltip('Delete card'));
+    await settle(t);
+    expect(find.text('Delete this card?'), findsOneWidget);
+    await t.tap(find.text('Delete'));
+    await until(t, find.text('No cards yet.'));
+    await settle(t);
+    expect(find.text('No cards yet.'), findsOneWidget);
     await done(t, db);
   });
 }

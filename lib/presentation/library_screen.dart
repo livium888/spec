@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../app/providers.dart';
 import 'add_card_screen.dart';
+import 'browse_cards_screen.dart';
 import 'home_screen.dart';
 import 'import_screen.dart';
 import 'new_subject_screen.dart';
@@ -78,6 +79,7 @@ class LibraryScreen extends ConsumerWidget {
         action(Icons.edit_note, 'Custom prompt', 'Make cards from your own source text', const PromptScreen()),
         action(Icons.add_card, 'Add a card', 'Write a single card yourself', const AddCardScreen()),
         const SectionTitle('Manage'),
+        action(Icons.search, 'Browse, edit or delete cards', 'Find any card you have', const BrowseCardsScreen()),
         action(Icons.tune, 'Subjects and topics', 'How often each appears, skip, revisit', const SubjectsScreen()),
       ]),
     );

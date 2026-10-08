@@ -116,3 +116,11 @@ New pushes cancel older builds (`concurrency`), and the rolling `latest-apk` rel
 - **Rejected:** heavy animation libraries (Rive/Lottie: size, offline assets, little benefit), leaderboards (single user), points or currency, guilt notifications, per-subject mascot characters.
 - **Not built yet:** a daily reminder notification at a chosen time (the single strongest habit cue; needs a notification plugin and an Android 13 permission prompt), sounds, widgets, custom app icon and splash.
 - **Revisit if:** the streak or ring starts to feel like pressure (make them optional in Settings), or the user wants more variety (more subject colours/themes).
+
+## D21 — Learn-view speed, and editing / deleting cards
+- **Speed:** "Learn something new" ran four correlated subqueries per syllabus topic, each rescanning note / card / review_log (no index on note.syllabus_item_id). Measured 34 s at 25,000 cards, 200 topics, 800,000 log rows. Now one grouped pass per fact (cards and leeches per topic, last-covered per topic, 30-day reviews from review_log_time_idx): 1.0 s on the same data. Remaining cost is queue build plus stats (about 0.3 s each). Host numbers; a phone is slower.
+- **Edit:** text only (question, answer or cloze text, and the three optional extras). Scheduling columns are never touched, so history and replay stay valid. Same length limits and the same cloze rule as import. A cloze edit may add a gap (a new card is created with `due` = note.created_at, which rebuild relies on) but may not remove one that already has a card.
+- **Delete:** permanent, whole note (all cloze cards), with its review_log rows, in one transaction; review_log has a foreign key to card, so history cannot outlive its card. The dialog names what goes and points to Suspend for a temporary break. Older backups still hold the data.
+- **Rejected:** soft delete with a `deleted_at` flag (every query in the app would need the filter, a schema migration, and the user asked for deletion); deleting a single cloze card out of a note (leaves a note whose text still hides a gap with no card).
+- **Not built:** undo for delete (the confirm dialog is the guard), bulk delete, editing which topic a card belongs to.
+- **Revisit if:** users delete by mistake (add an undo snackbar backed by a 10-second tombstone), or bulk clean-up is needed.
