@@ -14,7 +14,7 @@ const _prefix = 'learning-backup-';
 
 String backupFileName(DateTime t) {
   String two(int n) => n.toString().padLeft(2, '0');
-  return '$_prefix${t.year}${two(t.month)}${two(t.day)}.db';
+  return '$_prefix${t.year}${two(t.month)}${two(t.day)}.db.gz';
 }
 
 class BackupException implements Exception {
@@ -71,15 +71,21 @@ class BackupService {
 
   static const lastSuccessKey = 'last_backup_ok_ms';
 
-  /// Consistent snapshot via `VACUUM INTO` (no WAL leftovers, no torn copy).
-  Future<Uint8List> snapshotBytes(Directory tmpDir) async {
-    final tmp = File('${tmpDir.path}/snapshot-${DateTime.now().microsecondsSinceEpoch}.db');
-    if (tmp.existsSync()) tmp.deleteSync();
+  /// Consistent snapshot via `VACUUM INTO` (no WAL leftovers, no torn copy), gzip-compressed
+  /// to a temp file in streaming chunks. Caller deletes the returned file.
+  Future<File> snapshotFile(Directory tmpDir) async {
+    final stamp = DateTime.now().microsecondsSinceEpoch;
+    final raw = File('${tmpDir.path}/snapshot-$stamp.db');
+    final zipped = File('${tmpDir.path}/snapshot-$stamp.db.gz');
     try {
-      await db.customStatement("VACUUM INTO '${tmp.path.replaceAll("'", "''")}'");
-      return await tmp.readAsBytes();
+      await db.customStatement("VACUUM INTO '${raw.path.replaceAll("'", "''")}'");
+      await raw.openRead().transform(gzip.encoder).pipe(zipped.openWrite());
+      return zipped;
+    } catch (_) {
+      if (zipped.existsSync()) zipped.deleteSync();
+      rethrow;
     } finally {
-      if (tmp.existsSync()) tmp.deleteSync();
+      if (raw.existsSync()) raw.deleteSync();
     }
   }
 
@@ -88,11 +94,16 @@ class BackupService {
   Future<String?> export(BackupStorage storage, Directory tmpDir, {DateTime? now}) async {
     final t = (now ?? DateTime.now()).toUtc();
     try {
-      final bytes = await snapshotBytes(tmpDir);
-      final f = await storage.write(backupFileName(t.toLocal()), bytes);
+      final snapshot = await snapshotFile(tmpDir);
+      final BackupFile f;
+      try {
+        f = await storage.writeFile(backupFileName(t.toLocal()), snapshot);
+      } finally {
+        snapshot.deleteSync();
+      }
       await _prune(storage);
       await db.into(db.backupLogs).insert(BackupLogsCompanion.insert(
-          ts: t.millisecondsSinceEpoch, uri: Value(f.uri), bytes: Value(bytes.length), ok: true));
+          ts: t.millisecondsSinceEpoch, uri: Value(f.uri), bytes: Value(f.length), ok: true));
       await settings.set(lastSuccessKey, '${t.millisecondsSinceEpoch}');
       return null;
     } catch (e) {
@@ -103,7 +114,7 @@ class BackupService {
   }
 
   Future<void> _prune(BackupStorage storage) async {
-    final files = (await storage.list()).where((f) => f.name.startsWith(_prefix) && f.name.endsWith('.db')).toList()
+    final files = (await storage.list()).where((f) => f.name.startsWith(_prefix) && (f.name.endsWith('.db') || f.name.endsWith('.db.gz'))).toList()
       ..sort((a, b) => b.name.compareTo(a.name)); // names embed the date: newest first
     for (final old in files.skip(kKeepBackups)) {
       await storage.delete(old);
@@ -118,6 +129,16 @@ class BackupService {
   }
 
   // ---- restore ---------------------------------------------------------------
+
+  static Future<void> _stage(File source, File staged) async {
+    final head = await source.openRead(0, 2).expand((c) => c).toList();
+    final isGzip = head.length == 2 && head[0] == 0x1f && head[1] == 0x8b;
+    if (isGzip) {
+      await source.openRead().transform(gzip.decoder).pipe(staged.openWrite());
+    } else {
+      await source.copy(staged.path);
+    }
+  }
 
   /// Validate an UNTRUSTED backup file before touching the live DB.
   /// Throws [BackupException] with a human-readable reason.
@@ -153,24 +174,26 @@ class BackupService {
     }
   }
 
-  /// Replace the live DB file with [bytes], then verify by replaying the log.
+  /// Replace the live DB file with the backup in [source] (gzip or plain SQLite; detected
+  /// by content, streamed, never loaded whole), then verify by replaying the log.
   /// [closeDb] must close the live database; [reopen] returns a fresh one on
   /// the same file. The previous file is kept as `<db>.pre-restore` until the
   /// new one validates, and put back on any failure.
   static Future<RestoreReport> restore({
-    required Uint8List bytes,
+    required File source,
     required File dbFile,
     required Directory tmpDir,
     required Future<void> Function() closeDb,
     required Future<AppDatabase> Function() reopen,
   }) async {
     final staged = File('${tmpDir.path}/restore-candidate.db');
-    await staged.writeAsBytes(bytes, flush: true);
     try {
+      await _stage(source, staged);
       validate(staged);
-    } catch (_) {
-      staged.deleteSync();
-      rethrow;
+    } catch (e) {
+      if (staged.existsSync()) staged.deleteSync();
+      if (e is BackupException) rethrow;
+      throw BackupException('Could not read the backup file: $e');
     }
 
     await closeDb();

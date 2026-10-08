@@ -14,6 +14,12 @@ import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqlite3/sqlite3.dart' as sql;
 
+Future<File> fetch(BackupStorage storage, BackupFile f) async {
+  final dest = File('${Directory.systemTemp.createTempSync('fetched').path}/download');
+  await storage.readToFile(f, dest);
+  return dest;
+}
+
 void main() {
   late Directory tmp;
   late File dbFile;
@@ -68,7 +74,7 @@ void main() {
     final err = await BackupService(db, SettingsRepo(db)).export(storage, tmp, now: t0);
     expect(err, isNull);
     final files = await storage.list();
-    expect(files.single.name, matches(r'^learning-backup-\d{8}\.db$'));
+    expect(files.single.name, matches(r'^learning-backup-\d{8}\.db\.gz$'));
 
     // "Wipe app data".
     await db.close();
@@ -76,9 +82,8 @@ void main() {
     db = open();
     expect((await fingerprint(db)).cards, 0);
 
-    final bytes = await storage.read(files.single);
     final report = await BackupService.restore(
-      bytes: bytes,
+      source: await fetch(storage, files.single),
       dbFile: dbFile,
       tmpDir: tmp,
       closeDb: () => db.close(),
@@ -95,9 +100,8 @@ void main() {
         .write(const CardsCompanion(stability: Value(777.0)));
     final storage = DirectoryBackupStorage(backupDir);
     await BackupService(db, SettingsRepo(db)).export(storage, tmp, now: t0);
-    final bytes = await storage.read((await storage.list()).single);
     final report = await BackupService.restore(
-      bytes: bytes, dbFile: dbFile, tmpDir: tmp,
+      source: await fetch(storage, (await storage.list()).single), dbFile: dbFile, tmpDir: tmp,
       closeDb: () => db.close(), reopen: () async => db = open(),
     );
     expect(report.mismatches.map((m) => m.cardId), [1]);
@@ -111,8 +115,20 @@ void main() {
     }
     final names = (await storage.list()).map((f) => f.name).toList()..sort();
     expect(names.length, 8);
-    expect(names.first, 'learning-backup-20240304.db');
-    expect(names.last, 'learning-backup-20240311.db');
+    expect(names.first, 'learning-backup-20240304.db.gz');
+    expect(names.last, 'learning-backup-20240311.db.gz');
+  });
+
+  test('backup is compressed and leaves no temp files behind', () async {
+    await seed();
+    final storage = DirectoryBackupStorage(backupDir);
+    expect(await BackupService(db, SettingsRepo(db)).export(storage, tmp, now: t0), isNull);
+    final f = (await storage.list()).single;
+    final raw = gzip.decode(File(f.uri).readAsBytesSync());
+    expect(f.length, lessThan(raw.length)); // gzip magic present and smaller than the SQLite file
+    expect(tmp.listSync().whereType<File>().where((x) => x.path.contains('snapshot-')), isEmpty);
+    final log = await db.select(db.backupLogs).getSingle();
+    expect(log.bytes, f.length);
   });
 
   test('failed export is logged, not thrown', () async {
@@ -136,17 +152,19 @@ void main() {
     await seed();
     final before = await fingerprint(db);
 
-    Future<void> expectRejected(Uint8List bytes) async {
+    Future<void> expectRejected(File source) async {
       await expectLater(
         BackupService.restore(
-          bytes: bytes, dbFile: dbFile, tmpDir: tmp,
+          source: source, dbFile: dbFile, tmpDir: tmp,
           closeDb: () => db.close(), reopen: () async => db = open(),
         ),
         throwsA(isA<BackupException>()),
       );
     }
 
-    await expectRejected(Uint8List.fromList(utf8.encode('definitely not sqlite')));
+    await expectRejected(File('${tmp.path}/garbage')..writeAsStringSync('definitely not sqlite'));
+    // Looks gzipped but is truncated nonsense.
+    await expectRejected(File('${tmp.path}/badgz')..writeAsBytesSync([0x1f, 0x8b, 1, 2, 3]));
 
     // Valid sqlite, wrong user_version.
     final other = File('${tmp.path}/other.db');
@@ -154,7 +172,7 @@ void main() {
     await d.customSelect('SELECT 1').get();
     await d.customStatement('PRAGMA user_version = 99');
     await d.close();
-    await expectRejected(other.readAsBytesSync());
+    await expectRejected(other);
 
     // Rejection happens before the live DB is touched.
     expect(await fingerprint(db), before);
@@ -168,7 +186,8 @@ void main() {
     final before = await fingerprint(db);
 
     // Rewrite the backup file so it looks like it came from schema v1.
-    final raw = sql.sqlite3.open(f.uri);
+    final plain = File('${tmp.path}/legacy-v1.db')..writeAsBytesSync(gzip.decode(File(f.uri).readAsBytesSync()));
+    final raw = sql.sqlite3.open(plain.path);
     raw.execute('DROP TABLE syllabus_prereq');
     raw.execute('ALTER TABLE syllabus_item DROP COLUMN target_cards');
     raw.execute('ALTER TABLE syllabus_item DROP COLUMN description');
@@ -179,7 +198,7 @@ void main() {
     raw.close();
 
     final report = await BackupService.restore(
-      bytes: await storage.read(f), dbFile: dbFile, tmpDir: tmp,
+      source: plain, dbFile: dbFile, tmpDir: tmp,
       closeDb: () => db.close(), reopen: () async => db = open(),
     );
     expect(report.fingerprint, before);

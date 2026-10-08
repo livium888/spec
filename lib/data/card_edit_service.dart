@@ -4,7 +4,9 @@ import 'package:drift/drift.dart';
 
 import '../domain/card_edit.dart';
 import '../domain/import_parser.dart';
+import 'activity_cache.dart';
 import 'db/database.dart';
+import 'settings_repo.dart';
 
 class NoteRow {
   const NoteRow({
@@ -28,8 +30,9 @@ class NoteRow {
 /// Deleting is permanent: the note, its cards and their review history go together
 /// (review_log rows cannot outlive their card). Backups made earlier still hold them.
 class CardEditService {
-  CardEditService(this.db);
+  CardEditService(this.db, this.settings);
   final AppDatabase db;
+  final SettingsRepo settings;
 
   Future<NoteRow?> note(int noteId) async {
     final rows = await _query(where: 'n.id = ?', args: [Variable.withInt(noteId)], limit: 1);
@@ -121,5 +124,7 @@ class CardEditService {
             'DELETE FROM review_log WHERE card_id IN (SELECT id FROM card WHERE note_id = ?)', [noteId]);
         await db.customStatement('DELETE FROM card WHERE note_id = ?', [noteId]);
         await db.customStatement('DELETE FROM note WHERE id = ?', [noteId]);
+        // History left, so the answers-per-day cache no longer matches the log.
+        await ActivityCache(db, settings).invalidate();
       });
 }

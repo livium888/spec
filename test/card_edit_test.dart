@@ -26,7 +26,7 @@ void main() {
     late CardEditService svc;
     setUp(() {
       e = Env();
-      svc = CardEditService(e.db);
+      svc = CardEditService(e.db, e.settings);
     });
 
     test('editing text keeps scheduling and replay==live; clearing an optional field removes it', () async {

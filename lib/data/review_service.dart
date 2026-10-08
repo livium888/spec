@@ -3,6 +3,7 @@ import 'package:drift/drift.dart';
 import '../domain/day_clock.dart';
 import '../domain/models.dart';
 import '../domain/scheduler.dart';
+import 'activity_cache.dart';
 import 'db/database.dart';
 import 'params_repo.dart';
 import 'settings_repo.dart';
@@ -125,6 +126,7 @@ class ReviewService {
 
       await (db.update(db.reviewLogs)..where((l) => l.id.equals(last.id)))
           .write(ReviewLogsCompanion(revokedAt: Value(t.millisecondsSinceEpoch)));
+      await ActivityCache(db, settings).onRevoked(last.id, last.reviewedAt);
       final restored = await rebuildCard(last.cardId);
 
       final card = await (db.select(db.cards)..where((c) => c.id.equals(last.cardId))).getSingle();

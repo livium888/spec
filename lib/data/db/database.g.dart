@@ -3760,6 +3760,194 @@ class ReviewLogsCompanion extends UpdateCompanion<ReviewLog> {
   }
 }
 
+class $ActivityBucketsTable extends ActivityBuckets
+    with TableInfo<$ActivityBucketsTable, ActivityBucket> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ActivityBucketsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _bucketMeta = const VerificationMeta('bucket');
+  @override
+  late final GeneratedColumn<int> bucket = GeneratedColumn<int>(
+    'bucket',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _nMeta = const VerificationMeta('n');
+  @override
+  late final GeneratedColumn<int> n = GeneratedColumn<int>(
+    'n',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [bucket, n];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'activity_bucket';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<ActivityBucket> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('bucket')) {
+      context.handle(
+        _bucketMeta,
+        bucket.isAcceptableOrUnknown(data['bucket']!, _bucketMeta),
+      );
+    }
+    if (data.containsKey('n')) {
+      context.handle(_nMeta, n.isAcceptableOrUnknown(data['n']!, _nMeta));
+    } else if (isInserting) {
+      context.missing(_nMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {bucket};
+  @override
+  ActivityBucket map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ActivityBucket(
+      bucket: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}bucket'],
+      )!,
+      n: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}n'],
+      )!,
+    );
+  }
+
+  @override
+  $ActivityBucketsTable createAlias(String alias) {
+    return $ActivityBucketsTable(attachedDatabase, alias);
+  }
+}
+
+class ActivityBucket extends DataClass implements Insertable<ActivityBucket> {
+  final int bucket;
+  final int n;
+  const ActivityBucket({required this.bucket, required this.n});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['bucket'] = Variable<int>(bucket);
+    map['n'] = Variable<int>(n);
+    return map;
+  }
+
+  ActivityBucketsCompanion toCompanion(bool nullToAbsent) {
+    return ActivityBucketsCompanion(bucket: Value(bucket), n: Value(n));
+  }
+
+  factory ActivityBucket.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ActivityBucket(
+      bucket: serializer.fromJson<int>(json['bucket']),
+      n: serializer.fromJson<int>(json['n']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'bucket': serializer.toJson<int>(bucket),
+      'n': serializer.toJson<int>(n),
+    };
+  }
+
+  ActivityBucket copyWith({int? bucket, int? n}) =>
+      ActivityBucket(bucket: bucket ?? this.bucket, n: n ?? this.n);
+  ActivityBucket copyWithCompanion(ActivityBucketsCompanion data) {
+    return ActivityBucket(
+      bucket: data.bucket.present ? data.bucket.value : this.bucket,
+      n: data.n.present ? data.n.value : this.n,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ActivityBucket(')
+          ..write('bucket: $bucket, ')
+          ..write('n: $n')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(bucket, n);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ActivityBucket &&
+          other.bucket == this.bucket &&
+          other.n == this.n);
+}
+
+class ActivityBucketsCompanion extends UpdateCompanion<ActivityBucket> {
+  final Value<int> bucket;
+  final Value<int> n;
+  const ActivityBucketsCompanion({
+    this.bucket = const Value.absent(),
+    this.n = const Value.absent(),
+  });
+  ActivityBucketsCompanion.insert({
+    this.bucket = const Value.absent(),
+    required int n,
+  }) : n = Value(n);
+  static Insertable<ActivityBucket> custom({
+    Expression<int>? bucket,
+    Expression<int>? n,
+  }) {
+    return RawValuesInsertable({
+      if (bucket != null) 'bucket': bucket,
+      if (n != null) 'n': n,
+    });
+  }
+
+  ActivityBucketsCompanion copyWith({Value<int>? bucket, Value<int>? n}) {
+    return ActivityBucketsCompanion(
+      bucket: bucket ?? this.bucket,
+      n: n ?? this.n,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (bucket.present) {
+      map['bucket'] = Variable<int>(bucket.value);
+    }
+    if (n.present) {
+      map['n'] = Variable<int>(n.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ActivityBucketsCompanion(')
+          ..write('bucket: $bucket, ')
+          ..write('n: $n')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $PromptLogsTable extends PromptLogs
     with TableInfo<$PromptLogsTable, PromptLog> {
   @override
@@ -5684,6 +5872,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     this,
   );
   late final $ReviewLogsTable reviewLogs = $ReviewLogsTable(this);
+  late final $ActivityBucketsTable activityBuckets = $ActivityBucketsTable(
+    this,
+  );
   late final $PromptLogsTable promptLogs = $PromptLogsTable(this);
   late final $InterestLogsTable interestLogs = $InterestLogsTable(this);
   late final $EngineDecisionsTable engineDecisions = $EngineDecisionsTable(
@@ -5719,6 +5910,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     cards,
     fsrsParamsTable,
     reviewLogs,
+    activityBuckets,
     promptLogs,
     interestLogs,
     engineDecisions,
@@ -9300,6 +9492,144 @@ typedef $$ReviewLogsTableProcessedTableManager =
       ReviewLog,
       PrefetchHooks Function({bool cardId, bool paramsId})
     >;
+typedef $$ActivityBucketsTableCreateCompanionBuilder =
+    ActivityBucketsCompanion Function({Value<int> bucket, required int n});
+typedef $$ActivityBucketsTableUpdateCompanionBuilder =
+    ActivityBucketsCompanion Function({Value<int> bucket, Value<int> n});
+
+class $$ActivityBucketsTableFilterComposer
+    extends Composer<_$AppDatabase, $ActivityBucketsTable> {
+  $$ActivityBucketsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get bucket => $composableBuilder(
+    column: $table.bucket,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get n => $composableBuilder(
+    column: $table.n,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$ActivityBucketsTableOrderingComposer
+    extends Composer<_$AppDatabase, $ActivityBucketsTable> {
+  $$ActivityBucketsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get bucket => $composableBuilder(
+    column: $table.bucket,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get n => $composableBuilder(
+    column: $table.n,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$ActivityBucketsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $ActivityBucketsTable> {
+  $$ActivityBucketsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get bucket =>
+      $composableBuilder(column: $table.bucket, builder: (column) => column);
+
+  GeneratedColumn<int> get n =>
+      $composableBuilder(column: $table.n, builder: (column) => column);
+}
+
+class $$ActivityBucketsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $ActivityBucketsTable,
+          ActivityBucket,
+          $$ActivityBucketsTableFilterComposer,
+          $$ActivityBucketsTableOrderingComposer,
+          $$ActivityBucketsTableAnnotationComposer,
+          $$ActivityBucketsTableCreateCompanionBuilder,
+          $$ActivityBucketsTableUpdateCompanionBuilder,
+          (
+            ActivityBucket,
+            BaseReferences<
+              _$AppDatabase,
+              $ActivityBucketsTable,
+              ActivityBucket
+            >,
+          ),
+          ActivityBucket,
+          PrefetchHooks Function()
+        > {
+  $$ActivityBucketsTableTableManager(
+    _$AppDatabase db,
+    $ActivityBucketsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$ActivityBucketsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$ActivityBucketsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$ActivityBucketsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<int> bucket = const Value.absent(),
+            Value<int> n = const Value.absent(),
+          }) => ActivityBucketsCompanion(bucket: bucket, n: n),
+          createCompanionCallback: ({
+            Value<int> bucket = const Value.absent(),
+            required int n,
+          }) => ActivityBucketsCompanion.insert(bucket: bucket, n: n),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$ActivityBucketsTable, ActivityBucket>(table),
+                  BaseReferences<
+                    _$AppDatabase,
+                    $ActivityBucketsTable,
+                    ActivityBucket
+                  >(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$ActivityBucketsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $ActivityBucketsTable,
+      ActivityBucket,
+      $$ActivityBucketsTableFilterComposer,
+      $$ActivityBucketsTableOrderingComposer,
+      $$ActivityBucketsTableAnnotationComposer,
+      $$ActivityBucketsTableCreateCompanionBuilder,
+      $$ActivityBucketsTableUpdateCompanionBuilder,
+      (
+        ActivityBucket,
+        BaseReferences<_$AppDatabase, $ActivityBucketsTable, ActivityBucket>,
+      ),
+      ActivityBucket,
+      PrefetchHooks Function()
+    >;
 typedef $$PromptLogsTableCreateCompanionBuilder = PromptLogsCompanion Function({
   Value<int> id,
   required int createdAt,
@@ -10690,6 +11020,8 @@ class $AppDatabaseManager {
       $$FsrsParamsTableTableTableManager(_db, _db.fsrsParamsTable);
   $$ReviewLogsTableTableManager get reviewLogs =>
       $$ReviewLogsTableTableManager(_db, _db.reviewLogs);
+  $$ActivityBucketsTableTableManager get activityBuckets =>
+      $$ActivityBucketsTableTableManager(_db, _db.activityBuckets);
   $$PromptLogsTableTableManager get promptLogs =>
       $$PromptLogsTableTableManager(_db, _db.promptLogs);
   $$InterestLogsTableTableManager get interestLogs =>

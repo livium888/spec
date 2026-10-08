@@ -1,4 +1,4 @@
-import 'dart:typed_data';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -132,7 +132,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   Future<void> _restore({required bool latest}) async {
     final storage = _folder == null ? null : SafBackupStorage(_folder!);
-    Uint8List? bytes;
+    final bs = ref.read(bootstrapProvider);
+    final fetched = File('${bs.tmpDir.path}/restore-download-${DateTime.now().microsecondsSinceEpoch}');
     String name;
     try {
       if (latest) {
@@ -144,18 +145,22 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           return;
         }
         name = files.first.name;
-        bytes = await storage.read(files.first);
+        await storage.readToFile(files.first, fetched);
       } else {
         final f = await SafUtil().pickFile();
         if (f == null) return;
         name = f.name;
-        bytes = await SafStream().readFileBytes(f.uri);
+        await SafStream().copyToLocalFile(f.uri, fetched.path);
       }
     } catch (e) {
+      if (fetched.existsSync()) fetched.deleteSync();
       setState(() => _msg = 'Could not read the backup file: $e');
       return;
     }
-    if (!mounted) return;
+    if (!mounted) {
+      if (fetched.existsSync()) fetched.deleteSync();
+      return;
+    }
     final go = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -168,13 +173,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         ],
       ),
     );
-    if (go != true || !mounted) return;
+    if (go != true || !mounted) {
+      if (fetched.existsSync()) fetched.deleteSync();
+      return;
+    }
 
     setState(() { _busy = true; _msg = null; });
-    final bs = ref.read(bootstrapProvider);
     try {
       final report = await BackupService.restore(
-        bytes: bytes,
+        source: fetched,
         dbFile: bs.dbFile,
         tmpDir: bs.tmpDir,
         closeDb: () => ref.read(dbProvider).close(),
@@ -195,6 +202,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     } catch (e) {
       if (mounted) setState(() => _msg = 'Restore failed: $e');
     } finally {
+      if (fetched.existsSync()) fetched.deleteSync();
       if (mounted) setState(() => _busy = false);
     }
   }

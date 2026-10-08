@@ -4,7 +4,7 @@ part 'database.g.dart';
 
 /// Bump together with a migration step in [AppDatabase.migration].
 /// Also checked by RestoreBackup against `PRAGMA user_version` of a backup file.
-const int kSchemaVersion = 3;
+const int kSchemaVersion = 4;
 
 class Domains extends Table {
   @override
@@ -112,6 +112,17 @@ class ReviewLogs extends Table {
   IntColumn get revokedAt => integer().nullable()();
 }
 
+/// Rebuildable cache: answers per 15-minute bucket (bucket = reviewed_at / 900000), so
+/// Home and Progress never scan the whole review_log. review_log stays the source of truth.
+class ActivityBuckets extends Table {
+  @override
+  String get tableName => 'activity_bucket';
+  IntColumn get bucket => integer()();
+  IntColumn get n => integer()();
+  @override
+  Set<Column> get primaryKey => {bucket};
+}
+
 class PromptLogs extends Table {
   @override
   String get tableName => 'prompt_log';
@@ -176,6 +187,7 @@ class Settings extends Table {
   Cards,
   FsrsParamsTable,
   ReviewLogs,
+  ActivityBuckets,
   PromptLogs,
   InterestLogs,
   EngineDecisions,
@@ -201,6 +213,9 @@ class AppDatabase extends _$AppDatabase {
             await m.addColumn(domains, domains.learnWeight);
             await m.addColumn(domains, domains.revisit);
             await m.addColumn(syllabusItems, syllabusItems.rounds);
+          }
+          if (from < 4) {
+            await m.createTable(activityBuckets); // filled lazily from review_log on first use
           }
         },
         beforeOpen: (details) async {

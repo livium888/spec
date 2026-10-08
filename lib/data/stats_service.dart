@@ -2,6 +2,7 @@ import 'package:drift/drift.dart';
 
 import '../domain/milestones.dart';
 import '../domain/streak.dart';
+import 'activity_cache.dart';
 import 'db/database.dart';
 import 'settings_repo.dart';
 
@@ -82,21 +83,19 @@ class StatsService {
 
     DateTime at(int ms) => DateTime.fromMillisecondsSinceEpoch(ms, isUtc: true);
 
-    // Active days over the whole history (hour buckets keep this cheap for years of data).
-    final hours = await db.customSelect(
-        'SELECT DISTINCT (reviewed_at / 3600000) AS h FROM review_log WHERE revoked_at IS NULL').get();
-    final activeDays = {for (final r in hours) clock.dayIndex(at(r.read<int>('h') * 3600000))};
+    // Answers per 15-minute bucket, kept incrementally (ActivityCache): the full review_log
+    // is never scanned here, however many years it holds.
+    final cache = ActivityCache(db, settings);
+    final all = await cache.buckets();
+    final activeDays = {for (final b in all) clock.dayIndex(at(b.bucket * kBucketMs))};
     final streak = computeStreak(activeDays, today);
 
-    // Per-day counts for the heatmap.
     final since = dayStart - heatmapDays * _day;
-    final recent = await db.customSelect(
-        'SELECT reviewed_at FROM review_log WHERE revoked_at IS NULL AND reviewed_at >= ?',
-        variables: [Variable.withInt(since)]).get();
     final activity = <int, int>{};
-    for (final r in recent) {
-      final d = clock.dayIndex(at(r.read<int>('reviewed_at')));
-      activity[d] = (activity[d] ?? 0) + 1;
+    for (final b in all) {
+      if (b.bucket * kBucketMs < since) continue;
+      final d = clock.dayIndex(at(b.bucket * kBucketMs));
+      activity[d] = (activity[d] ?? 0) + b.n;
     }
 
     final spent = await one(
@@ -146,7 +145,7 @@ class StatsService {
       subjects.add(SubjectStat(r.read<int>('id'), r.read<String>('name'), i(r.data['cards']), i(r.data['mature']), i(r.data['due_now'])));
     }
 
-    final totals = await one('SELECT COUNT(*) AS n FROM review_log WHERE revoked_at IS NULL');
+    final totalReviews = await cache.total();
     final revisited = await one('SELECT COUNT(*) AS n FROM syllabus_item WHERE rounds >= 2');
     final matureTotal = i(mat['mature']);
     final answers = i(r30['answers']);
@@ -164,10 +163,10 @@ class StatsService {
       matureCards: matureTotal,
       suspendedCards: i(mat['susp']),
       forecast: forecast,
-      totalReviews: i(totals['n']),
+      totalReviews: totalReviews,
       subjects: subjects,
       milestones: milestonesFor(MilestoneInputs(
-        totalReviews: i(totals['n']),
+        totalReviews: totalReviews,
         bestStreak: streak.best,
         matureCards: matureTotal,
         subjectsStarted: subjects.where((s) => s.cards > 0).length,

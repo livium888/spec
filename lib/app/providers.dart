@@ -39,7 +39,7 @@ final statsServiceProvider =
 final queueServiceProvider =
     Provider((ref) => QueueService(ref.watch(dbProvider), ref.watch(settingsRepoProvider)));
 final importServiceProvider = Provider((ref) => ImportService(ref.watch(dbProvider)));
-final cardEditServiceProvider = Provider((ref) => CardEditService(ref.watch(dbProvider)));
+final cardEditServiceProvider = Provider((ref) => CardEditService(ref.watch(dbProvider), ref.watch(settingsRepoProvider)));
 final outlineServiceProvider = Provider((ref) => OutlineService(ref.watch(dbProvider)));
 final learnServiceProvider = Provider((ref) => LearnService(
     ref.watch(dbProvider), ref.watch(settingsRepoProvider), ref.watch(queueServiceProvider)));
