@@ -182,3 +182,12 @@ Intro; status card (built-in or personal settings, usable reviews, expected vs a
 | Applied / kept / reset | confirmation line (live region) |
 
 Today also shows a dismissible card ("Your memory model can be personalised" + the reason, See details / Later) only when a fit is due.
+
+## Diagnostics and phone check (Settings)
+Build card (label, built time, OS, counts, DB size, recent backups); 15 check rows, each with Works / Broken toggles (tap again to clear); Notes; Copy report; Errors section with the log tail (monospace, selectable), Clear. States: loading spinner; no errors ("No errors recorded."); error entries listed newest last.
+
+## Daily reminder (Settings)
+Switch "Remind me every day"; when on, a button "Around HH:MM" opens the time picker. States: off; on; permission refused (message in a live region, switch stays off).
+
+## Share in / out
+Prompt screen: "Send to my AI app" (share sheet). Anything shared to the app opens Import with the preview already showing; not-JSON text shows the normal "can't be imported" explanation; oversized text shows "too large" and does not open Import.

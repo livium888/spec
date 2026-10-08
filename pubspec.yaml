@@ -47,8 +47,13 @@ dependencies:
   saf_stream: ^4.0.2
   saf_util: ^3.1.1
   sqlite3: ^3.7.0
+  share_plus: ^13.3.1
+  flutter_local_notifications: ^22.3.1
+  timezone: ^0.11.1
+  flutter_timezone: ^5.1.1
 
 dev_dependencies:
+  flutter_launcher_icons: ^0.14.4
   flutter_test:
     sdk: flutter
 
@@ -110,3 +115,12 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
+# Regenerate the Android launcher icons with: dart run flutter_launcher_icons
+flutter_launcher_icons:
+  android: true
+  ios: false
+  image_path: assets/icon/icon.png
+  adaptive_icon_background: "#C2410C"
+  adaptive_icon_foreground: assets/icon/foreground.png
+  min_sdk_android: 24

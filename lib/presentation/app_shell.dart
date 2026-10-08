@@ -1,18 +1,61 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../app/providers.dart';
+import '../app/share_service.dart';
 import 'home_screen.dart';
+import 'import_screen.dart';
 import 'library_screen.dart';
 import 'progress_screen.dart';
 
 /// Three places: Today, Progress, Library. Settings lives in the Today header.
-class AppShell extends StatefulWidget {
+/// Also the one place that notices text shared into the app (an AI's answer) and opens the
+/// import preview for it, at launch and whenever the app comes back to the front.
+class AppShell extends ConsumerStatefulWidget {
   const AppShell({super.key});
   @override
-  State<AppShell> createState() => _AppShellState();
+  ConsumerState<AppShell> createState() => _AppShellState();
 }
 
-class _AppShellState extends State<AppShell> {
+class _AppShellState extends ConsumerState<AppShell> with WidgetsBindingObserver {
   int _index = 0;
+  bool _checking = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _checkShared());
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) _checkShared();
+  }
+
+  Future<void> _checkShared() async {
+    if (_checking || !mounted) return;
+    _checking = true;
+    try {
+      final text = await ref.read(shareInboxProvider).take();
+      if (text == null || text.trim().isEmpty || !mounted) return;
+      if (text.length > kMaxSharedChars) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('That shared text is too large to import. Copy the JSON instead.')));
+        return;
+      }
+      await Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => ImportScreen(initialText: text)));
+      if (mounted) ref.read(refreshProvider.notifier).bump();
+    } finally {
+      _checking = false;
+    }
+  }
 
   @override
   Widget build(BuildContext context) => Scaffold(

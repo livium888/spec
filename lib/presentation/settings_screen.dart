@@ -14,6 +14,7 @@ import '../domain/prompt_template.dart' show kMaxProfileChars;
 import 'diagnostics_screen.dart';
 import 'guide_screen.dart';
 import 'memory_model_screen.dart';
+import 'reminder_section.dart';
 import 'home_screen.dart' show pickBackupFolder;
 import 'subjects_screen.dart';
 
@@ -248,6 +249,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       .push(MaterialPageRoute<void>(builder: (_) => const DiagnosticsScreen())),
                 ),
                 const SizedBox(height: 16),
+                const ReminderSection(),
+                const SizedBox(height: 8),
                 Text('Backup', style: t.titleLarge),
                 const SizedBox(height: 8),
                 Text(_folder == null ? 'No folder chosen.' : 'Folder chosen. Weekly in the background, and on open if older than 7 days.'),

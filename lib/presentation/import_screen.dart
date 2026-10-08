@@ -9,7 +9,10 @@ import '../domain/outline_parser.dart';
 import '../domain/plan_parser.dart';
 
 class ImportScreen extends ConsumerStatefulWidget {
-  const ImportScreen({super.key});
+  const ImportScreen({super.key, this.initialText});
+
+  /// An answer that arrived through the share sheet: previewed straight away (never saved unseen).
+  final String? initialText;
   @override
   ConsumerState<ImportScreen> createState() => _ImportScreenState();
 }
@@ -23,6 +26,15 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
   bool _busy = false;
   String? _message;
 
+  @override
+  void initState() {
+    super.initState();
+    final shared = widget.initialText;
+    if (shared != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _previewShared(shared));
+    }
+  }
+
   /// Clipboard is read ONLY on this explicit tap (never automatically).
   Future<void> _paste() async {
     setState(() { _busy = true; _message = null; });
@@ -33,6 +45,27 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
         setState(() => _message = 'The clipboard is empty. Copy the LLM\'s JSON answer first.');
         return;
       }
+      await _previewText(text);
+    } catch (e) {
+      setState(() => _message = 'Could not read the clipboard: $e');
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _previewShared(String text) async {
+    setState(() { _busy = true; _message = null; });
+    try {
+      await _previewText(text);
+    } catch (e) {
+      if (mounted) setState(() => _message = 'Could not read the shared text: $e');
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _previewText(String text) async {
+    {
       final kind = detectPayloadKind(text);
       if (kind == 'plan') {
         final pl = await ref.read(outlineServiceProvider).previewPlan(text);
@@ -64,10 +97,6 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
           ..clear()
           ..addAll(p.importable.map((c) => c.index));
       });
-    } catch (e) {
-      setState(() => _message = 'Could not read the clipboard: $e');
-    } finally {
-      if (mounted) setState(() => _busy = false);
     }
   }
 
@@ -324,7 +353,7 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
             const Row(children: [
               Icon(Icons.help_outline, size: 16),
               SizedBox(width: 4),
-              Text('Unverified (low confidence or from memory)'),
+              Expanded(child: Text('Unverified (low confidence or from memory)')),
             ]),
         ]),
       ),

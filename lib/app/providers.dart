@@ -15,10 +15,12 @@ import '../data/optimizer_service.dart';
 import '../data/outline_service.dart';
 import '../data/params_repo.dart';
 import '../data/queue_service.dart';
+import '../data/reminder_service.dart';
 import '../data/review_service.dart';
 import '../data/settings_repo.dart';
 import '../data/stats_service.dart';
 import 'bootstrap.dart';
+import 'share_service.dart';
 
 /// Where bundled starter subjects are read from (overridden in tests).
 final assetBundleProvider = Provider<AssetBundle>((_) => rootBundle);
@@ -36,6 +38,9 @@ final dbProvider = NotifierProvider<DbNotifier, AppDatabase>(DbNotifier.new);
 
 final errorLogProvider = Provider((ref) =>
     ErrorLog(File(p.join(ref.watch(bootstrapProvider).dbFile.parent.path, 'error.log'))));
+final promptSharerProvider = Provider<PromptSharer>((_) => const SharePlusPromptSharer());
+final shareInboxProvider = Provider<ShareInbox>((_) => const ChannelShareInbox());
+final reminderBackendProvider = Provider<ReminderBackend>((_) => LocalNotificationsBackend());
 final settingsRepoProvider = Provider((ref) => SettingsRepo(ref.watch(dbProvider)));
 final paramsRepoProvider =
     Provider((ref) => ParamsRepo(ref.watch(dbProvider), ref.watch(settingsRepoProvider)));
@@ -47,6 +52,8 @@ final queueServiceProvider =
     Provider((ref) => QueueService(ref.watch(dbProvider), ref.watch(settingsRepoProvider)));
 final importServiceProvider = Provider((ref) => ImportService(ref.watch(dbProvider)));
 final cardEditServiceProvider = Provider((ref) => CardEditService(ref.watch(dbProvider), ref.watch(settingsRepoProvider)));
+final reminderServiceProvider =
+    Provider((ref) => ReminderService(ref.watch(settingsRepoProvider), ref.watch(reminderBackendProvider)));
 final optimizerServiceProvider = Provider((ref) => OptimizerService(
     ref.watch(dbProvider), ref.watch(settingsRepoProvider), ref.watch(paramsRepoProvider)));
 final outlineServiceProvider = Provider((ref) => OutlineService(ref.watch(dbProvider)));

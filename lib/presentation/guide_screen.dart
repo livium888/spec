@@ -62,11 +62,11 @@ class GuideScreen extends StatelessWidget {
 
           heading('Learn something new, step by step'),
           step(1, 'Tap "Learn something new". You get a prompt.'),
-          step(2, 'Tap "Copy prompt".'),
-          step(3, 'Open your AI app, paste, send.'),
-          step(4, 'When it answers, copy the whole answer. It is a block of text that starts with { and ends with }.'),
-          step(5, 'Back in this app tap "Paste the answer", then "Paste from clipboard". You see a preview of what will be added. '
-              'Untick anything you do not want, then confirm.'),
+          step(2, 'Tap "Send to my AI app" and pick your AI. (Or tap "Copy prompt" and paste it there yourself.)'),
+          step(3, 'Send it. When the AI answers, tap Share on its answer and choose Daily Learning. The preview opens by itself. '
+              '(Or copy the answer: it is a block of text that starts with { and ends with }.)'),
+          step(4, 'Copied it? Back in this app tap "Paste the answer", then "Paste from clipboard".'),
+          step(5, 'You see a preview of what will be added. Untick anything you do not want, then confirm.'),
           para('The new cards join your reviews. That is all.'),
 
           heading('Three kinds of prompt'),
@@ -94,6 +94,10 @@ class GuideScreen extends StatelessWidget {
           para('While reviewing, tap the pencil to edit or delete the card on screen. Or open Library > Browse, edit or delete cards '
               'to search for any card. Editing changes only the words, never when the card is due. Deleting is permanent and also removes that card\'s review history. '
               'To rest a card without losing it, tap the pause icon (suspend).'),
+
+          heading('Daily reminder'),
+          para('Settings > Daily reminder: one short, friendly nudge a day at the time you choose. If you have already done today\'s reviews, '
+              'the next one is tomorrow. Some phones stop background reminders to save battery; if it does not appear, check the phone\'s battery settings for this app.'),
 
           heading('Making the cards fit you'),
           para('Settings > About you: a sentence or two (your job, your interests). It goes into the prompts so examples are about things you care about. '

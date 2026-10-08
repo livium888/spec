@@ -3,10 +3,12 @@ import 'dart:io';
 
 import 'package:daily_learning/app/bootstrap.dart';
 import 'package:daily_learning/app/providers.dart';
+import 'package:daily_learning/app/share_service.dart';
 import 'package:daily_learning/data/db/database.dart';
 import 'package:daily_learning/data/import_service.dart';
 import 'package:daily_learning/data/optimizer_service.dart';
 import 'package:daily_learning/data/params_repo.dart';
+import 'package:daily_learning/data/reminder_service.dart';
 import 'package:daily_learning/data/review_service.dart';
 import 'package:daily_learning/domain/fsrs_trainer.dart';
 import 'package:daily_learning/data/outline_service.dart';
@@ -81,6 +83,8 @@ void main() {
   guideWidgetTests();
   memoryModelWidgetTests();
   diagnosticsWidgetTests();
+  shareWidgetTests();
+  reminderWidgetTests();
   testWidgets('ONE press: Home -> prompt screen, no choosing, with the reasons and the advice', (t) async {
     final db = await boot(t, seed: true);
     expect(find.textContaining('Good time to learn'), findsOneWidget); // advice on Home
@@ -421,4 +425,120 @@ void diagnosticsWidgetTests() {
     expect(saved, contains('works'));
     await done(t, db);
   });
+}
+
+class FakeSharer implements PromptSharer {
+  final sent = <String>[];
+  @override
+  Future<void> send(String text, {String? title}) async => sent.add(text);
+}
+
+class FakeInbox implements ShareInbox {
+  final queue = <String?>[];
+  @override
+  Future<String?> take() async => queue.isEmpty ? null : queue.removeAt(0);
+}
+
+const _sharedCards = '{"domain":"Bio","syllabus_item":null,"cards":[{"type":"basic","front":"What powers the cell?",'
+    '"back":"Mitochondria","source_type":"model_memory","source_ref":"","supporting_quote":"","confidence":"high"}]}';
+
+void shareWidgetTests() {
+  testWidgets('prompt screen: "Send to my AI app" hands the whole prompt to the share sheet', (t) async {
+    final sharer = FakeSharer();
+    final db = await boot(t, seed: true, settings: {'guide_seen': '1'},
+        extra: [promptSharerProvider.overrideWithValue(sharer)]);
+    await t.tap(find.text('Learn something new'));
+    await until(t, find.text('Your prompt'));
+    await settle(t);
+    await t.tap(find.text('Send to my AI app'));
+    await settle(t);
+    expect(sharer.sent, hasLength(1));
+    expect(sharer.sent.single, contains('Cell membrane'));
+    expect(sharer.sent.single, contains('JSON'));
+    await done(t, db);
+  });
+
+  testWidgets('an answer shared into the app opens the preview by itself and saves nothing until confirmed', (t) async {
+    final inbox = FakeInbox()..queue.add(_sharedCards);
+    final db = await boot(t, settings: {'guide_seen': '1'}, extra: [shareInboxProvider.overrideWithValue(inbox)]);
+    await until(t, find.text('Import 1 card'));
+    await settle(t);
+    expect(find.text('Import cards'), findsOneWidget);
+    expect(find.text('What powers the cell?'), findsOneWidget);
+    expect((await t.runAsync(() => db.select(db.cards).get()))!, isEmpty); // preview only
+    await t.tap(find.text('Import 1 card'));
+    await until(t, find.textContaining('Imported 1 notes'));
+    expect((await t.runAsync(() => db.select(db.cards).get()))!, hasLength(1));
+    await done(t, db);
+  });
+
+  testWidgets('a share that arrives while the app is open is picked up when it returns to the front', (t) async {
+    final inbox = FakeInbox();
+    final db = await boot(t, settings: {'guide_seen': '1'}, extra: [shareInboxProvider.overrideWithValue(inbox)]);
+    expect(find.text('Import cards'), findsNothing);
+    inbox.queue.add(_sharedCards);
+    t.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+    t.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+    t.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await until(t, find.text('Import 1 card'));
+    expect(find.text('Import 1 card'), findsOneWidget);
+    await done(t, db);
+  });
+
+  testWidgets('text that is not JSON is explained, not imported; oversized shares are refused', (t) async {
+    final inbox = FakeInbox()..queue.add('Sure! Here are your cards: …');
+    final db = await boot(t, settings: {'guide_seen': '1'}, extra: [shareInboxProvider.overrideWithValue(inbox)]);
+    await until(t, find.textContaining('This can'));
+    await settle(t);
+    expect(find.textContaining('Not valid JSON'), findsOneWidget);
+    expect((await t.runAsync(() => db.select(db.cards).get()))!, isEmpty);
+    await t.pageBack();
+    await settle(t);
+    inbox.queue.add('x' * (kMaxSharedChars + 1));
+    t.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+    t.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await until(t, find.textContaining('too large'));
+    expect(find.textContaining('too large'), findsOneWidget);
+    expect(find.text('Import cards'), findsNothing);
+    await done(t, db);
+  });
+}
+
+void reminderWidgetTests() {
+  testWidgets('Settings: turning the reminder on schedules it; refusing the permission keeps it off with a reason', (t) async {
+    final backend = _WidgetBackend();
+    final db = await boot(t, settings: {'guide_seen': '1'}, extra: [reminderBackendProvider.overrideWithValue(backend)]);
+    await t.tap(find.byTooltip('Settings and backup'));
+    await settle(t);
+    await t.dragUntilVisible(find.text('Remind me every day'), find.byType(ListView).first, const Offset(0, -200));
+    backend.allow = false;
+    await t.tap(find.text('Remind me every day'));
+    await settle(t);
+    expect(find.textContaining('blocked'), findsOneWidget);
+    expect(backend.scheduled, isEmpty);
+
+    backend.allow = true;
+    await t.tap(find.text('Remind me every day'));
+    await settle(t);
+    expect(backend.scheduled, hasLength(1));
+    expect(backend.scheduled.single.hour, 19);
+    expect(find.textContaining('Around 19:00'), findsOneWidget);
+
+    await t.tap(find.text('Remind me every day'));
+    await settle(t);
+    expect(backend.cancels, 1);
+    await done(t, db);
+  });
+}
+
+class _WidgetBackend implements ReminderBackend {
+  bool allow = true;
+  final scheduled = <DateTime>[];
+  int cancels = 0;
+  @override
+  Future<bool> requestPermission() async => allow;
+  @override
+  Future<void> scheduleDaily(DateTime firstLocal, String title, String body) async => scheduled.add(firstLocal);
+  @override
+  Future<void> cancel() async => cancels++;
 }

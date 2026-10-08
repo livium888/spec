@@ -39,12 +39,18 @@ class HomeData {
 final homeDataProvider = FutureProvider.autoDispose<HomeData>((ref) async {
   ref.watch(refreshProvider);
   final settings = ref.watch(settingsRepoProvider);
+  final queue = await ref.watch(queueServiceProvider).build();
+  final stats = await ref.watch(statsServiceProvider).compute();
+  // Keep tomorrow's reminder right: once today's reviews are done, skip today's.
+  final doneToday = queue.learning.isEmpty && queue.reviews.isEmpty && stats.todayAnswered > 0;
+  final reminders = ref.watch(reminderServiceProvider);
+  reminders.refresh(doneToday: doneToday).ignore(); // fire and forget; it never throws
   return HomeData(
-    await ref.watch(queueServiceProvider).build(),
+    queue,
     await settings.getInt(BackupService.lastSuccessKey, 0),
     await settings.get(SettingsRepo.backupTreeUri) != null,
     await ref.watch(learnServiceProvider).advice(),
-    await ref.watch(statsServiceProvider).compute(),
+    stats,
     guideSeen: await settings.get(SettingsRepo.guideSeen) != null,
     modelNudge: await _modelNudge(ref),
   );

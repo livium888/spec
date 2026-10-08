@@ -79,14 +79,14 @@ class PromptResultScreen extends ConsumerWidget {
           SoftCard(
             child: Column(children: [
               for (final (i, step) in [
-                'Copy the prompt.',
-                'Paste it into Claude, Gemini, ChatGPT, DeepSeek or any LLM.',
+                'Tap "Send to my AI app" and pick your AI (or copy the prompt and paste it there).',
+                'Send it. When the AI answers, tap Share on its answer and choose Daily Learning (or copy the answer).',
                 switch (prompt.kind) {
                   PromptKind.cards => 'Copy the JSON it answers with: a set of cards.',
                   PromptKind.outline => 'Copy the JSON it answers with: a list of topics.',
                   PromptKind.plan => 'Copy the JSON it answers with: several new subjects, each with topics.',
                 },
-                'Come back and tap "Paste the answer". You see a preview and choose what to keep.',
+                'Shared it? The preview opens by itself. Copied it? Tap "Paste the answer". Either way you see a preview and choose what to keep.',
               ].indexed)
                 Padding(
                   padding: EdgeInsets.only(bottom: i == 3 ? 0 : 10),
@@ -114,6 +114,22 @@ class PromptResultScreen extends ConsumerWidget {
               if (context.mounted) {
                 ScaffoldMessenger.of(context)
                     .showSnackBar(const SnackBar(content: Text('Copied. Paste it into your LLM.')));
+              }
+            },
+          ),
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(56)),
+            icon: const Icon(Icons.ios_share),
+            label: const Text('Send to my AI app'),
+            onPressed: () async {
+              try {
+                await ref.read(promptSharerProvider).send(prompt.text, title: prompt.headline);
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Could not open the share sheet ($e). Use "Copy prompt" instead.')));
+                }
               }
             },
           ),
