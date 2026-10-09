@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'import_parser.dart' show normalizeText, stripCodeFence;
+import 'import_parser.dart' show normalizeText, stripCitationMarkers, stripCodeFence;
 import 'outline_parser.dart';
 
 /// Several subjects, each with an outline, in one answer (the "map" prompt's reply).
@@ -29,7 +29,7 @@ class PlanPreview {
 PlanPreview parsePlanJson(String raw) {
   Object? decoded;
   try {
-    decoded = jsonDecode(stripCodeFence(raw));
+    decoded = jsonDecode(stripCitationMarkers(stripCodeFence(raw)));
   } on FormatException catch (e) {
     return PlanPreview(subjects: [], fatalErrors: ['Not valid JSON: ${e.message}']);
   }

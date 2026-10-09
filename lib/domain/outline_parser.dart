@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'import_parser.dart' show normalizeText, stripCodeFence;
+import 'import_parser.dart' show normalizeText, stripCitationMarkers, stripCodeFence;
 
 /// Outline = ordered list of topics (syllabus items) with prerequisites.
 /// UNTRUSTED LLM output: strictly validated, length-capped, never evaluated.
@@ -49,7 +49,7 @@ class OutlinePreview {
 /// subject's topics) or 'cards'.
 String detectPayloadKind(String raw) {
   try {
-    final d = jsonDecode(stripCodeFence(raw));
+    final d = jsonDecode(stripCitationMarkers(stripCodeFence(raw)));
     if (d is Map && d.containsKey('image_keywords') && !d.containsKey('cards')) return 'keywords';
     if (d is Map && d.containsKey('subjects') && !d.containsKey('cards')) return 'plan';
     if (d is Map && d.containsKey('items') && !d.containsKey('cards')) return 'outline';
@@ -60,7 +60,7 @@ String detectPayloadKind(String raw) {
 OutlinePreview parseOutlineJson(String raw) {
   Object? decoded;
   try {
-    decoded = jsonDecode(stripCodeFence(raw));
+    decoded = jsonDecode(stripCitationMarkers(stripCodeFence(raw)));
   } on FormatException catch (e) {
     return OutlinePreview(domain: '', items: [], fatalErrors: ['Not valid JSON: ${e.message}']);
   }

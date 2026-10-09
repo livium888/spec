@@ -42,7 +42,7 @@ const kPhoneCheck = <PhoneCheckItem>[
   PhoneCheckItem('keywords', 'Image keywords for older cards',
       'Library > Image keywords for older cards. Send the prompt to your AI, share its answer back (or paste it), check the preview, add. Then edit one of those cards: the Image keywords box is filled in.'),
   PhoneCheckItem('reading', 'Reading list',
-      'Import cards from an AI (prompt v5). Library > Go deeper: suggestions appear. Tap Check it exists (agree), see Listed in Open Library, then Look it up: a tab opens over the app and Back returns to the list.'),
+      'Import cards from an AI (prompt v6). Library > Go deeper: suggestions appear. Tap Check it exists (agree), see Listed in Open Library, then Look it up: a tab opens over the app and Back returns to the list.'),
   PhoneCheckItem('speech', 'Read aloud',
       'Subjects and topics > Read cards aloud: pick a language. In a review tap the speaker. If there is no voice, the message says how to install one.'),
   PhoneCheckItem('reminder', 'Daily reminder', 'Turn it on, set a time two minutes ahead, wait for it, tap it.'),

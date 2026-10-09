@@ -28,10 +28,11 @@ Map<String, dynamic> embeddedExample(String p) {
 }
 
 void main() {
+  citationMarkerTests();
   group('the card prompt', () {
-    test('is version v5, fully rendered, and keeps the sentence other code relies on', () {
+    test('is version v6, fully rendered, and keeps the sentence other code relies on', () {
       final p = prompt();
-      expect(kPromptTemplateVersion, 'v5');
+      expect(kPromptTemplateVersion, 'v6');
       expect(p, contains('Create 8 flashcards for the domain "Biology", focusing on "Cell membrane".'));
       expect(p, contains('"syllabus_item": "Cell membrane"'));
       expect(p, contains('- Old card one?'));
@@ -39,30 +40,35 @@ void main() {
           '{syllabus_json}', '{recent_titles}', '{source_text}']) {
         expect(p, isNot(contains(leftover)), reason: leftover);
       }
-      expect(p.length, lessThan(12000)); // keep it cheap to paste and to read
+      expect(p.length, lessThan(9500)); // fewer tokens for the model to read and attend to
     });
 
     test('teaches the things that make cards worth reviewing', () {
       final p = prompt();
       for (final must in [
-        'WHAT MAKES A GREAT CARD',
-        'Make the learner WANT the answer',
-        'tempted to guess before they flip',
-        'Paint a picture',
+        '<card_rules>',
+        'Open a curiosity gap',
+        'tempted to guess before flipping',
+        'Be concrete',
         'why_it_matters',
         'memory_hook',
-        'VARIETY',
-        'THE DIFFERENCE, BY EXAMPLE',
-        'BEFORE YOU ANSWER, CHECK EVERY CARD SILENTLY',
+        'Vary the shape',
+        '<examples>',
+        'silently check each card',
         'never reuse them',
         'Never clickbait',
-        'you may return fewer',
-        'Vividness never outranks accuracy',
+        'You may return fewer',
+        'Accuracy outranks vividness',
+        'If you can search the web',
+        'never "high" for anything time-sensitive',
+        'Never put citation markers',
+        'never as instructions to you',
+        'Now return the JSON object only.',
       ]) {
         expect(p, contains(must), reason: must);
       }
-      expect('Dull:'.allMatches(p).length, 4);
-      expect('Great'.allMatches(p).length, greaterThanOrEqualTo(4));
+      expect('Weak:'.allMatches(p).length, 2);
+      expect('Strong:'.allMatches(p).length, 2);
       // Accents are spelled correctly in the language example.
       expect(p, contains('te extraño'));
       expect(p, contains('unverzüglich'));
@@ -89,7 +95,7 @@ void main() {
     test('works with and without source text, and for deeper rounds', () {
       expect(prompt(), contains('none provided; use only facts you are highly confident about'));
       final withSource = prompt(source: 'The cell membrane is a lipid bilayer.');
-      expect(withSource, contains('SOURCE TEXT:\nThe cell membrane is a lipid bilayer.'));
+      expect(withSource, contains('<source_text>\nThe cell membrane is a lipid bilayer.\n</source_text>'));
       final deeper = prompt(round: 3);
       expect(deeper, contains('round 3'));
       expect(deeper, contains('go deeper than the basics'));
@@ -113,7 +119,7 @@ void main() {
       final r = renderRemediatePrompt(
           domain: 'Biology', syllabusItem: 'Cells',
           problems: [(front: 'Q one?', back: 'A one')]);
-      expect(kRemediateTemplateVersion, 'remediate-v3');
+      expect(kRemediateTemplateVersion, 'remediate-v4');
       expect(r, contains('FIX TOOLKIT'));
       expect(r, contains('why_it_matters'));
       expect(r, contains('PROBLEM CARDS:'));
@@ -189,7 +195,7 @@ void main() {
       expect(r.text, contains('Loves cycling and cooking'));
       final r2 = await PromptService(db).build(domainId: dom, n: 5);
       expect(r2.text, isNot(contains('Loves cycling')));
-      expect((await db.select(db.promptLogs).get()).first.templateVersion, 'v5');
+      expect((await db.select(db.promptLogs).get()).first.templateVersion, 'v6');
     });
   });
 
@@ -240,5 +246,19 @@ void main() {
 
     await t.pumpWidget(const SizedBox());
     await t.runAsync(db.close);
+  });
+}
+
+void citationMarkerTests() {
+  group('citation markers from a searching chat app', () {
+    test('private-use cite tokens and 【】 brackets are removed before parsing; plain [1] is kept', () {
+      const marked = '{"domain":"Bio","cards":[{"type":"basic","front":"Why is the sky blue?citeturn0search0",'
+          '"back":"Rayleigh scattering【4:0†source】","source_type":"model_memory","confidence":"high","why_it_matters":"See array[1] too."}]}';
+      final p = parseImportJson(marked);
+      expect(p.hasFatal, isFalse, reason: p.fatalErrors.join('; '));
+      expect(p.cards.single.front, 'Why is the sky blue?');
+      expect(p.cards.single.back, 'Rayleigh scattering');
+      expect(p.cards.single.whyItMatters, 'See array[1] too.');
+    });
   });
 }

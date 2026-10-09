@@ -311,7 +311,7 @@ void main() {
       expect(g3.text, contains('PROBLEM CARDS'));
       expect(g3.text, contains('Cell membrane (basics) number'));
       final logs = await db.select(db.promptLogs).get();
-      expect(logs.last.templateVersion, 'remediate-v3');
+      expect(logs.last.templateVersion, 'remediate-v4');
       // An unimported prompt is surfaced instead of silently piling up.
       expect((await learn.view(now: d3.add(const Duration(hours: 1)))).pending?.id, g3.logId);
       // ...and stops being "pending" after a day.
@@ -322,7 +322,7 @@ void main() {
       final g = await learn.outlinePrompt('Spanish', goal: 'travel conversation', now: d1);
       expect(g.text, contains('learning outline for the subject "Spanish"'));
       expect(g.text, contains('travel conversation'));
-      expect((await db.select(db.promptLogs).getSingle()).templateVersion, 'outline-v2');
+      expect((await db.select(db.promptLogs).getSingle()).templateVersion, 'outline-v3');
       expect((await learn.view(now: d1)).pending?.isOutline, isTrue);
 
       final p = await out.preview(outline([topic('Greetings'), topic('Numbers')], domain: 'spanish'));

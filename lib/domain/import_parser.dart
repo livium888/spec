@@ -112,11 +112,19 @@ String stripCodeFence(String raw) {
   return m != null ? m.group(1)!.trim() : t;
 }
 
+/// Chat apps that search the web can leave reference markers inside the text they write: private-use
+/// "cite" tokens (U+E200 ... U+E201) and 【...】 brackets. They can never be JSON structure, only
+/// part of a string, so removing them is safe. Plain "[1]" is left alone (it can be real card text).
+String stripCitationMarkers(String raw) => raw
+    .replaceAll(RegExp('\uE200[^\uE201]*\uE201'), '')
+    .replaceAll(RegExp('【[^】]*】'), '')
+    .replaceAll(RegExp('[\uE000-\uF8FF]'), '');
+
 ImportPreview parseImportJson(String raw) {
   final fatal = <String>[];
   Object? decoded;
   try {
-    decoded = jsonDecode(stripCodeFence(raw));
+    decoded = jsonDecode(stripCitationMarkers(stripCodeFence(raw)));
   } on FormatException catch (e) {
     return ImportPreview(
         domain: '', syllabusItem: null, cards: [], fatalErrors: ['Not valid JSON: ${e.message}']);

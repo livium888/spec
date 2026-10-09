@@ -10,7 +10,7 @@ library;
 import 'dart:convert';
 
 import 'commons.dart';
-import 'import_parser.dart' show stripCodeFence;
+import 'import_parser.dart' show stripCitationMarkers, stripCodeFence;
 
 const kKeywordsTemplateVersion = 'keywords-v1';
 
@@ -80,7 +80,7 @@ class KeywordsPreview {
 KeywordsPreview parseKeywordsJson(String raw) {
   Object? decoded;
   try {
-    decoded = jsonDecode(stripCodeFence(raw));
+    decoded = jsonDecode(stripCitationMarkers(stripCodeFence(raw)));
   } on FormatException catch (e) {
     return KeywordsPreview(entries: const [], fatalErrors: ['Not valid JSON: ${e.message}']);
   }
