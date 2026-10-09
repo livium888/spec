@@ -72,6 +72,13 @@ class FakeFetcher extends SafeFetcher {
   }
 }
 
+class ThumbsFail extends FakeFinder {
+  ThumbsFail({super.results});
+  @override
+  Future<Uint8List> download(String url, {required int maxBytes}) async =>
+      throw PictureFinderException('Wikimedia Commons answered with an error (403).');
+}
+
 /// A finder that never goes online.
 class FakeFinder implements PictureFinder {
   FakeFinder({this.results = const [], this.error});
@@ -241,7 +248,13 @@ void main() {
             switch (req.uri.path) {
               case '/ok':
                 req.response.add(png);
-              case '/redirect':
+              case '/hop':
+              req.response.statusCode = 302;
+              req.response.headers.set('location', '/ok'); // same host: allowed
+            case '/loop':
+              req.response.statusCode = 302;
+              req.response.headers.set('location', '/loop');
+            case '/redirect':
                 req.response.statusCode = 302;
                 req.response.headers.set(
                   'location',
@@ -282,6 +295,11 @@ void main() {
           utf8.decode(await f.get(u('/ua'), maxBytes: 1000)),
           startsWith('DailyLearning/'),
         );
+      });
+
+      test('follows a redirect that stays on an allowed host, but not forever', () async {
+        expect(await f.get(u('/hop'), maxBytes: 1000), png);
+        await expectLater(f.get(u('/loop'), maxBytes: 1000), throwsA(isA<PictureFinderException>()));
       });
 
       test('does not follow a redirect off the allowed hosts', () async {
@@ -562,6 +580,12 @@ void main() {
         expect(find.text('open'), findsOneWidget); // the screen closed
       },
     );
+
+    testWidgets('when thumbnails cannot load, each tile says why and can still be opened', (t) async {
+      await open(t, ThumbsFail(results: [candidate('File:Wave.png')]));
+      expect(find.textContaining('No preview: Wikimedia Commons answered with an error (403).'), findsOneWidget);
+      expect(find.text('Wave'), findsOneWidget);
+    });
 
     testWidgets(
       'no results, and no connection, each say so and offer to try again',

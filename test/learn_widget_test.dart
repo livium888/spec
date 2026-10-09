@@ -836,7 +836,11 @@ void phase3WidgetTests() {
     expect(find.text('Look for a picture online?'), findsOneWidget);
     await t.tap(find.text('Allow'));
     await settle(t);
-    expect(finder.searches, hasLength(1));
+    expect(finder.searches, isEmpty); // this card has no AI hint: the box starts empty, nothing is guessed
+    await t.enterText(find.widgetWithText(TextField, ''), 'Hokusai Great Wave');
+    await t.tap(find.byTooltip('Search'));
+    await settle(t);
+    expect(finder.searches, ['Hokusai Great Wave']);
     await t.tap(find.text('Wave'));
     await settle(t);
     await t.tap(find.text('Use this picture'));

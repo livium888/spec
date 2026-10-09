@@ -82,11 +82,30 @@ class _FindPictureScreenState extends ConsumerState<FindPictureScreen> {
         _phase = r.isEmpty ? _Phase.empty : _Phase.results;
       });
     } on PictureFinderException catch (e) {
+      _log('Find a picture: search failed: ${e.message}', null, where: 'find_picture');
       if (mounted && serial == _searchSerial) setState(() { _phase = _Phase.error; _message = e.message; });
     } catch (e) {
       if (mounted && serial == _searchSerial) {
         setState(() { _phase = _Phase.error; _message = 'The search failed. Check your connection and try again.'; });
       }
+    }
+  }
+
+  /// Kept in the local error log so "Copy report" (Settings > Diagnostics) carries the reason.
+  /// The log must never be the thing that breaks the screen.
+  void _log(Object error, StackTrace? st, {String where = ''}) {
+    try {
+      ref.read(errorLogProvider).record(error, st, where: where);
+    } catch (_) {}
+  }
+
+  Future<Uint8List> _loadThumb(PictureCandidate c) async {
+    try {
+      return await _finder.download(c.thumbUrl, maxBytes: 400000);
+    } catch (e, st) {
+      // Kept in the local error log so "Copy report" (Settings > Diagnostics) carries the reason.
+      _log('Find a picture: thumbnail failed: $e (${Uri.tryParse(c.thumbUrl)?.host})', st, where: 'find_picture');
+      rethrow;
     }
   }
 
@@ -104,8 +123,10 @@ class _FindPictureScreenState extends ConsumerState<FindPictureScreen> {
         _phase = _Phase.preview;
       });
     } on PictureFinderException catch (e) {
+      _log('Find a picture: download failed: ${e.message}', null, where: 'find_picture');
       if (mounted) setState(() { _phase = _Phase.error; _message = e.message; });
-    } catch (e) {
+    } catch (e, st) {
+      _log(e, st, where: 'find_picture');
       if (mounted) setState(() { _phase = _Phase.error; _message = 'Could not get that picture. Try another one.'; });
     }
   }
@@ -199,7 +220,7 @@ class _FindPictureScreenState extends ConsumerState<FindPictureScreen> {
   Widget _tile(BuildContext context, PictureCandidate c) {
     final t = Theme.of(context).textTheme;
     final scheme = Theme.of(context).colorScheme;
-    final fut = _thumbs.putIfAbsent(c.thumbUrl, () => _finder.download(c.thumbUrl, maxBytes: 400000));
+    final fut = _thumbs.putIfAbsent(c.thumbUrl, () => _loadThumb(c));
     return Semantics(
       button: true,
       label: 'Picture: ${c.label}',
@@ -217,7 +238,18 @@ class _FindPictureScreenState extends ConsumerState<FindPictureScreen> {
                 future: fut,
                 builder: (_, snap) {
                   if (snap.hasData) return Image.memory(snap.data!, fit: BoxFit.cover, gaplessPlayback: true);
-                  if (snap.hasError) return const Center(child: Icon(Icons.broken_image_outlined));
+                  if (snap.hasError) {
+                    // Say why, so a failure can be reported and fixed (it is also in the phone-check report).
+                    final why = snap.error is PictureFinderException ? (snap.error as PictureFinderException).message : '${snap.error}';
+                    return Padding(
+                      padding: const EdgeInsets.all(8),
+                      child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                        const Icon(Icons.broken_image_outlined),
+                        const SizedBox(height: 4),
+                        Text('No preview: $why', style: t.labelSmall, maxLines: 4, overflow: TextOverflow.ellipsis, textAlign: TextAlign.center),
+                      ]),
+                    );
+                  }
                   return const Center(child: SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2)));
                 },
               ),

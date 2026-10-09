@@ -85,13 +85,9 @@ class _EditCardScreenState extends ConsumerState<EditCardScreen> {
     }
   }
 
-  /// What to search for: the AI's hint if the card has one, else the start of the question.
-  String _suggestedQuery() {
-    final hint = cleanImageQuery(_note?.fields['image_query']);
-    if (hint != null) return hint;
-    final text = (_ctl['front'] ?? _ctl['cloze'])?.text ?? '';
-    return cleanImageQuery(text.replaceAll(RegExp(r'\{\{c\d+::([^}]*?)(::[^}]*)?\}\}'), r'$1').split(RegExp(r'[.?!]')).first) ?? '';
-  }
+  /// What to search for: only the AI's `image_query` hint. A guess from the question text gave
+  /// nonsense ("According to E"), so without a hint the box starts empty for the learner to fill.
+  String _suggestedQuery() => cleanImageQuery(_note?.fields['image_query']) ?? '';
 
   /// The first online step in the app, so it asks once and says exactly what leaves the phone.
   Future<bool> _consentToOnline() async {

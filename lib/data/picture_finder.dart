@@ -54,8 +54,33 @@ class SafeFetcher {
     return u;
   }
 
+  /// At most this many downloads run at once (a results grid asks for eight thumbnails; Wikimedia
+  /// asks clients to be gentle).
+  static const maxParallel = 3;
+  int _running = 0;
+  final _waiting = <Completer<void>>[];
+
+  Future<void> _enter() async {
+    if (_running < maxParallel) {
+      _running++;
+      return;
+    }
+    final c = Completer<void>();
+    _waiting.add(c);
+    await c.future; // the slot is handed over by _leave
+  }
+
+  void _leave() {
+    if (_waiting.isNotEmpty) {
+      _waiting.removeAt(0).complete();
+    } else {
+      _running--;
+    }
+  }
+
   Future<Uint8List> get(String url, {required int maxBytes}) async {
     final uri = checked(url);
+    await _enter();
     final client = _clientFactory()
       ..connectionTimeout = const Duration(seconds: 10)
       ..userAgent = userAgent;
@@ -73,14 +98,31 @@ class SafeFetcher {
       throw PictureFinderException('The download failed: ${e.message}');
     } finally {
       client.close(force: true);
+      _leave();
     }
   }
 
+  /// Redirects are followed by hand, at most [maxRedirects] times, and EVERY hop must pass the
+  /// same host check, so a redirect can never lead off the allowed hosts.
+  static const maxRedirects = 3;
+
   Future<Uint8List> _read(HttpClient client, Uri uri, int maxBytes) async {
-    final req = await client.getUrl(uri);
-    req.followRedirects = false; // a redirect could lead off the allowed hosts
-    req.headers.set(HttpHeaders.acceptHeader, 'application/json, image/jpeg, image/png, image/webp');
-    final res = await req.close();
+    var target = uri;
+    HttpClientResponse res;
+    for (var hop = 0;; hop++) {
+      final req = await client.getUrl(target);
+      req.followRedirects = false;
+      req.headers.set(HttpHeaders.acceptHeader, 'application/json, image/jpeg, image/png, image/webp, */*;q=0.1');
+      res = await req.close();
+      final redirect = const {301, 302, 303, 307, 308}.contains(res.statusCode);
+      if (!redirect) break;
+      final location = res.headers.value(HttpHeaders.locationHeader);
+      await res.drain<void>().catchError((_) {});
+      if (location == null || hop >= maxRedirects) {
+        throw PictureFinderException('Wikimedia Commons sent the app somewhere unexpected (${res.statusCode}).');
+      }
+      target = checked(target.resolve(location).toString());
+    }
     if (res.statusCode == 429) {
       await res.drain<void>();
       throw PictureFinderException('Wikimedia is asking apps to slow down. Wait a minute and try again.');
