@@ -98,13 +98,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     if (n == null || n < 0 || n > kMaxNewPerDay) err = 'New cards per day: any whole number from 0 to $kMaxNewPerDay.';
     if (pp == null || pp < 1 || pp > 200) err = 'Cards per prompt must be 1-200 (an AI cannot answer with more than 200 cards at once).';
     if (d == null || d < 1) err = 'Backlog divisor must be 1 or more.';
-    if (r == null || r < 0.7 || r > 0.99) err = 'Desired retention must be between 0.70 and 0.99.';
+    if (r == null || r < 0.7 || r > 0.99) err = 'How much to remember must be between 0.70 and 0.99.';
     if (h == null || h < 0 || h > 23) err = 'Day rollover hour must be 0-23.';
     if (mins == null || mins < 5 || mins > 1440) err = 'Daily study time must be 5-1440 minutes.';
     if (rev == null || rev < 1 || rev > 24) err = 'First revisit delay must be 1-24 months.';
     if (_profile.text.length > kMaxProfileChars) err = 'Keep "About you" under $kMaxProfileChars characters.';
-    if (ls == null) err = 'Learning steps: minutes separated by commas, e.g. 1,10.';
-    if (rs == null) err = 'Relearning steps: minutes separated by commas, e.g. 10.';
+    if (ls == null) err = 'Steps for new cards: minutes separated by commas, e.g. 1,10.';
+    if (rs == null) err = 'Steps after forgetting: minutes separated by commas, e.g. 10.';
     if (err != null) {
       setState(() => _msg = err);
       return;
@@ -244,20 +244,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   onPressed: () => Navigator.of(context)
                       .push(MaterialPageRoute<void>(builder: (_) => const GuideScreen())),
                 ),
-                const SizedBox(height: 8),
-                OutlinedButton.icon(
-                  icon: const Icon(Icons.psychology_outlined),
-                  label: const Text('Memory model: fit to my reviews'),
-                  onPressed: () => Navigator.of(context)
-                      .push(MaterialPageRoute<void>(builder: (_) => const MemoryModelScreen())),
-                ),
-                const SizedBox(height: 8),
-                OutlinedButton.icon(
-                  icon: const Icon(Icons.bug_report_outlined),
-                  label: const Text('Diagnostics and phone check'),
-                  onPressed: () => Navigator.of(context)
-                      .push(MaterialPageRoute<void>(builder: (_) => const DiagnosticsScreen())),
-                ),
                 const SizedBox(height: 16),
                 const ReminderSection(),
                 const SizedBox(height: 8),
@@ -314,9 +300,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   onChanged: (v) => setState(() => _shrink = v),
                 ),
                 if (_shrink) field(_divisor, 'Reviews per card taken off the limit'),
-                field(_retention, 'Desired retention', help: '0.90 = aim to remember 90% at review time.'),
-                field(_steps, 'Learning steps (minutes)', number: false, help: 'e.g. 1,10'),
-                field(_relearn, 'Relearning steps (minutes)', number: false, help: 'e.g. 10'),
+                field(_retention, 'How much to remember (target recall)', help: '0.90 = aim to remember 90% at review time.'),
+                field(_steps, 'Steps for new cards (minutes)', number: false, help: 'e.g. 1,10'),
+                field(_relearn, 'Steps after forgetting (minutes)', number: false, help: 'e.g. 10'),
                 field(_rollover, 'Day rolls over at (hour, local)', help: '4 = 04:00'),
                 Padding(
                   padding: const EdgeInsets.only(bottom: 12),
@@ -337,6 +323,28 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ),
                 field(_revisit, 'Bring finished topics back after (months)', help: 'First delay; each later round waits twice as long (3, 6, 12, 24 ... up to 12 years).'),
                 field(_minutes, 'Daily study time (minutes)', help: 'Only used to estimate your review time and to give advice. It never limits you.'),
+                const Divider(height: 40),
+                ExpansionTile(
+                  tilePadding: EdgeInsets.zero,
+                  title: Text('Advanced', style: t.titleLarge),
+                  subtitle: const Text('Memory model and phone check'),
+                  children: [
+                                OutlinedButton.icon(
+                  icon: const Icon(Icons.psychology_outlined),
+                  label: const Text('Memory model: fit to my reviews'),
+                  onPressed: () => Navigator.of(context)
+                      .push(MaterialPageRoute<void>(builder: (_) => const MemoryModelScreen())),
+                ),
+                const SizedBox(height: 8),
+                OutlinedButton.icon(
+                  icon: const Icon(Icons.bug_report_outlined),
+                  label: const Text('Diagnostics and phone check'),
+                  onPressed: () => Navigator.of(context)
+                      .push(MaterialPageRoute<void>(builder: (_) => const DiagnosticsScreen())),
+                ),
+                  ],
+                ),
+                const SizedBox(height: 12),
                 FilledButton(
                     style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(56)),
                     onPressed: _saveSettings,

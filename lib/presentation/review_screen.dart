@@ -391,7 +391,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
         CardState.newCard => 'New',
         CardState.learning => 'Learning',
         CardState.review => 'Review',
-        CardState.relearning => 'Relearning',
+        CardState.relearning => 'Forgotten',
       };
 
   Widget _cardView(BuildContext context, StudyCard card, bool reduce) {
@@ -425,7 +425,6 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                   Wrap(spacing: 8, runSpacing: 6, crossAxisAlignment: WrapCrossAlignment.center, children: [
                     if (name.isNotEmpty) _Tag(icon: style.icon, text: name, fg: style.strong, bg: style.tint),
                     _Tag(text: _stateLabel(card), fg: c.inkSoft, bg: c.surfaceDim),
-                    if (card.unverified) _Tag(icon: Icons.help_outline, text: 'Unverified', fg: c.warn, bg: c.warnTint),
                     if (_speech[card.domainId] != null)
                       Semantics(
                         button: true,

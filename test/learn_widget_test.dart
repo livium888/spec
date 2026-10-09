@@ -337,7 +337,8 @@ void memoryModelWidgetTests() {
     final db = await boot(t, settings: {'guide_seen': '1'});
     await t.tap(find.byTooltip('Settings and backup'));
     await settle(t);
-    await t.tap(find.text('Memory model: fit to my reviews'));
+    await tapSettingsEntry(t, 'Advanced');
+    await tapSettingsEntry(t, 'Memory model: fit to my reviews');
     await until(t, find.text('Using: the built-in settings'));
     await settle(t);
     expect(find.textContaining('Not yet'), findsOneWidget);
@@ -416,8 +417,8 @@ void diagnosticsWidgetTests() {
 
     await t.tap(find.byTooltip('Settings and backup'));
     await settle(t);
-    await t.dragUntilVisible(find.text('Diagnostics and phone check'), find.byType(ListView).first, const Offset(0, -200));
-    await t.tap(find.text('Diagnostics and phone check'));
+    await tapSettingsEntry(t, 'Advanced');
+    await tapSettingsEntry(t, 'Diagnostics and phone check');
     await until(t, find.text('Local development build'));
     await settle(t);
     expect(find.text('Local development build'), findsOneWidget);
@@ -571,7 +572,11 @@ void phase2WidgetTests() {
     });
     await t.tap(find.text('Library'));
     await settle(t);
-    await t.scrollUntilVisible(find.text('Looking ahead'), 200, scrollable: find.descendant(of: find.byType(LibraryScreen), matching: find.byType(Scrollable)).first);
+    final libScroll = find.descendant(of: find.byType(LibraryScreen), matching: find.byType(Scrollable)).first;
+    await t.scrollUntilVisible(find.text('Advanced'), 200, scrollable: libScroll);
+    await t.tap(find.text('Advanced'));
+    await settle(t);
+    await t.scrollUntilVisible(find.text('Looking ahead'), 200, scrollable: libScroll);
     await t.pump();
     await t.tap(find.text('Looking ahead'));
     await until(t, find.text('in 5 years'));
@@ -599,7 +604,11 @@ void phase2WidgetTests() {
     });
     await t.tap(find.text('Library'));
     await settle(t);
-    await t.scrollUntilVisible(find.text('Retire mastered cards'), 200, scrollable: find.descendant(of: find.byType(LibraryScreen), matching: find.byType(Scrollable)).first);
+    final libScroll = find.descendant(of: find.byType(LibraryScreen), matching: find.byType(Scrollable)).first;
+    await t.scrollUntilVisible(find.text('Advanced'), 200, scrollable: libScroll);
+    await t.tap(find.text('Advanced'));
+    await settle(t);
+    await t.scrollUntilVisible(find.text('Retire mastered cards'), 200, scrollable: libScroll);
     await t.pump();
     await t.tap(find.text('Retire mastered cards'));
     await until(t, find.textContaining('3 cards qualify'));
@@ -623,7 +632,7 @@ void phase2WidgetTests() {
     await t.tap(find.byTooltip('Settings and backup'));
     await settle(t);
     await tapSettingsEntry(t, 'Subjects and topics');
-    await until(t, find.text('Target recall'));
+    await until(t, find.text('How much to remember'));
     await settle(t);
     await t.tap(find.byType(DropdownButtonFormField<double?>).first);
     await settle(t);

@@ -269,3 +269,9 @@ Under the "Added N topics" / "Imported N notes" message a button "See the topics
 
 ## Settings > Subjects and topics: the topics themselves (reported: new topics could not be found here)
 Each subject card now shows its topics straight under the subject name: "Topics: N of M offered", a tick-box per topic (ticked = offered for new cards; unticked = skipped, shown as "Not offered"), each with its status ("Not started", "In progress", "Covered") and card count, plus "Offer all" and "Offer none" (done topics are left alone by "Offer none"). The list is open for a new subject (no cards yet) or one with 10 topics or fewer, collapsed for a large one. Below it the existing controls (how often, bring finished topics back, target recall, read aloud) and "More about each topic" (the full Topics screen: make cards now, mark done). No topics yet: "Learn something new will ask your AI for an outline."
+
+## Simplify pass (D38)
+- **Library:** zones in reading order: title and hint; Subjects grid; Add to your library; Manage; Advanced (collapsed ExpansionTile: Looking ahead, Retire mastered cards). Collapsed by default; the tile is keyboard- and screen-reader operable (native ExpansionTile, expanded state announced).
+- **Settings and backup:** "How the app works" first; Advanced (collapsed) at the bottom above Save: Memory model, Diagnostics and phone check.
+- **Review:** the tag row shows subject and state only (New / Learning / Review / Forgotten); no Unverified tag.
+- States are unchanged for the screens opened from these entries.

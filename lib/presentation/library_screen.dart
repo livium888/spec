@@ -86,9 +86,19 @@ class LibraryScreen extends ConsumerWidget {
         action(Icons.search, 'Browse, edit or delete cards', 'Find any card you have', const BrowseCardsScreen()),
         action(Icons.menu_book_outlined, 'Go deeper: reading list', 'Books and articles your AI suggested for your topics', const ReadingScreen()),
         action(Icons.image_search, 'Image keywords for older cards', 'Ask your AI for the words Find a picture searches with', const KeywordsScreen()),
-        action(Icons.trending_up, 'Looking ahead', 'How much review time your library will need in the coming years', const PlanAheadScreen()),
-        action(Icons.archive_outlined, 'Retire mastered cards', 'Stop reviewing what you have known for years', const RetireScreen()),
-        action(Icons.tune, 'Subjects and topics', 'How often each appears, skip, revisit, target recall', const SubjectsScreen()),
+        action(Icons.tune, 'Subjects and topics', 'Choose what is offered, and how well to remember each subject', const SubjectsScreen()),
+        Theme(
+          data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+          child: ExpansionTile(
+            tilePadding: EdgeInsets.zero,
+            title: Text('Advanced', style: t.titleMedium),
+            subtitle: const Text('Planning ahead and retiring cards'),
+            children: [
+              action(Icons.trending_up, 'Looking ahead', 'How much review time your library will need in the coming years', const PlanAheadScreen()),
+              action(Icons.archive_outlined, 'Retire mastered cards', 'Stop reviewing what you have known for years', const RetireScreen()),
+            ],
+          ),
+        ),
       ]),
     );
   }

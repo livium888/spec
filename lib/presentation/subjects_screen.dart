@@ -236,7 +236,7 @@ class _SubjectsScreenState extends ConsumerState<SubjectsScreen> {
             },
           ),
           const SizedBox(height: 4),
-          Text('Target recall', style: t.labelMedium),
+          Text('How much to remember', style: t.labelMedium),
           const SizedBox(height: 4),
           DropdownButtonFormField<double?>(
             initialValue: _nearest(d.retention),
