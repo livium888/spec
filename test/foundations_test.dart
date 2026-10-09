@@ -33,7 +33,7 @@ void main() {
       final p = renderFoundationsPrompt(
           domain: 'Economics', syllabusItem: 'Price controls', noteId: 7, front: 'Why does a rent ceiling cause a shortage?',
           back: 'Demand exceeds supply', whyItMatters: 'Prices balance wanting and offering.', recentTitles: const ['Old one?']);
-      expect(kFoundationsTemplateVersion, 'foundations-v1');
+      expect(kFoundationsTemplateVersion, 'foundations-v2');
       for (final leftover in ['{n}', '{domain}', '{syllabus_clause}', '{learner_clause}', '{syllabus_json}', '{note_id}', '{card_front}', '{card_back}', '{card_why}', '{recent_titles}']) {
         expect(p, isNot(contains(leftover)), reason: leftover);
       }
@@ -43,6 +43,7 @@ void main() {
         'between 2 and 4',
         'DIRECTLY depends on',
         'No term cards',
+        'between dollar signs',
         'bright 15-year-old',
         'bridge',
         'must not repeat or give away',
@@ -54,7 +55,7 @@ void main() {
       ]) {
         expect(p, contains(must), reason: must);
       }
-      expect(p.length, lessThan(8000));
+      expect(p.length, lessThan(9500));
     });
 
     test('its own example card is valid for the importer', () {

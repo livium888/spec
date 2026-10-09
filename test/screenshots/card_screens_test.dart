@@ -3,6 +3,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
+import 'package:flutter/services.dart' show FontLoader;
 
 import 'package:daily_learning/app/providers.dart';
 import 'package:daily_learning/data/db/database.dart';
@@ -23,6 +24,27 @@ import 'package:flutter_test/flutter_test.dart';
 import 'screens_test.dart' show boot, settle, shot;
 
 final _dir = Platform.environment['SCREENSHOT_DIR'];
+
+/// The test runner draws every font as blocks unless it is loaded; the KaTeX fonts ship inside the
+/// flutter_math_fork package (they are bundled into the app), so load them here to see real glyphs.
+Future<void> loadKatexFonts() async {
+  final dir = Platform.environment['KATEX_DIR'] ?? '/root/.pub-cache/hosted/pub.dev/flutter_math_fork-0.7.4/lib/katex_fonts/fonts';
+  if (!Directory(dir).existsSync()) return;
+  Future<void> load(String family, List<String> files) async {
+    final loader = FontLoader('packages/flutter_math_fork/$family');
+    for (final f in files) {
+      loader.addFont(Future.value(ByteData.sublistView(File('$dir/$f').readAsBytesSync())));
+    }
+    await loader.load();
+  }
+
+  await load('KaTeX_Main', ['KaTeX_Main-Regular.ttf', 'KaTeX_Main-Italic.ttf', 'KaTeX_Main-Bold.ttf', 'KaTeX_Main-BoldItalic.ttf']);
+  await load('KaTeX_Math', ['KaTeX_Math-Italic.ttf', 'KaTeX_Math-BoldItalic.ttf']);
+  await load('KaTeX_AMS', ['KaTeX_AMS-Regular.ttf']);
+  for (final n in [1, 2, 3, 4]) {
+    await load('KaTeX_Size$n', ['KaTeX_Size$n-Regular.ttf']);
+  }
+}
 
 Future<AppDatabase> seedCards() async {
   final db = AppDatabase(NativeDatabase.memory());
@@ -116,6 +138,55 @@ void main() {
       await t.tap(find.byIcon(Icons.info_outline));
       await settle(t);
       await shot(t, key, 'd_about_${tag}_1');
+      await t.pumpWidget(const SizedBox());
+      await t.runAsync(db.close);
+    }, skip: skip);
+  }
+
+  for (final dark in [false, true]) {
+    testWidgets('maths and chemistry cards (${dark ? 'dark' : 'light'})', (t) async {
+      Directory(_dir!).createSync(recursive: true);
+      await t.runAsync(loadKatexFonts);
+      final db = AppDatabase(NativeDatabase.memory());
+      final imp = ImportService(db);
+      final raw = jsonEncode({
+        'domain': 'Physics',
+        'syllabus_item': null,
+        'cards': [
+          {
+            'type': 'basic',
+            'front': r'A ball is dropped from rest. Using $v^2 = u^2 + 2as$, how fast is it moving after falling $h = 20\ \mathrm{m}$ (take $g = 9.8\ \mathrm{m/s^2}$)?',
+            'back': r'About $v = \sqrt{2gh} \approx 19.8\ \mathrm{m/s}$.',
+            'why_it_matters': r'Energy conservation gives the same answer:' '\n\n' r'$$mgh = \tfrac{1}{2}mv^2 \;\Rightarrow\; v = \sqrt{2gh}$$' '\n\n' r'The mass **cancels**, which is why a feather and a hammer fall together in a vacuum.',
+            'example': r'- Dropped from $5\ \mathrm{m}$: $v \approx 9.9\ \mathrm{m/s}$' '\n' r'- Dropped from $80\ \mathrm{m}$: $v \approx 39.6\ \mathrm{m/s}$',
+            'memory_hook': 'Speed grows with the *square root* of height.',
+            'source_type': 'model_memory', 'confidence': 'high',
+          },
+          {
+            'type': 'cloze',
+            'cloze': r'Burning hydrogen: $\mathrm{2H_2 + O_2 \rightarrow }$ {{c1::$\mathrm{2H_2O}$}}.',
+            'back': r'The mole ratio is $2:1:2$.',
+            'why_it_matters': r'Balanced equations conserve **atoms**, so every side has $4$ H and $2$ O.',
+            'source_type': 'model_memory', 'confidence': 'high',
+          },
+        ],
+      });
+      await imp.commit(await imp.preview(raw));
+      final key = GlobalKey();
+      await boot(t, db, key, dark: dark);
+      final tag = dark ? 'dark' : 'light';
+      await t.tap(find.text('Start review'));
+      await settle(t);
+      await shot(t, key, 'e_math_${tag}_1front');
+      await t.tapAt(const Offset(200, 380));
+      await settle(t);
+      await shot(t, key, 'e_math_${tag}_2back');
+      await t.tap(find.text('Good').first);
+      await settle(t);
+      await shot(t, key, 'e_math_${tag}_3cloze_front');
+      await t.tapAt(const Offset(200, 380));
+      await settle(t);
+      await shot(t, key, 'e_math_${tag}_4cloze_back');
       await t.pumpWidget(const SizedBox());
       await t.runAsync(db.close);
     }, skip: skip);

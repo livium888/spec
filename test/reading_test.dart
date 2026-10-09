@@ -131,13 +131,13 @@ void main() {
   });
 
   group('the prompt asks for reading once per answer, with strict rules', () {
-    test('v7 carries the rules and the example key', () {
+    test('v8 carries the rules and the example key', () {
       final p = renderPrompt(domain: 'Biology', syllabusItem: 'Cells', n: 5, recentTitles: const []);
-      expect(kPromptTemplateVersion, 'v7');
+      expect(kPromptTemplateVersion, 'v8');
       for (final must in ['further_reading" (once per answer', 'Only works you are CERTAIN exist', 'NEVER a web address, DOI, ISBN', 'Never blogs, listicles', '"further_reading": [']) {
         expect(p, contains(must), reason: must);
       }
-      expect(p.length, lessThan(10500));
+      expect(p.length, lessThan(12000));
     });
   });
 

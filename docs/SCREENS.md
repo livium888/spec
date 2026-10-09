@@ -104,7 +104,7 @@ Icon + label + headline + reasons; label is one of "Good time", "Go gently", "Ho
 | error | message + Retry |
 
 ## Review: answer side
-After "Show answer": the short answer, then labelled sections **Why it matters**, **Example**, **Memory hook** when the card has them (plain selectable text, never rendered as markup).
+After "Show answer": the short answer, then labelled sections **Why it matters**, **Example**, **Memory hook** when the card has them (selectable text; a small safe Markdown subset and LaTeX formulas are drawn, see D42).
 
 ## Settings: About you
 Optional multi-line field (300 characters) with a note that it is added to card prompts and so goes to the LLM you paste into.
@@ -286,3 +286,8 @@ Each subject card now shows its topics straight under the subject name: "Topics:
 - **Zone:** under the state explanation. Text "Hard, but you like the idea? Get 2 to 4 short cards on the ideas it rests on, from your own AI." and a full-width button (52 dp) "Build the foundations".
 - **Result:** the sheet closes and "Your prompt" opens (Copy / Send to my AI app / Paste the answer), with two reasons. The same prompt is shown again if it was never imported.
 - **States:** none yet (button); already done ("Foundations added: N cards that prepare you for this one", check icon); the card is itself a foundation (a sentence saying so, no button); error (snackbar "Could not build the prompt"). After import the cards appear first among new cards.
+
+## Card text: Markdown and formulas (D42)
+- **Where:** review (question, folded question, answer, Why it matters / Example / Memory hook, cloze sentence and its revealed gap); Edit card shows a live preview under any field that has formatting or formulas; Browse and read-aloud use the plain text.
+- **Drawn:** **bold**, *italic*, `code`, "- " bullets, "1. " numbers, paragraphs, inline $formula$ and standalone $$formula$$. **Never drawn:** HTML, links, images, headings, tables (shown as the text they are).
+- **States:** plain text (unchanged); formatted; formula cannot be drawn (its LaTeX source is shown in monospace); formula too long (> 500 characters) or more than 40 in one text (shown as text); display formula wider than the screen (scrolls sideways). Each formula has a screen-reader label "formula: <LaTeX>".

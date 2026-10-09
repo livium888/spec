@@ -112,6 +112,11 @@ class GuideScreen extends StatelessWidget {
               'or Crossref whether a work with that title and author is listed (this goes online, once you agree). Listed does not mean good: look at the author and '
               'the publisher. "Look it up" opens the catalogue page in a tab over the app; close it to go back to your list.'),
 
+          heading('Formulas and formatting'),
+          para('Cards can hold formulas and light formatting: **bold**, *italic*, `code`, lines starting with "- ", and maths between dollar signs, like \$x^2\$ or, for a line of its own, two dollar signs. '
+              'The prompts ask your AI to use them for maths, physics and chemistry. When you edit a card, a preview shows how it will look. '
+              'A formula the app cannot draw is shown as its source text, so nothing is lost.'),
+
           heading('A card is too hard?'),
           para('Tap the small tag at the top of a card (New, Learning, Review). The sheet explains where the card is in your memory, with numbers and a curve. '
               'If the card is hard but you like the idea, tap "Build the foundations": you get a prompt for 2 to 4 short cards on the ideas it rests on. '

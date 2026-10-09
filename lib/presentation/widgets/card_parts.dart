@@ -1,13 +1,19 @@
 import 'package:flutter/material.dart';
 
 import '../../domain/study_card.dart';
+import '../../domain/card_markup.dart';
 import '../theme/tokens.dart';
+import 'rich_card_text.dart';
 
 bool _reduceMotion(BuildContext context) => MediaQuery.maybeDisableAnimationsOf(context) ?? false;
 
+bool _hasMath(String s) => s.contains(r'$') && parseCardMarkup(s).any((b) => b.inlines.any((i) => i.isMath));
+
+bool _hasMarkup(String s) => RegExp(r'[$*_`\\]').hasMatch(s);
+
 /// A cloze sentence: plain text, with this card's own gap shown as a soft blank that fills in place
 /// (highlighted in the subject colour) when the answer is revealed. Card text is plain `Text`
-/// spans only: it comes from an AI and is never interpreted as markup.
+/// spans: it comes from an AI, so only the safe Markdown subset and formulas of card_markup.dart are drawn (D42).
 class ClozeSentence extends StatelessWidget {
   const ClozeSentence({super.key, required this.parts, required this.revealed, required this.style, required this.strong, required this.tint});
   final List<ClozePart> parts;
@@ -21,8 +27,10 @@ class ClozeSentence extends StatelessWidget {
     return Text.rich(
       TextSpan(style: style, children: [
         for (final p in parts)
-          if (!p.isGap)
+          if (!p.isGap && !_hasMarkup(p.text))
             TextSpan(text: p.text)
+          else if (!p.isGap)
+            ...cardSpans(context, parseCardMarkup(p.text).expand((b) => b.inlines).toList(), style)
           else
             WidgetSpan(
               alignment: PlaceholderAlignment.baseline,
@@ -59,32 +67,40 @@ class _Gap extends StatelessWidget {
             color: revealed ? tint : tint.withValues(alpha: 0.55),
             borderRadius: BorderRadius.circular(8),
           ),
-          // IntrinsicWidth: the underline takes the width of the text, never the whole line.
-          child: IntrinsicWidth(
-              child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-            if (revealed)
-              Text(part.text, style: style.copyWith(color: strong, fontWeight: FontWeight.w700))
-            // A fixed-width blank: its size never gives away the length of the answer.
-            else
-              SizedBox(
-                width: part.hint == null ? 72 : (part.hint!.length * 8.5 + 24).clamp(72, 150).toDouble(),
-                child: Text(part.hint ?? '…',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    textAlign: TextAlign.center,
-                    style: style.copyWith(fontSize: (style.fontSize ?? 24) * 0.62, color: strong, fontWeight: FontWeight.w600)),
-              ),
-            // The underline is its own box: a one-sided border cannot be combined with rounded corners.
-            AnimatedContainer(
-              duration: reduce ? Duration.zero : const Duration(milliseconds: 320),
-              height: revealed ? 0 : 2.5,
-              margin: const EdgeInsets.symmetric(horizontal: 2),
-              decoration: BoxDecoration(color: strong, borderRadius: BorderRadius.circular(2)),
-            ),
-          ])),
+          // A revealed gap that holds a formula is drawn as it is: the formula widget cannot answer the
+          // dry-layout question IntrinsicWidth asks, and the underline is gone by then anyway.
+          child: revealed && _hasMath(part.text)
+              ? RichCardText(part.text, style: style.copyWith(color: strong, fontWeight: FontWeight.w700))
+              : _blank(reduce),
         ),
       ),
     );
+  }
+
+  Widget _blank(bool reduce) {
+    // IntrinsicWidth: the underline takes the width of the text, never the whole line.
+    return IntrinsicWidth(
+        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      if (revealed)
+        RichCardText(part.text, style: style.copyWith(color: strong, fontWeight: FontWeight.w700))
+      // A fixed-width blank: its size never gives away the length of the answer.
+      else
+        SizedBox(
+          width: part.hint == null ? 72 : (part.hint!.length * 8.5 + 24).clamp(72, 150).toDouble(),
+          child: Text(part.hint ?? '…',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+              style: style.copyWith(fontSize: (style.fontSize ?? 24) * 0.62, color: strong, fontWeight: FontWeight.w600)),
+        ),
+      // The underline is its own box: a one-sided border cannot be combined with rounded corners.
+      AnimatedContainer(
+        duration: reduce ? Duration.zero : const Duration(milliseconds: 320),
+        height: revealed ? 0 : 2.5,
+        margin: const EdgeInsets.symmetric(horizontal: 2),
+        decoration: BoxDecoration(color: strong, borderRadius: BorderRadius.circular(2)),
+      ),
+    ]));
   }
 }
 
@@ -176,7 +192,7 @@ class ExtrasStack extends StatelessWidget {
             child: Text(e.$1, style: t.labelMedium?.copyWith(color: strong, fontWeight: FontWeight.w700)),
           ),
           const SizedBox(height: 4),
-          SelectableText(e.$2, style: bodyStyle),
+          RichCardText(e.$2, selectable: true, style: bodyStyle ?? const TextStyle()),
         ],
       ]),
     );

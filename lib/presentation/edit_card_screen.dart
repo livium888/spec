@@ -6,8 +6,10 @@ import '../data/card_edit_service.dart';
 import '../data/media_service.dart' show MediaException, MediaService;
 import '../data/settings_repo.dart';
 import '../domain/commons.dart' show cleanImageQuery, kMaxImageQueryChars;
+import '../domain/card_markup.dart';
 import 'card_picture.dart';
 import 'find_picture_screen.dart';
+import 'widgets/rich_card_text.dart';
 
 /// What happened on the edit screen, so callers can reload.
 enum EditOutcome { saved, deleted }
@@ -279,6 +281,10 @@ class _EditCardScreenState extends ConsumerState<EditCardScreen> {
                 ? const Center(child: Text('This card no longer exists.'))
                 : ListView(padding: const EdgeInsets.all(16), children: [
                     Text(n.domainName, style: Theme.of(context).textTheme.labelLarge),
+                    const SizedBox(height: 4),
+                    Text(
+                        r'Formulas go between dollar signs, like $x^2$. You can also use **bold**, *italic*, `code` and lines starting with "- ".',
+                        style: Theme.of(context).textTheme.bodySmall),
                     const SizedBox(height: 12),
                     for (final e in _ctl.entries) ...[
                       TextField(
@@ -287,6 +293,29 @@ class _EditCardScreenState extends ConsumerState<EditCardScreen> {
                         maxLines: 8,
                         textCapitalization: TextCapitalization.sentences,
                         decoration: InputDecoration(labelText: _labels[e.key]),
+                      ),
+                      // A preview appears only when the text has formatting or formulas in it.
+                      ValueListenableBuilder<TextEditingValue>(
+                        valueListenable: e.value,
+                        builder: (context, v, _) {
+                          if (isPlainMarkup(parseCardMarkup(v.text))) return const SizedBox.shrink();
+                          return Padding(
+                            padding: const EdgeInsets.only(top: 6),
+                            child: Semantics(
+                              container: true,
+                              label: 'Preview of ${_labels[e.key]}',
+                              child: Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: RichCardText(v.text, style: Theme.of(context).textTheme.bodyLarge ?? const TextStyle()),
+                              ),
+                            ),
+                          );
+                        },
                       ),
                       const SizedBox(height: 12),
                     ],

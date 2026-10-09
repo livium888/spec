@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+
+import '../domain/card_markup.dart' show plainFromMarkup;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../app/providers.dart';
@@ -98,7 +100,7 @@ class _BrowseCardsScreenState extends ConsumerState<BrowseCardsScreen> {
                                     if (o != null) _run();
                                   },
                                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                                    Text(r.title, maxLines: 2, overflow: TextOverflow.ellipsis, style: t.titleSmall),
+                                    Text(plainFromMarkup(r.title), maxLines: 2, overflow: TextOverflow.ellipsis, style: t.titleSmall),
                                     const SizedBox(height: 2),
                                     Text('${r.domainName} · ${r.type == 'cloze' ? 'fill in the gap' : 'question and answer'}',
                                         style: t.bodySmall),

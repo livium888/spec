@@ -116,6 +116,81 @@ String stripCodeFence(String raw) {
   return m != null ? m.group(1)!.trim() : t;
 }
 
+/// Repairs what chat apps do to LaTeX inside a JSON answer, touching only the inside of string values:
+/// * a single backslash before a TeX command inside $...$ ("$\frac{a}{b}$") is doubled, because JSON
+///   would read \f \t \b \r \n as control characters and break the formula;
+/// * a backslash that JSON does not allow (e.g. "\$", "\(") is doubled so the text still parses;
+/// * a raw line break or tab inside a string becomes \n or \t.
+/// Anything else, including correctly doubled backslashes, is left exactly as written.
+String repairJsonStrings(String raw) {
+  const bs = r'\';
+  final out = StringBuffer();
+  var inString = false;
+  var inMath = false; // inside $...$ or $$...$$ of a string
+  final hex = RegExp(r'^[0-9a-fA-F]{4}$');
+  final letter = RegExp(r'[a-zA-Z]');
+  const validEscape = '"\\/bfnrtu';
+  var i = 0;
+  while (i < raw.length) {
+    final c = raw[i];
+    final next = i + 1 < raw.length ? raw[i + 1] : '';
+    if (!inString) {
+      if (c == '"') inString = true;
+      out.write(c);
+      i++;
+    } else if (c == '"') {
+      inString = false;
+      inMath = false;
+      out.write(c);
+      i++;
+    } else if (c == bs) {
+      if (next == bs) {
+        // A correctly doubled backslash. A "$" right after it is a literal dollar, not a maths delimiter.
+        out.write('$bs$bs');
+        i += 2;
+        if (i < raw.length && raw[i] == r'$') {
+          out.write(r'$');
+          i++;
+        }
+      } else if (next == r'$') {
+        out.write('$bs$bs\$'); // JSON has no "\$": a doubled backslash and the dollar, kept literal
+        i += 2;
+      } else if (inMath && letter.hasMatch(next) && !(next == 'u' && i + 6 <= raw.length && hex.hasMatch(raw.substring(i + 2, i + 6)))) {
+        out.write('$bs$bs'); // a TeX command written with one backslash; the letter follows next
+        i++;
+      } else if (next.isNotEmpty && !validEscape.contains(next)) {
+        out.write('$bs$bs');
+        i++;
+      } else {
+        out.write(c);
+        out.write(next);
+        i += 2;
+      }
+    } else if (c == r'$') {
+      inMath = !inMath;
+      out.write(c);
+      i++;
+      if (next == r'$') {
+        out.write(r'$'); // "$$" is one delimiter
+        i++;
+      }
+    } else if (c == '\n') {
+      out.write('${bs}n');
+      i++;
+    } else if (c == '\r') {
+      out.write('${bs}n');
+      i += next == '\n' ? 2 : 1;
+    } else if (c == '\t') {
+      out.write('${bs}t');
+      i++;
+    } else {
+      out.write(c);
+      i++;
+    }
+  }
+  return out.toString();
+}
+
 /// Chat apps that search the web can leave reference markers inside the text they write: private-use
 /// "cite" tokens (U+E200 ... U+E201) and 【...】 brackets. They can never be JSON structure, only
 /// part of a string, so removing them is safe. Plain "[1]" is left alone (it can be real card text).
@@ -128,7 +203,7 @@ ImportPreview parseImportJson(String raw) {
   final fatal = <String>[];
   Object? decoded;
   try {
-    decoded = jsonDecode(stripCitationMarkers(stripCodeFence(raw)));
+    decoded = jsonDecode(repairJsonStrings(stripCitationMarkers(stripCodeFence(raw))));
   } on FormatException catch (e) {
     return ImportPreview(
         domain: '', syllabusItem: null, cards: [], fatalErrors: ['Not valid JSON: ${e.message}']);

@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 
 import '../app/providers.dart';
 import '../data/stats_service.dart';
+import '../domain/card_markup.dart' show plainFromMarkup;
 import '../domain/card_text.dart';
 import '../domain/models.dart';
 import '../domain/review_timing.dart';
@@ -19,6 +20,7 @@ import 'theme/subject_style.dart';
 import 'card_info_sheet.dart';
 import 'card_picture.dart';
 import 'widgets/card_parts.dart';
+import 'widgets/rich_card_text.dart';
 import 'edit_card_screen.dart';
 import 'theme/tokens.dart';
 import 'widgets/confetti.dart';
@@ -285,7 +287,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
     final s = _speech[c.domainId];
     if (s == null) return null;
     if (s.$2 == 'back' && !revealed) return null; // never read the answer out before it is shown
-    final text = s.$2 == 'front' && c.noteType != 'cloze' ? c.front : c.back;
+    final text = plainFromMarkup(s.$2 == 'front' && c.noteType != 'cloze' ? c.front : c.back);
     return text.trim().isEmpty ? null : text;
   }
 
@@ -506,7 +508,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                       ),
                   ]),
                   const SizedBox(height: 22),
-                  // Plain Text only: card content comes from an LLM and is never interpreted as markup.
+                  // Card content comes from an LLM: only a small safe Markdown subset and LaTeX formulas are drawn (RichCardText, D42); never HTML, links or images.
                   // Not selectable on purpose: selectable text swallows taps, and a tap anywhere on the card reveals the answer.
                   if (isCloze)
                     ClozeSentence(
@@ -523,7 +525,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                           duration: reduce ? Duration.zero : const Duration(milliseconds: 220),
                           alignment: Alignment.topLeft,
                           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                            Text(card.front,
+                            RichCardText(card.front,
                                 style: fold ? foldedStyle : questionStyle,
                                 maxLines: fold ? 3 : null,
                                 overflow: fold ? TextOverflow.ellipsis : null),
@@ -537,7 +539,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                       ),
                     )
                   else
-                    Text(card.front, style: questionStyle),
+                    RichCardText(card.front, style: questionStyle),
                   if (_revealed) RevealPanel(accent: style.strong, child: _answerSide(context, card, style)),
                   if (!_revealed) ...[
                     const SizedBox(height: 28),
@@ -567,7 +569,8 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
         CardPicture(sha: card.imageSha!, alt: card.imageAlt, credit: card.imageCredit),
         const SizedBox(height: 16),
       ],
-      if (back.isNotEmpty) SelectableText(back, style: AppText.sans(answerFontSize(_textSize), weight: 650, height: 1.4, color: c.ink)),
+      if (back.isNotEmpty)
+        RichCardText(back, selectable: true, style: AppText.sans(answerFontSize(_textSize), weight: 650, height: 1.4, color: c.ink)),
       ExtrasStack(extras: card.extras, strong: style.strong, scale: extrasScale(_textSize)),
       if (source.isNotEmpty)
         Padding(
