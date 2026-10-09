@@ -844,6 +844,80 @@ void phase3WidgetTests() {
     return w.style?.fontSize;
   }
 
+  Future<void> openKeywords(WidgetTester t) async {
+    await t.tap(find.text('Library'));
+    await settle(t);
+    await t.scrollUntilVisible(find.text('Image keywords for older cards'), 200,
+        scrollable: find.descendant(of: find.byType(LibraryScreen), matching: find.byType(Scrollable)).first);
+    await t.pump();
+    await t.tap(find.text('Image keywords for older cards'));
+    await until(t, find.text('Image keywords'));
+    await settle(t);
+  }
+
+  testWidgets('Library > Image keywords: the prompt lists the cards, the pasted answer is previewed and only then applied', (t) async {
+    String? copied;
+    const answerJson = '{"image_keywords":[{"id":1,"image_query":"Newcomen atmospheric engine","image_side":"back"},{"id":77,"image_query":"nobody home"}]}';
+    final db = await boot(t, settings: {'guide_seen': '1'}, prepare: (db) => longQuestionCard(db));
+    t.binding.defaultBinaryMessenger.setMockMethodCallHandler(SystemChannels.platform, (call) async {
+      if (call.method == 'Clipboard.setData') copied = (call.arguments as Map)['text'] as String?;
+      if (call.method == 'Clipboard.getData') return <String, dynamic>{'text': answerJson};
+      return null;
+    });
+    addTearDown(() => t.binding.defaultBinaryMessenger.setMockMethodCallHandler(SystemChannels.platform, null));
+    await openKeywords(t);
+    expect(find.textContaining('1 card has no image keywords yet'), findsOneWidget);
+
+    await t.tap(find.text('Copy prompt'));
+    await settle(t);
+    expect(copied, contains('1 | History | Q: Thomas Newcomen'));
+    expect(copied, contains('"image_keywords"'));
+
+    await t.tap(find.text('Paste the answer'));
+    await settle(t);
+    expect(find.textContaining('Keywords: Newcomen atmospheric engine'), findsOneWidget);
+    expect(find.text('No card has this number: skipped.'), findsOneWidget);
+    // nothing saved yet
+    var f = jsonDecode((await t.runAsync(() => db.select(db.notes).getSingle()))!.fieldsJson) as Map<String, dynamic>;
+    expect(f.containsKey('image_query'), isFalse);
+
+    await t.tap(find.text('Add keywords to 1 card'));
+    await settle(t);
+    f = jsonDecode((await t.runAsync(() => db.select(db.notes).getSingle()))!.fieldsJson) as Map<String, dynamic>;
+    expect(f['image_query'], 'Newcomen atmospheric engine');
+    expect(f['image_side'], 'back');
+    expect(find.textContaining('Every card now has keywords'), findsOneWidget);
+    await done(t, db);
+  });
+
+  testWidgets('Image keywords: with nothing missing the screen says so', (t) async {
+    final db = await boot(t, settings: {'guide_seen': '1'}, prepare: (db) async {
+      await longQuestionCard(db);
+      await db.customStatement("UPDATE note SET fields_json = json_set(fields_json, '\$.image_query', 'already')");
+    });
+    await openKeywords(t);
+    expect(find.textContaining('Every card already has image keywords'), findsOneWidget);
+    await t.pageBack();
+    await settle(t);
+    await done(t, db);
+  });
+
+  testWidgets('Image keywords: an answer shared into the app opens the keywords preview by itself, saving nothing until confirmed', (t) async {
+    final inbox = FakeInbox()..queue.add('{"image_keywords":[{"id":1,"image_query":"Newcomen atmospheric engine","image_side":"back"}]}');
+    final db = await boot(t, settings: {'guide_seen': '1'}, extra: [shareInboxProvider.overrideWithValue(inbox)], prepare: (db) => longQuestionCard(db));
+    await until(t, find.text('Add keywords to 1 card'));
+    await settle(t);
+    expect(find.text('Image keywords'), findsOneWidget); // the keywords screen, not "Import cards"
+    expect(find.text('Import cards'), findsNothing);
+    var f = jsonDecode((await t.runAsync(() => db.select(db.notes).getSingle()))!.fieldsJson) as Map<String, dynamic>;
+    expect(f.containsKey('image_query'), isFalse);
+    await t.tap(find.text('Add keywords to 1 card'));
+    await settle(t);
+    f = jsonDecode((await t.runAsync(() => db.select(db.notes).getSingle()))!.fieldsJson) as Map<String, dynamic>;
+    expect(f['image_query'], 'Newcomen atmospheric engine');
+    await done(t, db);
+  });
+
   testWidgets('Review: a long question is set smaller, and folds after the reveal; a tap shows it whole again', (t) async {
     final db = await boot(t, settings: {'guide_seen': '1'}, prepare: (db) => longQuestionCard(db));
     await t.tap(find.text('Start review'));

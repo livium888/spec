@@ -99,7 +99,7 @@ class GuideScreen extends StatelessWidget {
           para('For art, crafts or anything visual: edit a card (the pencil in a review, or Library > Browse) and tap "Add a picture". It shows on the '
               'question or the answer, and you can tap it to see it full screen. Pictures are shrunk and kept inside the app, so they come back with every backup. '
               'Add a description so a screen reader can say what is in it.'),
-          para('Or tap "Find a picture online": the app searches four free picture libraries (Wikimedia Commons, Openverse, the Met and the Art Institute of Chicago) for the words you type (every AI-written card arrives with suggested keywords, which you can edit on the card\'s edit screen; they stay on the card even if you never add a picture). '
+          para('Or tap "Find a picture online": the app searches four free picture libraries (Wikimedia Commons, Openverse, the Met and the Art Institute of Chicago) for the words you type (every AI-written card arrives with suggested keywords, which you can edit on the card\'s edit screen; they stay on the card even if you never add a picture). Older cards have none: Library > Image keywords for older cards asks your AI for them in batches). '
               'You see the picture, who made it and its licence, and nothing is kept until you tap "Use this picture". It is then saved on your phone like any other, '
               'with its credit shown under it. This is the only thing in the app that goes online, only when you tap it, and you can switch it off in Settings.'),
           para('For languages: Settings > Subjects and topics > Read cards aloud. Pick the language and which side of your cards is written in it, then tap the '

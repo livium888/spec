@@ -7,6 +7,7 @@ import '../data/outline_service.dart' show OutlineException;
 import '../domain/import_parser.dart';
 import '../domain/outline_parser.dart';
 import '../domain/plan_parser.dart';
+import 'keywords_screen.dart';
 
 class ImportScreen extends ConsumerStatefulWidget {
   const ImportScreen({super.key, this.initialText});
@@ -67,6 +68,12 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
   Future<void> _previewText(String text) async {
     {
       final kind = detectPayloadKind(text);
+      if (kind == 'keywords') {
+        // Picture-search words for older cards have their own screen (and preview).
+        if (!mounted) return;
+        await Navigator.of(context).pushReplacement(MaterialPageRoute<void>(builder: (_) => KeywordsScreen(initialText: text)));
+        return;
+      }
       if (kind == 'plan') {
         final pl = await ref.read(outlineServiceProvider).previewPlan(text);
         setState(() {

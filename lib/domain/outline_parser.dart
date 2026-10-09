@@ -45,10 +45,12 @@ class OutlinePreview {
       items.where((i) => i.valid && !alreadyExists.contains(i.index));
 }
 
-/// 'plan' (several subjects), 'outline' (one subject's topics) or 'cards'.
+/// 'keywords' (picture-search words for older cards), 'plan' (several subjects), 'outline' (one
+/// subject's topics) or 'cards'.
 String detectPayloadKind(String raw) {
   try {
     final d = jsonDecode(stripCodeFence(raw));
+    if (d is Map && d.containsKey('image_keywords') && !d.containsKey('cards')) return 'keywords';
     if (d is Map && d.containsKey('subjects') && !d.containsKey('cards')) return 'plan';
     if (d is Map && d.containsKey('items') && !d.containsKey('cards')) return 'outline';
   } catch (_) {}

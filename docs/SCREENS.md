@@ -233,3 +233,17 @@ Per subject: language menu (Off + 19 languages) and, when on, "Which side is wri
 
 ## Settings: Card text size
 Small / Medium / Large (default Medium) with a sample line in the chosen size; saves at once. The phone's own font size still applies on top.
+
+## Library > Image keywords for older cards
+Count of cards with no keywords and no picture; batch size (20 / 40 / 80); "Send to my AI app", "Copy prompt", "Paste the answer". An answer shared into the app opens this screen's preview directly.
+
+| State | Shows |
+|---|---|
+| Loading | spinner |
+| Nothing missing | "Every card already has image keywords or a picture. Nothing to do here." |
+| Cards missing | the count, batch size, the three buttons, steps |
+| Prompt copied / shared | "Prompt for N cards copied..." (live region) or the share sheet; share failure suggests Copy |
+| Clipboard empty | "The clipboard is empty. Copy the AI's JSON answer first." |
+| Answer not usable | "This can't be used:" with the reasons (not JSON, wrong shape, empty, too many entries) |
+| Preview | one row per entry: ticked rows with the card's question, keywords and picture side; other rows say why skipped (no such card, already has keywords, already has a picture, not usable, repeated) |
+| Applied | "Added keywords to N cards. M still have none: send the next batch." / "Every card now has keywords." |
