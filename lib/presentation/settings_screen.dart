@@ -356,7 +356,7 @@ class _OnlinePicturesSwitchState extends ConsumerState<_OnlinePicturesSwitch> {
   void initState() {
     super.initState();
     ref.read(settingsRepoProvider).get(SettingsRepo.onlinePictures).then((v) {
-      if (mounted) setState(() => _on = v == '1');
+      if (mounted) setState(() => _on = v == SettingsRepo.onlinePicturesAgreed);
     });
   }
 
@@ -365,12 +365,12 @@ class _OnlinePicturesSwitchState extends ConsumerState<_OnlinePicturesSwitch> {
         contentPadding: EdgeInsets.zero,
         title: const Text('Find pictures online'),
         subtitle: const Text(
-            'Lets "Find a picture" search Wikimedia Commons when you tap it. Only your search words go online. '
+            'Lets "Find a picture" search Wikimedia Commons, Openverse, the Met and the Art Institute of Chicago when you tap it. Only your search words go online. '
             'Off means the app never connects to the internet.'),
         value: _on,
         onChanged: (v) {
           setState(() => _on = v);
-          ref.read(settingsRepoProvider).set(SettingsRepo.onlinePictures, v ? '1' : '0');
+          ref.read(settingsRepoProvider).set(SettingsRepo.onlinePictures, v ? SettingsRepo.onlinePicturesAgreed : '0');
         },
       );
 }

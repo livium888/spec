@@ -23,7 +23,8 @@ class SettingsRepo {
   static const revisitMonths = 'revisit_months'; // first revisit delay; doubles each round
   static const learnerProfile = 'learner_profile'; // optional "about you" text used in prompts
   static const guideSeen = 'guide_seen'; // the first-run "how it works" card was opened or dismissed
-  static const onlinePictures = 'online_pictures'; // '1': the learner agreed to "Find a picture" asking Wikimedia Commons (D32)
+  static const onlinePictures = 'online_pictures'; // 'v2': the learner agreed to "Find a picture" asking the four picture sites (D32, D33); an older '1' (Commons only) is asked again
+  static const onlinePicturesAgreed = 'v2';
   static const dailyMinutes = 'daily_minutes'; // study-time budget used by "Learn something new"
 
   Future<String?> get(String key) async {

@@ -7,6 +7,7 @@ import '../app/providers.dart';
 import '../data/media_service.dart';
 import '../data/picture_finder.dart';
 import '../domain/commons.dart';
+import '../domain/picture_sources.dart';
 
 /// A picture the learner chose, with who made it and under which licence. No description is
 /// supplied on purpose: a Commons file name usually names the work, which would give away a card
@@ -36,6 +37,8 @@ class _FindPictureScreenState extends ConsumerState<FindPictureScreen> {
   bool _started = false;
   String _message = '';
   List<PictureCandidate> _results = const [];
+  Map<String, String> _failures = const {}; // source name -> why it did not answer
+  final Set<String> _sources = {kSourceCommons, kSourceOpenverse, kSourceMet, kSourceArtic};
   final _thumbs = <String, Future<Uint8List>>{};
   PictureCandidate? _chosen;
   Uint8List? _chosenBytes;
@@ -74,12 +77,19 @@ class _FindPictureScreenState extends ConsumerState<FindPictureScreen> {
       _phase = _Phase.searching;
     });
     try {
-      final r = await _finder.search(query);
+      final r = await _finder.search(query, sources: Set.of(_sources));
       if (!mounted || serial != _searchSerial) return;
+      for (final f in r.failures.entries) {
+        _log('Find a picture: ${f.key} failed: ${f.value}', null, where: 'find_picture');
+      }
       setState(() {
-        _results = r;
+        _results = r.candidates;
+        _failures = r.failures;
         _thumbs.clear();
-        _phase = r.isEmpty ? _Phase.empty : _Phase.results;
+        _phase = r.candidates.isEmpty ? (r.failures.isNotEmpty ? _Phase.error : _Phase.empty) : _Phase.results;
+        if (_phase == _Phase.error) {
+          _message = r.failures.entries.map((e) => '${e.key}: ${e.value}').join('\n');
+        }
       });
     } on PictureFinderException catch (e) {
       _log('Find a picture: search failed: ${e.message}', null, where: 'find_picture');
@@ -101,7 +111,7 @@ class _FindPictureScreenState extends ConsumerState<FindPictureScreen> {
 
   Future<Uint8List> _loadThumb(PictureCandidate c) async {
     try {
-      return await _finder.download(c.thumbUrl, maxBytes: 400000);
+      return await _finder.download(c.thumbUrl, maxBytes: 800000);
     } catch (e, st) {
       // Kept in the local error log so "Copy report" (Settings > Diagnostics) carries the reason.
       _log('Find a picture: thumbnail failed: $e (${Uri.tryParse(c.thumbUrl)?.host})', st, where: 'find_picture');
@@ -112,7 +122,7 @@ class _FindPictureScreenState extends ConsumerState<FindPictureScreen> {
   Future<void> _choose(PictureCandidate c) async {
     setState(() => _phase = _Phase.fetching);
     try {
-      final forCard = await _finder.forCard(c.title);
+      final forCard = await _finder.forCard(c);
       if (forCard == null) throw PictureFinderException('That picture is not available in a size the app can keep.');
       final bytes = await _finder.download(forCard.thumbUrl, maxBytes: kMaxImageBytes);
       if (!MediaService.looksLikeImage(bytes)) throw PictureFinderException('That file is not a picture the app can show.');
@@ -163,13 +173,42 @@ class _FindPictureScreenState extends ConsumerState<FindPictureScreen> {
                     suffixIcon: IconButton(tooltip: 'Search', icon: const Icon(Icons.search), onPressed: _search),
                   ),
                 ),
-                const SizedBox(height: 8),
+                Semantics(
+                  container: true,
+                  label: 'Picture sources',
+                  child: Wrap(spacing: 8, runSpacing: 0, children: [
+                    for (final e in kSourceLabels.entries)
+                      FilterChip(
+                        label: Text(e.value == 'Art Institute of Chicago' ? 'Art Institute' : e.value),
+                        selected: _sources.contains(e.key),
+                        onSelected: (on) => setState(() {
+                          // at least one source stays on
+                          if (on) {
+                            _sources.add(e.key);
+                          } else if (_sources.length > 1) {
+                            _sources.remove(e.key);
+                          }
+                        }),
+                      ),
+                  ]),
+                ),
+                const SizedBox(height: 4),
               ],
+              if (_phase == _Phase.results && _failures.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 6),
+                  child: Semantics(
+                    liveRegion: true,
+                    child: Text(
+                        'Not available right now: ${_failures.entries.map((e) => '${e.key} (${e.value})').join('; ')}',
+                        style: t.bodySmall),
+                  ),
+                ),
               Expanded(child: _body(context, t)),
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 child: Text(
-                    'Pictures come from Wikimedia Commons. Only your search words go online. The picture you keep is saved on your phone, with its credit.',
+                    'Pictures come from Wikimedia Commons, Openverse, the Met and the Art Institute of Chicago. Only your search words go online. The picture you keep is saved on your phone, with its credit.',
                     style: t.bodySmall),
               ),
             ]),
@@ -223,7 +262,7 @@ class _FindPictureScreenState extends ConsumerState<FindPictureScreen> {
     final fut = _thumbs.putIfAbsent(c.thumbUrl, () => _loadThumb(c));
     return Semantics(
       button: true,
-      label: 'Picture: ${c.label}',
+      label: 'Picture: ${c.label}, from ${c.sourceLabel}',
       hint: 'Shows a larger preview',
       excludeSemantics: true,
       child: Material(
@@ -256,7 +295,10 @@ class _FindPictureScreenState extends ConsumerState<FindPictureScreen> {
             ),
             Padding(
               padding: const EdgeInsets.all(8),
-              child: Text(c.label, maxLines: 2, overflow: TextOverflow.ellipsis, style: t.bodySmall),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+                Text(c.label, maxLines: 2, overflow: TextOverflow.ellipsis, style: t.bodySmall),
+                Text(c.sourceLabel, maxLines: 1, overflow: TextOverflow.ellipsis, style: t.labelSmall?.copyWith(color: scheme.primary)),
+              ]),
             ),
           ]),
         ),

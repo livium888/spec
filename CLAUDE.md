@@ -19,8 +19,9 @@ tables go in `docs/SCREENS.md`. Update them in the same commit as the code they 
 - All time = UTC epoch ms; day rolls over at 04:00 local (configurable).
 - Do NOT copy Anki source (AGPL). Reimplement behaviour only.
 - Offline only. No network calls from the app, with ONE exception: "Find a picture online" (D32), which
-  asks Wikimedia Commons only when the learner taps it, only after they agreed, and only through
-  `SafeFetcher` (allowed hosts, https, no redirects, size cap). Any other network use needs its own decision record.
+  asks the picture sites listed in `kPictureHosts` (D32, D33: Wikimedia Commons, Openverse, the Met, the
+  Art Institute of Chicago) only when the learner taps it, only after they agreed, and only through
+  `SafeFetcher` (allowed hosts, https, redirects re-checked, size cap). Any other network use needs its own decision record.
 
 ## Tooling
 Flutter SDK may be at /opt/sdk/flutter (not preinstalled). Tests: `flutter test`.

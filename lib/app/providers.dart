@@ -47,7 +47,7 @@ final errorLogProvider = Provider((ref) =>
 final promptSharerProvider = Provider<PromptSharer>((_) => const SharePlusPromptSharer());
 final shareInboxProvider = Provider<ShareInbox>((_) => const ChannelShareInbox());
 final reminderBackendProvider = Provider<ReminderBackend>((_) => LocalNotificationsBackend());
-final pictureFinderProvider = Provider<PictureFinder>((_) => CommonsPictureFinder());
+final pictureFinderProvider = Provider<PictureFinder>((_) => PictureLookup());
 final imagePickerProvider = Provider<ImagePickerService>((_) => const GalleryImagePicker());
 final speakerProvider = Provider<Speaker>((ref) {
   final s = PhoneSpeaker();

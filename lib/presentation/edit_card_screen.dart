@@ -92,7 +92,7 @@ class _EditCardScreenState extends ConsumerState<EditCardScreen> {
   /// The first online step in the app, so it asks once and says exactly what leaves the phone.
   Future<bool> _consentToOnline() async {
     final settings = ref.read(settingsRepoProvider);
-    if (await settings.get(SettingsRepo.onlinePictures) == '1') return true;
+    if (await settings.get(SettingsRepo.onlinePictures) == SettingsRepo.onlinePicturesAgreed) return true;
     if (!mounted) return false;
     final ok = await showDialog<bool>(
       context: context,
@@ -101,7 +101,8 @@ class _EditCardScreenState extends ConsumerState<EditCardScreen> {
         content: const Text(
           'This is the one place the app goes online, and only when you tap Find a picture. '
           'It sends your search words (and your phone\'s internet address, as any website visit does) to '
-          'Wikimedia Commons, a free picture library. Nothing else leaves your phone: no cards, no history. '
+          'four free picture libraries: Wikimedia Commons, Openverse, the Metropolitan Museum of Art and the '
+          'Art Institute of Chicago. Nothing else leaves your phone: no cards, no history. '
           'The picture you pick is saved on your phone with its credit. You can turn this off in Settings.',
         ),
         actions: [
@@ -111,7 +112,7 @@ class _EditCardScreenState extends ConsumerState<EditCardScreen> {
       ),
     );
     if (ok != true) return false;
-    await settings.set(SettingsRepo.onlinePictures, '1');
+    await settings.set(SettingsRepo.onlinePictures, SettingsRepo.onlinePicturesAgreed);
     return true;
   }
 

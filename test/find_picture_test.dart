@@ -7,6 +7,7 @@ import 'package:daily_learning/data/card_edit_service.dart';
 import 'package:daily_learning/data/picture_finder.dart';
 import 'package:daily_learning/data/settings_repo.dart';
 import 'package:daily_learning/domain/commons.dart';
+import 'package:daily_learning/domain/picture_sources.dart';
 import 'package:daily_learning/domain/import_parser.dart';
 import 'package:daily_learning/presentation/find_picture_screen.dart';
 import 'package:flutter/material.dart';
@@ -85,17 +86,19 @@ class FakeFinder implements PictureFinder {
   final List<PictureCandidate> results;
   final PictureFinderException? error;
   final searches = <String>[];
+  Set<String>? lastSources;
+  Map<String, String> failures = const {};
 
   @override
-  Future<List<PictureCandidate>> search(String query) async {
+  Future<PictureSearch> search(String query, {Set<String>? sources}) async {
     searches.add(query);
+    lastSources = sources;
     if (error != null) throw error!;
-    return results;
+    return PictureSearch(results, failures);
   }
 
   @override
-  Future<PictureCandidate?> forCard(String title) async =>
-      results.firstWhere((r) => r.title == title);
+  Future<PictureCandidate?> forCard(PictureCandidate c) async => c;
 
   @override
   Future<Uint8List> download(String url, {required int maxBytes}) async => png;
@@ -387,59 +390,200 @@ void main() {
     });
   });
 
-  group('CommonsPictureFinder', () {
-    test(
-      'searches files on Commons for the cleaned phrase and returns at most 8',
-      () async {
-        final fetch = FakeFetcher({
-          'generator=search': response([
-            for (var i = 1; i <= 12; i++) page('File:P$i.jpg', i),
-          ]),
-        });
-        final r = await CommonsPictureFinder(fetcher: fetch)
-            .search('  Mona   Lisa ');
-        expect(r, hasLength(8));
-        final u = fetch.urls.single;
-        expect(u.host, 'commons.wikimedia.org');
-        expect(u.queryParameters['gsrsearch'], 'Mona Lisa');
-        expect(u.queryParameters['gsrnamespace'], '6');
-        expect(u.queryParameters['iiurlwidth'], '250');
-        expect(u.queryParameters['formatversion'], '2');
-      },
-    );
-
-    test(
-      'refuses a web address as a search and does not go online for it',
-      () async {
-        final fetch = FakeFetcher({});
-        await expectLater(
-          CommonsPictureFinder(fetcher: fetch)
-              .search('https://example.com/x.jpg'),
-          throwsA(isA<PictureFinderException>()),
-        );
-        expect(fetch.urls, isEmpty);
-      },
-    );
+  group('Commons source', () {
+    test('searches files on Commons for the phrase and returns at most the limit', () async {
+      final fetch = FakeFetcher({'generator=search': response([for (var i = 1; i <= 12; i++) page('File:P$i.jpg', i)])});
+      final r = await CommonsSource(fetch).search('Mona Lisa');
+      expect(r, hasLength(5));
+      expect(r.first.source, 'commons');
+      final u = fetch.urls.single;
+      expect(u.host, 'commons.wikimedia.org');
+      expect(u.queryParameters['gsrsearch'], 'Mona Lisa');
+      expect(u.queryParameters['gsrnamespace'], '6');
+      expect(u.queryParameters['iiurlwidth'], '250');
+      expect(u.queryParameters['formatversion'], '2');
+    });
 
     test('asks for the card-sized copy of the chosen file by title', () async {
-      final fetch = FakeFetcher({
-        'titles=': response([page('File:Mona_Lisa.jpg', 1)]),
-      });
-      final c = await CommonsPictureFinder(fetcher: fetch)
-          .forCard('File:Mona_Lisa.jpg');
+      final fetch = FakeFetcher({'titles=': response([page('File:Mona_Lisa.jpg', 1)])});
+      final c = await CommonsSource(fetch).forCard(candidate('File:Mona_Lisa.jpg'));
       expect(c!.label, 'Mona Lisa');
       expect(fetch.urls.single.queryParameters['titles'], 'File:Mona_Lisa.jpg');
       expect(fetch.urls.single.queryParameters['iiurlwidth'], '960');
     });
 
     test('an answer that is not JSON is a clear error, not a crash', () async {
-      final fetch = FakeFetcher({
-        'generator=search': Uint8List.fromList(utf8.encode('<html>nope')),
+      final fetch = FakeFetcher({'generator=search': Uint8List.fromList(utf8.encode('<html>nope'))});
+      await expectLater(CommonsSource(fetch).search('cats'), throwsA(isA<PictureFinderException>()));
+    });
+  });
+
+  group('Openverse, Met and Art Institute parsing (untrusted input)', () {
+    Map<String, dynamic> ov(String id, String licence, {String version = '4.0', bool mature = false, int width = 1200, String creator = 'A. Person', String thumb = ''}) => {
+          'id': id,
+          'title': 'Title $id',
+          'creator': creator,
+          'license': licence,
+          'license_version': version,
+          'foreign_landing_url': 'https://www.flickr.com/photos/x/$id',
+          'thumbnail': thumb.isEmpty ? 'https://api.openverse.org/v1/images/$id/thumb/' : thumb,
+          'source': 'flickr',
+          'mature': mature,
+          'width': width,
+          'height': 800,
+        };
+
+    test('Openverse keeps reusable licences only, skips mature and tiny, and builds the credit', () {
+      final r = parseOpenverse({
+        'results': [
+          ov('a', 'by-sa'),
+          ov('b', 'by-nc'),
+          ov('c', 'by-nd'),
+          ov('d', 'cc0', version: '1.0'),
+          ov('e', 'by', mature: true),
+          ov('f', 'by', width: 100),
+          ov('g', 'pdm', version: '1.0'),
+          'junk',
+          {'license': 'by'},
+        ],
       });
-      await expectLater(
-        CommonsPictureFinder(fetcher: fetch).search('cats'),
-        throwsA(isA<PictureFinderException>()),
-      );
+      expect(r.map((c) => c.title), ['Title a', 'Title d', 'Title g']);
+      expect(r.first.credit, 'Title a — A. Person · CC BY-SA 4.0 · Openverse (flickr)');
+      expect(r[1].credit, contains('CC0'));
+      expect(r[2].credit, contains('Public domain'));
+      expect(r.first.source, 'openverse');
+      expect(r.first.thumbUrl, 'https://api.openverse.org/v1/images/a/thumb/');
+      expect(r.first.forKeeping().thumbUrl, r.first.thumbUrl);
+    });
+
+    test('Met: only public-domain objects with a picture; the artist and title go in the credit', () {
+      expect(parseMetSearch({'total': 2, 'objectIDs': [10, 'x', 20]}), [10, 20]);
+      expect(parseMetSearch({'total': 0, 'objectIDs': null}), isEmpty);
+      final good = {
+        'isPublicDomain': true,
+        'primaryImageSmall': 'https://images.metmuseum.org/CRDImages/a.jpg',
+        'objectURL': 'https://www.metmuseum.org/art/collection/search/10',
+        'title': 'Under the Wave off Kanagawa',
+        'artistDisplayName': 'Katsushika Hokusai',
+        'objectDate': 'ca. 1830-32',
+      };
+      final c = parseMetObject(good)!;
+      expect(c.credit, 'Under the Wave off Kanagawa — Katsushika Hokusai · Public domain · The Metropolitan Museum of Art');
+      expect(c.label, 'Under the Wave off Kanagawa');
+      expect(parseMetObject({...good, 'isPublicDomain': false}), isNull);
+      expect(parseMetObject({...good, 'primaryImageSmall': ''}), isNull);
+      expect(parseMetObject(null), isNull);
+      expect(parseMetObject('x'), isNull);
+    });
+
+    test('Art Institute: public domain only, IIIF address built from the image id, first line of the artist', () {
+      final r = parseArtic({
+        'config': {'iiif_url': 'https://www.artic.edu/iiif/2'},
+        'data': [
+          {'id': 1, 'title': 'Sunrise', 'artist_display': 'Claude Monet\nFrench, 1840-1926', 'image_id': 'abc-123', 'is_public_domain': true, 'date_display': '1872'},
+          {'id': 2, 'title': 'Locked', 'image_id': 'zzz', 'is_public_domain': false},
+          {'id': 3, 'title': 'No image', 'image_id': null, 'is_public_domain': true},
+          {'id': 4, 'title': 'Odd id', 'image_id': '../../etc', 'is_public_domain': true},
+        ],
+      });
+      expect(r, hasLength(1));
+      expect(r.single.thumbUrl, 'https://www.artic.edu/iiif/2/abc-123/full/843,/0/default.jpg');
+      expect(r.single.credit, 'Sunrise — Claude Monet · Public domain (CC0) · Art Institute of Chicago');
+      expect(r.single.pageUrl, 'https://www.artic.edu/artworks/1');
+    });
+
+    test('odd shapes never throw', () {
+      for (final bad in [null, 5, 'x', <String, dynamic>{}, {'results': 'no'}, {'data': 3}]) {
+        expect(parseOpenverse(bad), isEmpty, reason: '$bad');
+        expect(parseArtic(bad), isEmpty, reason: '$bad');
+        expect(parseMetSearch(bad), isEmpty, reason: '$bad');
+      }
+    });
+  });
+
+  group('PictureLookup (all sources together)', () {
+    Map<String, Object> answers({bool openverse = true}) => {
+          'generator=search': response([for (var i = 1; i <= 3; i++) page('File:C$i.jpg', i)]),
+          if (openverse)
+            'api.openverse.org': {
+              'results': [
+                for (var i = 1; i <= 3; i++)
+                  {
+                    'title': 'O$i', 'creator': 'x', 'license': 'by', 'license_version': '2.0', 'source': 'flickr',
+                    'foreign_landing_url': 'https://flickr.com/$i', 'thumbnail': 'https://api.openverse.org/v1/images/$i/thumb/', 'width': 900, 'height': 600,
+                  }
+              ]
+            },
+          'public/collection/v1/search': {'total': 2, 'objectIDs': [11, 12]},
+          'v1/objects/11': {'isPublicDomain': true, 'primaryImageSmall': 'https://images.metmuseum.org/a.jpg', 'objectURL': 'https://www.metmuseum.org/11', 'title': 'M1', 'artistDisplayName': 'Painter'},
+          'v1/objects/12': {'isPublicDomain': false, 'primaryImageSmall': 'https://images.metmuseum.org/b.jpg', 'objectURL': 'https://www.metmuseum.org/12', 'title': 'M2'},
+          'api.artic.edu': {
+            'config': {'iiif_url': 'https://www.artic.edu/iiif/2'},
+            'data': [
+              {'id': 7, 'title': 'A1', 'artist_display': 'Someone', 'image_id': 'img1', 'is_public_domain': true},
+            ],
+          },
+        };
+
+    test('searches every source, interleaves the results, and names each source', () async {
+      final fetch = FakeFetcher(answers());
+      final r = await PictureLookup(fetcher: fetch).search('  Hokusai   wave ');
+      expect(r.failures, isEmpty);
+      // one from each source in turn, then the rest
+      expect(r.candidates.map((c) => c.source).take(4), ['commons', 'openverse', 'met', 'artic']);
+      expect(r.candidates.map((c) => c.source).toSet(), {'commons', 'openverse', 'met', 'artic'});
+      expect(r.candidates.where((c) => c.source == 'met'), hasLength(1)); // the non-public-domain object is dropped
+      Uri one(bool Function(Uri) f) => fetch.urls.firstWhere(f);
+      expect(one((u) => u.host == 'api.openverse.org').queryParameters['q'], 'Hokusai wave');
+      expect(one((u) => u.host == 'api.openverse.org').queryParameters['license_type'], 'commercial,modification');
+      expect(one((u) => u.path.endsWith('/search')).queryParameters, containsPair('hasImages', 'true'));
+      expect(one((u) => u.host == 'api.artic.edu').queryParameters['query[term][is_public_domain]'], 'true');
+      expect(fetch.urls.every((u) => kPictureHosts.contains(u.host)), isTrue);
+    });
+
+    test('a source that fails is named, and the others still answer', () async {
+      final r = await PictureLookup(fetcher: FakeFetcher(answers(openverse: false))).search('wave');
+      expect(r.failures.keys, ['Openverse']);
+      expect(r.candidates.map((c) => c.source).toSet(), {'commons', 'met', 'artic'});
+    });
+
+    test('only the chosen sources are asked', () async {
+      final fetch = FakeFetcher(answers());
+      final r = await PictureLookup(fetcher: fetch).search('wave', sources: {'artic'});
+      expect(r.candidates.map((c) => c.source).toSet(), {'artic'});
+      expect(fetch.urls.map((u) => u.host).toSet(), {'api.artic.edu'});
+    });
+
+    test('a picture address outside the allowed hosts is never offered', () async {
+      final bad = answers();
+      bad['v1/objects/11'] = {'isPublicDomain': true, 'primaryImageSmall': 'https://evil.example.com/a.jpg', 'objectURL': 'https://www.metmuseum.org/11', 'title': 'M1'};
+      final r = await PictureLookup(fetcher: FakeFetcher(bad)).search('wave', sources: {'met'});
+      expect(r.candidates, isEmpty);
+    });
+
+    test('refuses a web address, and an empty choice of sources, without going online', () async {
+      final fetch = FakeFetcher({});
+      final lookup = PictureLookup(fetcher: fetch);
+      await expectLater(lookup.search('https://example.com/x.jpg'), throwsA(isA<PictureFinderException>()));
+      await expectLater(lookup.search('wave', sources: <String>{}), throwsA(isA<PictureFinderException>()));
+      expect(fetch.urls, isEmpty);
+    });
+
+    test('keeping a museum picture needs no extra request; a Commons one asks for the larger copy', () async {
+      final fetch = FakeFetcher(answers());
+      final lookup = PictureLookup(fetcher: fetch);
+      final r = await lookup.search('wave');
+      final met = r.candidates.firstWhere((c) => c.source == 'met');
+      final before = fetch.urls.length;
+      expect((await lookup.forCard(met))!.thumbUrl, met.thumbUrl);
+      expect(fetch.urls.length, before);
+    });
+
+    test('every host the app may contact is listed in one place', () {
+      expect(kPictureHosts, {
+        'commons.wikimedia.org', 'upload.wikimedia.org', 'api.openverse.org',
+        'collectionapi.metmuseum.org', 'images.metmuseum.org', 'api.artic.edu', 'www.artic.edu',
+      });
     });
   });
 

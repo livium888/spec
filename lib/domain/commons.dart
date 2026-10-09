@@ -27,7 +27,38 @@ class PictureCandidate {
     required this.height,
     required this.credit,
     required this.description,
+    this.source = 'commons',
+    this.sourceLabel = 'Wikimedia Commons',
+    this.cardUrl,
+    this.displayName,
   });
+
+  /// Which source it came from ('commons', 'openverse', 'met', 'artic') and its name for the learner.
+  final String source, sourceLabel;
+
+  /// Address of the copy to keep on a card, when it is already known (null: ask the source, as
+  /// Commons does, because it scales files on request).
+  final String? cardUrl;
+
+  /// A readable name when the source's own title is already clean (Commons titles are file names).
+  final String? displayName;
+
+  /// The same picture, pointing at the copy to keep on a card.
+  PictureCandidate forKeeping() => cardUrl == null
+      ? this
+      : PictureCandidate(
+          title: title,
+          pageUrl: pageUrl,
+          thumbUrl: cardUrl!,
+          mime: mime,
+          width: width,
+          height: height,
+          credit: credit,
+          description: description,
+          source: source,
+          sourceLabel: sourceLabel,
+          displayName: displayName,
+        );
 
   /// "File:Mona Lisa.jpg" as Commons names it.
   final String title;
@@ -39,7 +70,7 @@ class PictureCandidate {
   final String description; // plain text, may be empty
 
   /// "Mona Lisa" from "File:Mona Lisa.jpg": a readable name for lists and for a screen reader.
-  String get label => cleanTitle(title);
+  String get label => displayName ?? cleanTitle(title);
 }
 
 /// "File:Hokusai_-_Great_Wave.jpg" -> "Hokusai - Great Wave".
@@ -84,11 +115,11 @@ String _clip(String s, int max) => s.length <= max ? s : '${s.substring(0, max -
 
 /// "Leonardo da Vinci · Public domain · Wikimedia Commons". Licences need to be shown with the
 /// picture (CC BY and CC BY-SA require credit), so this line is stored on the card and displayed.
-String buildCredit({String artist = '', String license = '', String title = ''}) {
+String buildCredit({String artist = '', String license = '', String title = '', String source = 'Wikimedia Commons'}) {
   final parts = [
     if (artist.isNotEmpty) _clip(artist, 120),
     if (license.isNotEmpty) _clip(license, 40),
-    'Wikimedia Commons',
+    source,
   ];
   final line = parts.join(' · ');
   return _clip(title.isEmpty ? line : '${_clip(title, 80)} — $line', kMaxCreditChars);

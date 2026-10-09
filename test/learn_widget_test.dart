@@ -201,8 +201,7 @@ void main() {
     final db = await boot(t);
     await t.tap(find.byTooltip('Settings and backup'));
     await settle(t);
-    await t.dragUntilVisible(find.text('Subjects and topics'), find.byType(ListView), const Offset(0, -200));
-    await t.tap(find.text('Subjects and topics'));
+    await tapSettingsEntry(t, 'Subjects and topics');
     await settle(t);
     await t.tap(find.textContaining('Add subjects from the starter library'));
     await until(t, find.text('Thinking and Decisions'));
@@ -227,8 +226,7 @@ void main() {
     });
     await t.tap(find.byTooltip('Settings and backup'));
     await settle(t);
-    await t.dragUntilVisible(find.text('Subjects and topics'), find.byType(ListView), const Offset(0, -200));
-    await t.tap(find.text('Subjects and topics'));
+    await tapSettingsEntry(t, 'Subjects and topics');
     await settle(t);
 
     expect(find.text('Music'), findsOneWidget);
@@ -623,8 +621,7 @@ void phase2WidgetTests() {
     final db = await boot(t, seed: true, settings: {'guide_seen': '1'});
     await t.tap(find.byTooltip('Settings and backup'));
     await settle(t);
-    await t.dragUntilVisible(find.text('Subjects and topics'), find.byType(ListView).first, const Offset(0, -200));
-    await t.tap(find.text('Subjects and topics'));
+    await tapSettingsEntry(t, 'Subjects and topics');
     await until(t, find.text('Target recall'));
     await settle(t);
     await t.tap(find.byType(DropdownButtonFormField<double?>).first);
@@ -682,6 +679,19 @@ void manualControlWidgetTests() {
     expect(v, '10000');
     await done(t, db);
   });
+}
+
+/// The Settings page is a long lazy list whose length estimate corrects itself as it builds, so a
+/// single scroll can stop just short. Scroll in settled steps until the entry exists, bring it
+/// fully on screen, then tap it.
+Future<void> tapSettingsEntry(WidgetTester t, String text) async {
+  for (var i = 0; i < 30 && find.text(text).evaluate().isEmpty; i++) {
+    await t.drag(find.byType(Scrollable).first, const Offset(0, -300));
+    await t.pumpAndSettle();
+  }
+  await t.ensureVisible(find.text(text));
+  await t.pumpAndSettle();
+  await t.tap(find.text(text));
 }
 
 class FakePicker implements ImagePickerService {
@@ -855,7 +865,7 @@ void phase3WidgetTests() {
     expect(fields['image'], hasLength(64));
     expect(fields['image_credit'], 'Someone · CC BY-SA 4.0 · Wikimedia Commons');
     expect(fields['image_alt'], isNull); // never prefilled from the file name: it would name the answer
-    expect(await t.runAsync(() => SettingsRepo(db).get(SettingsRepo.onlinePictures)), '1');
+    expect(await t.runAsync(() => SettingsRepo(db).get(SettingsRepo.onlinePictures)), SettingsRepo.onlinePicturesAgreed);
     await done(t, db);
   });
 
@@ -877,8 +887,7 @@ void phase3WidgetTests() {
     final db = await boot(t, seed: true, settings: {'guide_seen': '1'});
     await t.tap(find.byTooltip('Settings and backup'));
     await settle(t);
-    await t.scrollUntilVisible(find.text('Subjects and topics'), 300, scrollable: find.byType(Scrollable).first);
-    await t.tap(find.text('Subjects and topics'));
+    await tapSettingsEntry(t, 'Subjects and topics');
     await until(t, find.text('Read cards aloud'));
     await t.scrollUntilVisible(find.text('Read cards aloud'), 200, scrollable: find.byType(Scrollable).first);
     await t.tap(find.byType(DropdownButtonFormField<String?>).first);

@@ -139,9 +139,9 @@ class _ArtFinder implements PictureFinder {
   final List<PictureCandidate> results;
   final Uint8List bytes;
   @override
-  Future<List<PictureCandidate>> search(String query) async => results;
+  Future<PictureSearch> search(String query, {Set<String>? sources}) async => PictureSearch(results);
   @override
-  Future<PictureCandidate?> forCard(String title) async => results.firstWhere((r) => r.title == title);
+  Future<PictureCandidate?> forCard(PictureCandidate c) async => c;
   @override
   Future<Uint8List> download(String url, {required int maxBytes}) async => bytes;
 }
