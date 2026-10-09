@@ -9,9 +9,12 @@ import 'theme/tokens.dart';
 /// A picture on a card. Tap to see it full screen and zoom. The description (if any) is what a
 /// screen reader announces.
 class CardPicture extends ConsumerWidget {
-  const CardPicture({super.key, required this.sha, this.alt = '', this.maxHeight = 260});
+  const CardPicture({super.key, required this.sha, this.alt = '', this.maxHeight = 260, this.flush = false});
   final String sha, alt;
   final double maxHeight;
+
+  /// Edge to edge on a soft backdrop (the top of a card), so artwork is never cropped or boxed in.
+  final bool flush;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -30,13 +33,24 @@ class CardPicture extends ConsumerWidget {
                   child: GestureDetector(
                     onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(
                         fullscreenDialog: true, builder: (_) => _FullScreen(bytes: bytes, label: label))),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(Rd.card),
-                      child: ConstrainedBox(
-                        constraints: BoxConstraints(maxHeight: maxHeight),
-                        child: Image.memory(bytes, fit: BoxFit.contain, cacheWidth: 1080, gaplessPlayback: true, excludeFromSemantics: true),
-                      ),
-                    ),
+                    child: flush
+                        ? ColoredBox(
+                            color: c.surfaceDim,
+                            child: SizedBox(
+                              width: double.infinity,
+                              child: ConstrainedBox(
+                                constraints: BoxConstraints(maxHeight: maxHeight),
+                                child: Image.memory(bytes, fit: BoxFit.contain, cacheWidth: 1080, gaplessPlayback: true, excludeFromSemantics: true),
+                              ),
+                            ),
+                          )
+                        : ClipRRect(
+                            borderRadius: BorderRadius.circular(Rd.card),
+                            child: ConstrainedBox(
+                              constraints: BoxConstraints(maxHeight: maxHeight),
+                              child: Image.memory(bytes, fit: BoxFit.contain, cacheWidth: 1080, gaplessPlayback: true, excludeFromSemantics: true),
+                            ),
+                          ),
                   ),
                 ),
         );

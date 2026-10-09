@@ -1,5 +1,20 @@
 import 'models.dart';
 
+/// One piece of a cloze sentence: plain text, or the gap this card asks about.
+class ClozePart {
+  const ClozePart.text(this.text)
+      : isGap = false,
+        hint = null;
+  const ClozePart.gap(this.text, {this.hint}) : isGap = true;
+
+  /// Plain text, or (for the gap) the hidden answer.
+  final String text;
+  final bool isGap;
+
+  /// The optional hint written as {{c1::answer::hint}}.
+  final String? hint;
+}
+
 /// A card plus the note content needed to display it.
 class StudyCard {
   const StudyCard({
@@ -46,6 +61,28 @@ class StudyCard {
       ];
 
   static final _clozeRe = RegExp(r'\{\{c(\d+)::(.*?)(?:::(.*?))?\}\}', dotAll: true);
+
+  /// The sentence of a cloze card in order: plain text, with this card's own deletion as a gap.
+  /// Other deletions of the same note are shown as ordinary text (their answers), as in [front].
+  List<ClozePart> get clozeParts {
+    final text = fields['cloze'] as String? ?? '';
+    final parts = <ClozePart>[];
+    var at = 0;
+    for (final m in _clozeRe.allMatches(text)) {
+      if (m.start > at) parts.add(ClozePart.text(text.substring(at, m.start)));
+      if (int.parse(m[1]!) == ord + 1) {
+        parts.add(ClozePart.gap(m[2]!, hint: m[3]));
+      } else {
+        parts.add(ClozePart.text(m[2]!));
+      }
+      at = m.end;
+    }
+    if (at < text.length) parts.add(ClozePart.text(text.substring(at)));
+    return parts;
+  }
+
+  /// Extra explanation written beside a cloze sentence (shown after the reveal).
+  String get clozeExtra => (fields['back'] as String? ?? '').trim();
 
   /// Question side. Cloze: the active deletion becomes `[...]` (or its hint).
   String get front {

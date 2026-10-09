@@ -130,7 +130,15 @@ Streak card (current, best); 17-week activity heatmap with a text summary; long-
 Subject tiles (2 columns) and the ways to add: starter library, paste an answer, new subject, custom prompt, add a card; Browse cards; Subjects and topics settings.
 
 ## Review (current)
-Close, thin progress bar, undo, edit/delete, suspend. Large card: subject tag, state tag, "Unverified" tag, question in serif. Tap anywhere (or "Show answer") to reveal: short answer, then Why it matters / Example / Memory hook. Four colour-coded rating buttons with next interval. End: ring, summary (cards, time, % remembered), streak, advice, "Back to home".
+Close, thin progress bar, undo, edit/delete, suspend; under the bar a caption "N left - about M min" (10 s a card until 3 are answered, then the learner's own pace). Card: picture-first when the card has a front picture (edge to edge, up to 320 px high, tap for full screen), then subject, state and "Unverified" tags, the question in serif. Cloze: the blank is a styled gap in the sentence (width never reveals the answer length; the hint shows inside it); on reveal the answer fills that gap in place with a highlight. Tap anywhere (or "Show answer") to reveal: the answer panel eases in (short fade, slide and accent bar; instant under reduce-motion). Extras (Why it matters / Example / Memory hook): one shows directly with its label; two or more become chips with one body at a time. Four colour-coded rating buttons with next interval. End: ring, summary (cards, time studied, % remembered, time per card), a Again/Hard/Good/Easy bar with counts (screen readers get one sentence), streak, advice, "Back to home".
+
+| State | Shows |
+|---|---|
+| Front | tags, question or cloze with blank, hint "Think of your answer, then tap to reveal" |
+| Revealed | answer panel, extras chips, rating buttons |
+| No picture / no extras | those parts are simply absent (no empty boxes) |
+| Reduce-motion | no animation; same content |
+| Picture missing from the database | the card shows without it |
 
 ## Browse cards (Library -> Browse, edit or delete cards)
 Search box (literal match on question/answer text, 300 ms debounce), newest first, 50 per page with "Show more"; tap a row to edit.

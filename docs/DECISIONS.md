@@ -211,3 +211,14 @@ New pushes cancel older builds (`concurrency`), and the rolling `latest-apk` rel
 - **Not verified on a phone:** both plugins compile only in CI; how natural the voices sound and whether each language's voice is installed depends on the phone; the system photo picker's behaviour across makers.
 - **Rejected:** pictures as loose files (backup format change, orphan handling, restore verification), downloading pictures (offline rule), a speech service with its own engine (size, licences), choosing the speech language per card (too fiddly; per subject is how learners study).
 - **Revisit if:** backups get too large with pictures (then a size warning or a lower picture quality setting), or learners want audio clips (add playback and a file picker on the same `media` table: mime already stored).
+
+## D31 — Phase B: the card learning screen (look and feel)
+- **Scope:** reveal animation, cloze gaps in place, extras as chips, picture-first art cards, "cards left and time left" caption, richer session summary. Not in this phase: learn-ahead for learning-step cards, inline undo, 2/4 buttons, session size, keyboard (Phase A); typed answers, confidence rating, swipe (Phase C).
+- **Cloze:** `StudyCard.clozeParts` turns the card's own deletion into a gap and leaves other deletions as plain text; the gap is a widget span with a fixed width (so its size cannot leak the answer's length) and the answer replaces it with a tinted highlight when revealed. Screen readers hear "blank, hint ..." then "Answer ...".
+- **Motion:** about 420 ms, one fade, slide and accent bar; reduce-motion (system setting) makes it instant. Nothing animates on its own.
+- **Pictures:** a front picture goes edge to edge at the top of the card (max 320 px); a back picture stays with the answer.
+- **Time left:** an estimate (10 s a card until 3 answers, then the average so far); worded "about".
+- **Gotchas found by rendering:** a zero-width border with a radius throws a paint error and hides the text (used a separate underline box instead); a child-less coloured box in a Row has no height unless the Row stretches.
+- **Verified:** widget tests plus screenshots of front, back, summary in light and dark. NOT verified: how it feels on a real phone (timing, picture sizes, tap targets); that is the learner's call.
+- **Rejected:** flip-card 3D animation (slower, harder to read, motion-sensitive users); animating the blank width to the answer (leaks length); a countdown timer (pressure the learner did not ask for).
+- **Revisit if:** the animation feels slow after a week, the time-left guess is far off, or the tabs hide extras learners want to see at once.

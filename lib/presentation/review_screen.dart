@@ -15,6 +15,7 @@ import 'format.dart';
 import 'theme/app_theme.dart';
 import 'theme/subject_style.dart';
 import 'card_picture.dart';
+import 'widgets/card_parts.dart';
 import 'edit_card_screen.dart';
 import 'theme/tokens.dart';
 import 'widgets/confetti.dart';
@@ -313,6 +314,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                 IconButton(tooltip: 'Suspend this card', icon: const Icon(Icons.pause_circle_outline), onPressed: _suspend),
             ]),
           ),
+          if (!_loading && _error == null && _current != null) _progressCaption(context, left),
           Expanded(child: _content(context)),
         ]),
       ),
@@ -363,6 +365,22 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
     ]);
   }
 
+  /// "7 left · about 2 min": what is still ahead, from the pace of this very session.
+  Widget _progressCaption(BuildContext context, int left) {
+    final avg = _answered >= 3 ? _totalMs / _answered / 1000.0 : 10.0;
+    final mins = (left * avg / 60).ceil().clamp(1, 100000);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 2, 20, 0),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: Text(
+          '$left left · about $mins min',
+          style: Theme.of(context).textTheme.labelMedium?.copyWith(color: AppColors.of(context).inkSoft),
+        ),
+      ),
+    );
+  }
+
   String _stateLabel(StudyCard c) => switch (c.snapshot.state) {
         CardState.newCard => 'New',
         CardState.learning => 'Learning',
@@ -375,6 +393,9 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
     final t = Theme.of(context).textTheme;
     final name = _domainNames[card.domainId] ?? '';
     final style = SubjectStyle.of(card.domainId, name, c.brightness);
+    final questionStyle = AppText.serif(26, weight: 600, height: 1.4, color: c.ink);
+    final isCloze = card.noteType == 'cloze';
+    final frontPicture = card.imageSha != null && card.imageOnFront;
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: _revealed ? null : _reveal,
@@ -382,54 +403,54 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
         child: SoftCard(
           radius: Rd.hero,
-          padding: const EdgeInsets.fromLTRB(22, 20, 22, 24),
+          padding: EdgeInsets.zero,
           child: ConstrainedBox(
             constraints: const BoxConstraints(minHeight: 300),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Wrap(spacing: 8, runSpacing: 6, children: [
-                if (name.isNotEmpty)
-                  _Tag(icon: style.icon, text: name, fg: style.strong, bg: style.tint),
-                _Tag(text: _stateLabel(card), fg: c.inkSoft, bg: c.surfaceDim),
-                if (card.unverified)
-                  _Tag(icon: Icons.help_outline, text: 'Unverified', fg: c.warn, bg: c.warnTint),
-                if (_speech[card.domainId] != null)
-                  Semantics(
-                    button: true,
-                    label: 'Read aloud',
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(Rd.pill),
-                      // A tap on a disabled speaker must not fall through to the card and reveal the answer.
-                      onTap: _speechText(card, revealed: _revealed) == null ? () {} : () => _speak(card, revealed: _revealed),
-                      child: Padding(
-                        padding: const EdgeInsets.all(4),
-                        child: Icon(Icons.volume_up_outlined,
-                            size: 24, color: _speechText(card, revealed: _revealed) == null ? c.line : c.accent),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+              // Picture first: artwork gets the top of the card, edge to edge, never cropped.
+              if (frontPicture) CardPicture(sha: card.imageSha!, alt: card.imageAlt, maxHeight: 320, flush: true),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(22, 20, 22, 24),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Wrap(spacing: 8, runSpacing: 6, crossAxisAlignment: WrapCrossAlignment.center, children: [
+                    if (name.isNotEmpty) _Tag(icon: style.icon, text: name, fg: style.strong, bg: style.tint),
+                    _Tag(text: _stateLabel(card), fg: c.inkSoft, bg: c.surfaceDim),
+                    if (card.unverified) _Tag(icon: Icons.help_outline, text: 'Unverified', fg: c.warn, bg: c.warnTint),
+                    if (_speech[card.domainId] != null)
+                      Semantics(
+                        button: true,
+                        label: 'Read aloud',
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(Rd.pill),
+                          // A tap on a disabled speaker must not fall through to the card and reveal the answer.
+                          onTap: _speechText(card, revealed: _revealed) == null ? () {} : () => _speak(card, revealed: _revealed),
+                          child: Padding(
+                            padding: const EdgeInsets.all(4),
+                            child: Icon(Icons.volume_up_outlined,
+                                size: 24, color: _speechText(card, revealed: _revealed) == null ? c.line : c.accent),
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
-              ]),
-              if (card.imageSha != null && card.imageOnFront) ...[
-                const SizedBox(height: 16),
-                CardPicture(sha: card.imageSha!, alt: card.imageAlt),
-              ],
-              const SizedBox(height: 22),
-              // Plain Text only: card content comes from an LLM and is never interpreted as markup.
-              // Not selectable on purpose: selectable text swallows taps, and a tap anywhere on the card reveals the answer.
-              Text(card.front, style: AppText.serif(26, weight: 600, height: 1.32, color: c.ink)),
-              AnimatedSize(
-                duration: reduce ? Duration.zero : const Duration(milliseconds: 260),
-                curve: Curves.easeOutCubic,
-                alignment: Alignment.topCenter,
-                child: _revealed ? _answerSide(context, card, style) : const SizedBox(width: double.infinity),
-              ),
-              if (!_revealed) ...[
-                const SizedBox(height: 28),
-                Row(children: [
-                  Icon(Icons.touch_app_outlined, size: 18, color: c.inkSoft),
-                  const SizedBox(width: 6),
-                  Text('Think of your answer, then tap to reveal', style: t.bodySmall),
+                  ]),
+                  const SizedBox(height: 22),
+                  // Plain Text only: card content comes from an LLM and is never interpreted as markup.
+                  // Not selectable on purpose: selectable text swallows taps, and a tap anywhere on the card reveals the answer.
+                  if (isCloze)
+                    ClozeSentence(
+                        parts: card.clozeParts, revealed: _revealed, style: questionStyle, strong: style.strong, tint: style.tint)
+                  else
+                    Text(card.front, style: questionStyle),
+                  if (_revealed) RevealPanel(accent: style.strong, child: _answerSide(context, card, style)),
+                  if (!_revealed) ...[
+                    const SizedBox(height: 28),
+                    Row(children: [
+                      Icon(Icons.touch_app_outlined, size: 18, color: c.inkSoft),
+                      const SizedBox(width: 6),
+                      Expanded(child: Text('Think of your answer, then tap to reveal', style: t.bodySmall)),
+                    ]),
+                  ],
                 ]),
-              ],
+              ),
             ]),
           ),
         ),
@@ -437,38 +458,25 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
     );
   }
 
+  /// The answer side. A cloze fills its gap in the sentence above, so only the extras are added here.
   Widget _answerSide(BuildContext context, StudyCard card, SubjectStyle style) {
     final c = AppColors.of(context);
-    final t = Theme.of(context).textTheme;
-    return TweenAnimationBuilder<double>(
-      tween: Tween(begin: 0, end: 1),
-      duration: const Duration(milliseconds: 320),
-      builder: (_, v, child) => Opacity(opacity: v, child: child),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        const SizedBox(height: 20),
-        Container(width: 44, height: 4, decoration: BoxDecoration(color: style.strong, borderRadius: BorderRadius.circular(2))),
+    final isCloze = card.noteType == 'cloze';
+    final back = isCloze ? card.clozeExtra : card.back;
+    final source = card.fields['supporting_quote'] as String? ?? '';
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      if (card.imageSha != null && !card.imageOnFront) ...[
+        CardPicture(sha: card.imageSha!, alt: card.imageAlt),
         const SizedBox(height: 16),
-        if (card.imageSha != null && !card.imageOnFront) ...[
-          CardPicture(sha: card.imageSha!, alt: card.imageAlt),
-          const SizedBox(height: 16),
-        ],
-        SelectableText(card.back, style: AppText.sans(20, weight: 650, height: 1.4, color: c.ink)),
-        for (final (label, body) in card.extras)
-          Padding(
-            padding: const EdgeInsets.only(top: 18),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(label, style: t.labelMedium?.copyWith(color: style.strong, fontWeight: FontWeight.w700)),
-              const SizedBox(height: 3),
-              SelectableText(body, style: t.bodyLarge),
-            ]),
-          ),
-        if ((card.fields['supporting_quote'] as String? ?? '').isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.only(top: 18),
-            child: Text('Source: “${card.fields['supporting_quote']}”', style: t.bodySmall),
-          ),
-      ]),
-    );
+      ],
+      if (back.isNotEmpty) SelectableText(back, style: AppText.sans(20, weight: 650, height: 1.4, color: c.ink)),
+      ExtrasTabs(extras: card.extras, strong: style.strong, tint: style.tint),
+      if (source.isNotEmpty)
+        Padding(
+          padding: const EdgeInsets.only(top: 18),
+          child: Text('Source: “$source”', style: Theme.of(context).textTheme.bodySmall),
+        ),
+    ]);
   }
 
   Widget _showAnswerButton() => FilledButton(
@@ -556,7 +564,10 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                 _SummaryStat('$_answered', _answered == 1 ? 'card' : 'cards'),
                 _SummaryStat(_formatMs(_totalMs), 'studied'),
                 if (pct != null) _SummaryStat('$pct%', 'remembered'),
+                if (_answered > 1) _SummaryStat(_formatMs(_totalMs ~/ _answered), 'per card'),
               ]),
+              const SizedBox(height: 16),
+              SizedBox(width: 300, child: RatingBreakdown(ratings: _ratings)),
             ],
             if (stats != null && stats.streak.current > 0) ...[
               const SizedBox(height: 18),
