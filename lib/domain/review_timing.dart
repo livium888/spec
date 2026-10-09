@@ -4,3 +4,8 @@
 const kMaxCardMs = 60000;
 
 int cappedCardMs(int elapsedMs) => elapsedMs < 0 ? 0 : (elapsedMs > kMaxCardMs ? kMaxCardMs : elapsedMs);
+
+/// Problem cards (D43) are worked out on paper, so a longer pause is real work, not an idle phone.
+const kMaxProblemCardMs = 600000;
+
+int cappedProblemMs(int elapsedMs) => elapsedMs < 0 ? 0 : (elapsedMs > kMaxProblemCardMs ? kMaxProblemCardMs : elapsedMs);

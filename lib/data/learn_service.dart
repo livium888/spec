@@ -254,6 +254,11 @@ class LearnService {
       (db.update(db.domains)..where((d) => d.id.equals(domainId)))
           .write(DomainsCompanion(revisit: Value(on)));
 
+  /// What a topic is practised with: '' (the AI decides), 'concepts', 'problems' or 'both' (D43).
+  Future<void> setTopicPractice(int itemId, String practice) =>
+      (db.update(db.syllabusItems)..where((x) => x.id.equals(itemId)))
+          .write(SyllabusItemsCompanion(practice: Value(const {'concepts', 'problems', 'both'}.contains(practice) ? practice : '')));
+
   /// Opt out of a topic (never offered), or put it back.
   Future<void> setTopicSkipped(int itemId, bool skipped) async {
     await (db.update(db.syllabusItems)..where((x) => x.id.equals(itemId)))

@@ -9,6 +9,9 @@ import 'package:daily_learning/app/providers.dart';
 import 'package:daily_learning/data/db/database.dart';
 import 'package:daily_learning/data/import_service.dart';
 import 'package:daily_learning/data/media_service.dart';
+import 'package:daily_learning/data/params_repo.dart';
+import 'package:daily_learning/data/review_service.dart';
+import 'package:daily_learning/data/settings_repo.dart';
 import 'package:daily_learning/data/outline_service.dart';
 import 'package:daily_learning/data/reading_service.dart';
 import 'package:daily_learning/data/picture_finder.dart';
@@ -187,6 +190,54 @@ void main() {
       await t.tapAt(const Offset(200, 380));
       await settle(t);
       await shot(t, key, 'e_math_${tag}_4cloze_back');
+      await t.pumpWidget(const SizedBox());
+      await t.runAsync(db.close);
+    }, skip: skip);
+  }
+
+  for (final dark in [false, true]) {
+    testWidgets('problem card, level 2 (${dark ? 'dark' : 'light'})', (t) async {
+      Directory(_dir!).createSync(recursive: true);
+      await t.runAsync(loadKatexFonts);
+      final db = AppDatabase(NativeDatabase.memory());
+      final imp = ImportService(db);
+      final now = DateTime.now().toUtc();
+      final raw = jsonEncode({
+        'domain': 'Physics',
+        'problems': [
+          {
+            'statement': r'A ball is dropped from rest and falls $20\ \mathrm{m}$. How fast is it moving just before it lands? (Take $g = 9.8\ \mathrm{m/s^2}$.)',
+            'steps': [
+              r'Energy is conserved: $mgh = \tfrac{1}{2}mv^2$, so the mass cancels.',
+              r'Solve for the speed: $v = \sqrt{2gh}$.',
+              r'Substitute: $v = \sqrt{2 \times 9.8 \times 20}$.',
+              r'Evaluate: $v \approx 19.8\ \mathrm{m/s}$.',
+            ],
+            'answer': r'$v \approx 19.8\ \mathrm{m/s}$',
+            'answer_value': 19.8,
+            'answer_expr': 'sqrt(2*9.8*20)',
+            'why_it_matters': 'The same trick works for any fall: the mass never matters.',
+          },
+        ],
+      });
+      await imp.commit(await imp.preview(raw), now: now.subtract(const Duration(days: 2)));
+      final settings = SettingsRepo(db);
+      final review = ReviewService(db, settings, ParamsRepo(db, settings));
+      final lvl1 = (await db.select(db.cards).get()).firstWhere((c) => c.ord == 0);
+      await review.review(cardId: lvl1.id, rating: 3, durationMs: 1000, now: now.subtract(const Duration(days: 1)));
+      await db.customStatement('UPDATE card SET suspended = 1 WHERE ord = 0');
+      final key = GlobalKey();
+      await boot(t, db, key, dark: dark);
+      final tag = dark ? 'dark' : 'light';
+      await t.tap(find.text('Start review'));
+      await settle(t);
+      await shot(t, key, 'f_problem_${tag}_1start');
+      await t.tap(find.text('Show next step'));
+      await t.pump();
+      await shot(t, key, 'f_problem_${tag}_2hint');
+      await t.tap(find.text('Show solution'));
+      await settle(t);
+      await shot(t, key, 'f_problem_${tag}_3solution');
       await t.pumpWidget(const SizedBox());
       await t.runAsync(db.close);
     }, skip: skip);

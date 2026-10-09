@@ -9,9 +9,10 @@ import 'starter_library_screen.dart';
 import 'topics_screen.dart';
 
 class _Topic {
-  const _Topic(this.id, this.title, this.status, this.cards);
+  const _Topic(this.id, this.title, this.status, this.cards, this.practice);
   final int id, cards;
   final String title, status; // todo | active | done | skipped
+  final String practice; // '' (the AI decides) | concepts | problems | both
 }
 
 class _Subject {
@@ -63,13 +64,13 @@ class _SubjectsScreenState extends ConsumerState<SubjectsScreen> {
           FROM syllabus_item WHERE domain_id = ?''',
             variables: [Variable.withInt(d.id)]).getSingle();
         final ts = await db.customSelect('''
-          SELECT s.id AS id, s.title AS title, s.status AS status, COUNT(c.id) AS cards
+          SELECT s.id AS id, s.title AS title, s.status AS status, s.practice AS practice, COUNT(c.id) AS cards
           FROM syllabus_item s
           LEFT JOIN note n ON n.syllabus_item_id = s.id
           LEFT JOIN card c ON c.note_id = n.id
           WHERE s.domain_id = ? GROUP BY s.id ORDER BY s.position, s.id''', variables: [Variable.withInt(d.id)]).get();
         out.add(_Subject(d, r.read<int>('total'), r.read<int?>('covered') ?? 0, r.read<int?>('skipped') ?? 0, [
-          for (final x in ts) _Topic(x.read<int>('id'), x.read<String>('title'), x.read<String>('status'), x.read<int>('cards')),
+          for (final x in ts) _Topic(x.read<int>('id'), x.read<String>('title'), x.read<String>('status'), x.read<int>('cards'), x.read<String>('practice')),
         ]));
       }
       if (mounted) setState(() { _subjects = out; _error = null; });
@@ -130,7 +131,8 @@ class _SubjectsScreenState extends ConsumerState<SubjectsScreen> {
 
   static String _status(_Topic x) =>
       '${switch (x.status) { 'done' => 'Covered', 'active' => 'In progress', 'skipped' => 'Not offered', _ => 'Not started' }}'
-      ' · ${x.cards} card${x.cards == 1 ? '' : 's'}';
+      ' · ${x.cards} card${x.cards == 1 ? '' : 's'}'
+      '${switch (x.practice) { 'concepts' => ' · Concepts', 'problems' => ' · Problems', 'both' => ' · Concepts and problems', _ => '' }}';
 
   /// Every topic of the subject with a tick-box: ticked topics are offered by "Learn something new",
   /// unticked ones are skipped. Open for a subject that has no cards yet (a new one) or few topics.
@@ -186,6 +188,22 @@ class _SubjectsScreenState extends ConsumerState<SubjectsScreen> {
               },
               title: Text(x.title),
               subtitle: Text(_status(x)),
+              // What this topic is practised with: concepts, problems to solve, or both (D43).
+              secondary: PopupMenuButton<String>(
+                tooltip: 'What to practise in "${x.title}"',
+                icon: Icon(x.practice == 'concepts' || x.practice.isEmpty ? Icons.tune : Icons.calculate_outlined),
+                initialValue: x.practice,
+                onSelected: (v) async {
+                  await learn.setTopicPractice(x.id, v);
+                  _load();
+                },
+                itemBuilder: (_) => const [
+                  PopupMenuItem(value: '', child: Text('AI decides')),
+                  PopupMenuItem(value: 'concepts', child: Text('Concepts only')),
+                  PopupMenuItem(value: 'problems', child: Text('Problems to solve')),
+                  PopupMenuItem(value: 'both', child: Text('Concepts and problems')),
+                ],
+              ),
             ),
         ],
       ),

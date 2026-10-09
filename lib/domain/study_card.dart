@@ -15,6 +15,16 @@ class ClozePart {
   final String? hint;
 }
 
+/// The four levels of a problem family.
+const kProblemLevels = 4;
+
+/// Steps shown up front: all of them at level 1 (a worked example to study), then fewer, none at level 4.
+int problemStepsGiven(int total, int level) {
+  if (level <= 1) return total;
+  if (level >= kProblemLevels) return 0;
+  return total - ((total * (level - 1) + 2) ~/ 3); // total - ceil(total * (level-1) / 3)
+}
+
 /// A card plus the note content needed to display it.
 class StudyCard {
   const StudyCard({
@@ -38,6 +48,17 @@ class StudyCard {
   final bool suspended;
 
   int get id => snapshot.id;
+
+  /// Problem cards (D43): one note, four cards = four levels, from a fully worked example to solving alone.
+  bool get isProblem => noteType == 'problem';
+  int get problemLevel => (ord + 1).clamp(1, kProblemLevels);
+  List<String> get problemSteps => [
+        for (final l in (fields['steps'] as String? ?? '').split('\n'))
+          if (l.trim().isNotEmpty) l.trim(),
+      ];
+
+  /// How many steps are already shown when this card appears.
+  int get stepsGiven => problemStepsGiven(problemSteps.length, problemLevel);
   bool get unverified => tags.contains('unverified');
 
   /// The card's picture (SHA-256 of the stored image), which side it goes on, and its description.

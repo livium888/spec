@@ -11,6 +11,10 @@ import 'settings_repo.dart';
 const kDefaultLearnAheadMinutes = 20;
 const kMaxLearnAheadMinutes = 60;
 
+/// Problem cards (D43): new ones per day, separate from the new-card limit.
+const kDefaultProblemsPerDay = 3;
+const kMaxProblemsPerDay = 20;
+
 /// Foundation cards that may be introduced in one day, on top of the daily new-card limit.
 const kMaxFoundationPerDay = 8;
 
@@ -56,7 +60,8 @@ class QueueService {
     );
     final dueReviewCount = reviews.length;
 
-    final introduced = await _introducedToday(dayStart, domainId);
+    final introduced = await _introducedToday(dayStart, domainId, problems: false);
+    final problemsIntroduced = await _introducedToday(dayStart, domainId, problems: true);
     // The learner's own number is used as it is, unless they switched the backlog shrink on.
     final shrink = await settings.get(SettingsRepo.backlogShrink) == '1';
     final limit = shrink ? backlogAdjustedNewLimit(base, dueReviewCount, divisor: divisor) : (base < 0 ? 0 : base);
@@ -68,10 +73,11 @@ class QueueService {
       [OrderingTerm.asc(db.notes.createdAt), OrderingTerm.asc(db.cards.id)],
       limit: kMaxFoundationPerDay * 2,
     );
+    final isProblem = CustomExpression<bool>("note.type = 'problem'");
     final newCards = remaining == 0
         ? <StudyCard>[]
         : await fetch(
-            db.cards.state.equals('new') & isFoundation.not(),
+            db.cards.state.equals('new') & isFoundation.not() & isProblem.not(),
             [OrderingTerm.asc(db.notes.createdAt), OrderingTerm.asc(db.cards.id)],
             limit: remaining * 4, // headroom: sibling filtering may drop some
           );
@@ -82,7 +88,26 @@ class QueueService {
         [for (final c in xs) if (seen.add(c.noteId)) c];
     final l = dedupe(learning);
     final r = dedupe(reviews);
-    final n = [...dedupe(foundationNew).take(kMaxFoundationPerDay), ...dedupe(newCards).take(remaining)];
+    // Problem cards have their own daily budget and unlock level by level (D43).
+    final problemLimit = (await settings.getInt(SettingsRepo.problemsPerDay, kDefaultProblemsPerDay)).clamp(0, kMaxProblemsPerDay);
+    final problemRoom = (problemLimit - problemsIntroduced).clamp(0, problemLimit);
+    final problemNew = <StudyCard>[];
+    if (problemRoom > 0) {
+      final candidates = await fetch(
+        db.cards.state.equals('new') & isProblem,
+        [OrderingTerm.asc(db.notes.createdAt), OrderingTerm.asc(db.cards.noteId), OrderingTerm.asc(db.cards.ord)],
+        limit: 60,
+      );
+      for (final c in candidates) {
+        if (problemNew.length >= problemRoom * 2) break;
+        if (await _unlocked(c)) problemNew.add(c);
+      }
+    }
+    final n = [
+      ...dedupe(foundationNew).take(kMaxFoundationPerDay),
+      ...dedupe(newCards).take(remaining),
+      ...dedupe(problemNew).take(problemRoom),
+    ];
 
     // Learn-ahead: when nothing else is due, learning cards that are only minutes away are offered
     // now. A card answered in the last minute is not shown again at once (that is not spacing).
@@ -131,19 +156,42 @@ class QueueService {
     return r == null ? null : _study(r.readTable(db.cards), r.readTable(db.notes));
   }
 
-  Future<int> _introducedToday(int dayStart, int? domainId) async {
+  Future<int> _introducedToday(int dayStart, int? domainId, {required bool problems}) async {
     final rows = await db.customSelect(
       'SELECT COUNT(DISTINCT l.card_id) AS n FROM review_log l '
       'JOIN card c ON c.id = l.card_id JOIN note n ON n.id = c.note_id '
       "WHERE l.revoked_at IS NULL AND l.state_before = 'new' AND l.reviewed_at >= ? "
-      'AND (? IS NULL OR n.domain_id = ?)',
+      "AND (? IS NULL OR n.domain_id = ?) AND ((n.type = 'problem') = ?)",
       variables: [
         Variable.withInt(dayStart),
         Variable<int>(domainId),
         Variable<int>(domainId),
+        Variable.withInt(problems ? 1 : 0),
       ],
     ).getSingle();
     return rows.read<int>('n');
+  }
+
+  /// Has the learner answered the card of [noteId] at [ord] with at least [minRating]?
+  Future<bool> _answered(int noteId, int ord, int minRating) async {
+    final r = await db.customSelect(
+      'SELECT 1 AS x FROM review_log l JOIN card c ON c.id = l.card_id '
+      'WHERE c.note_id = ? AND c.ord = ? AND l.revoked_at IS NULL AND l.rating >= ? LIMIT 1',
+      variables: [Variable.withInt(noteId), Variable.withInt(ord), Variable.withInt(minRating)],
+    ).get();
+    return r.isNotEmpty;
+  }
+
+  /// A problem card is offered for the first time only after the level before it was answered well
+  /// (Good or Easy); an Easy on a level also skips the next one. A further problem of the same kind
+  /// waits for its family's third level.
+  Future<bool> _unlocked(StudyCard c) async {
+    final variantOf = int.tryParse('${c.fields['variant_of'] ?? ''}');
+    if (variantOf != null) return _answered(variantOf, kProblemLevels - 2, 3);
+    final level = c.ord; // 0-based
+    if (level == 0) return true;
+    if (await _answered(c.noteId, level - 1, 3)) return true;
+    return level >= 2 && await _answered(c.noteId, level - 2, 4);
   }
 
   StudyCard _study(Card c, Note n) => StudyCard(

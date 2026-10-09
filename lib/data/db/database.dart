@@ -4,7 +4,7 @@ part 'database.g.dart';
 
 /// Bump together with a migration step in [AppDatabase.migration].
 /// Also checked by RestoreBackup against `PRAGMA user_version` of a backup file.
-const int kSchemaVersion = 8;
+const int kSchemaVersion = 9;
 
 class Domains extends Table {
   @override
@@ -88,6 +88,8 @@ class SyllabusItems extends Table {
   TextColumn get description => text().withDefault(const Constant(''))();
   // v3: how many times this topic has been taken to a deeper level (1 = first pass).
   IntColumn get rounds => integer().withDefault(const Constant(1))();
+  // v9: what to practise here: '' = the AI decides, 'concepts', 'problems' or 'both' (D43).
+  TextColumn get practice => text().withDefault(const Constant(''))();
 }
 
 /// v2: item `itemId` should come after `prereqId`.
@@ -294,6 +296,9 @@ class AppDatabase extends _$AppDatabase {
           }
           if (from < 8) {
             await m.createTable(readingItems);
+          }
+          if (from < 9) {
+            await m.addColumn(syllabusItems, syllabusItems.practice);
           }
         },
         beforeOpen: (details) async {

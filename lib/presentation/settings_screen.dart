@@ -9,7 +9,7 @@ import '../app/bootstrap.dart';
 import '../app/providers.dart';
 import '../data/backup/backup_service.dart';
 import '../data/backup/backup_storage.dart';
-import '../data/queue_service.dart' show kDefaultLearnAheadMinutes, kMaxLearnAheadMinutes;
+import '../data/queue_service.dart' show kDefaultLearnAheadMinutes, kDefaultProblemsPerDay, kMaxLearnAheadMinutes, kMaxProblemsPerDay;
 import '../data/settings_repo.dart';
 import '../domain/card_text.dart';
 import '../domain/prompt_template.dart' show kMaxProfileChars;
@@ -39,6 +39,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   final _minutes = TextEditingController();
   final _revisit = TextEditingController();
   final _ahead = TextEditingController();
+  final _problems = TextEditingController();
   final _profile = TextEditingController();
   String? _folder;
   int _lastBackup = 0;
@@ -54,7 +55,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   @override
   void dispose() {
-    for (final c in [_newPerDay, _divisor, _perPrompt, _retention, _steps, _relearn, _rollover, _minutes, _revisit, _ahead, _profile]) {
+    for (final c in [_newPerDay, _divisor, _perPrompt, _retention, _steps, _relearn, _rollover, _minutes, _revisit, _ahead, _problems, _profile]) {
       c.dispose();
     }
     super.dispose();
@@ -73,6 +74,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     _minutes.text = '${await s.getInt(SettingsRepo.dailyMinutes, 20)}';
     _revisit.text = '${await s.getInt(SettingsRepo.revisitMonths, 3)}';
     _ahead.text = '${await s.getInt(SettingsRepo.learnAheadMinutes, kDefaultLearnAheadMinutes)}';
+    _problems.text = '${await s.getInt(SettingsRepo.problemsPerDay, kDefaultProblemsPerDay)}';
     _profile.text = await s.get(SettingsRepo.learnerProfile) ?? '';
     _folder = await s.get(SettingsRepo.backupTreeUri);
     _lastBackup = await s.getInt(BackupService.lastSuccessKey, 0);
@@ -90,6 +92,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final mins = int.tryParse(_minutes.text.trim());
     final rev = int.tryParse(_revisit.text.trim());
     final ahead = int.tryParse(_ahead.text.trim());
+    final probs = int.tryParse(_problems.text.trim());
     List<int>? parse(String t) {
       final parts = t.split(',').map((e) => int.tryParse(e.trim())).toList();
       return parts.isEmpty || parts.contains(null) || parts.any((e) => e! < 1 || e > 1440)
@@ -106,6 +109,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     if (h == null || h < 0 || h > 23) err = 'Day rollover hour must be 0-23.';
     if (mins == null || mins < 5 || mins > 1440) err = 'Daily study time must be 5-1440 minutes.';
     if (rev == null || rev < 1 || rev > 24) err = 'First revisit delay must be 1-24 months.';
+    if (probs == null || probs < 0 || probs > kMaxProblemsPerDay) err = 'New problems per day: 0-$kMaxProblemsPerDay.';
     if (ahead == null || ahead < 0 || ahead > kMaxLearnAheadMinutes) err = 'Show waiting cards early: 0-$kMaxLearnAheadMinutes minutes (0 = off).';
     if (_profile.text.length > kMaxProfileChars) err = 'Keep "About you" under $kMaxProfileChars characters.';
     if (ls == null) err = 'Steps for new cards: minutes separated by commas, e.g. 1,10.';
@@ -125,6 +129,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     await s.set(SettingsRepo.dailyMinutes, '$mins');
     await s.set(SettingsRepo.revisitMonths, '$rev');
     await s.set(SettingsRepo.learnAheadMinutes, '$ahead');
+    await s.set(SettingsRepo.problemsPerDay, '$probs');
     await s.set(SettingsRepo.learnerProfile, _profile.text.trim());
     // New params row (old log rows keep theirs, so replay stays exact).
     await ref.read(paramsRepoProvider).syncFromSettings();
@@ -297,6 +302,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ),
                 const SizedBox(height: 16),
                 field(_newPerDay, 'New cards per day', help: 'Your number, used exactly. Any whole number you like.'),
+                field(_problems, 'New problems per day', help: 'Problems to solve (maths, physics, chemistry...). Separate from new cards; each takes a few minutes. 0 = none.'),
                 field(_perPrompt, 'Cards per prompt', help: 'How many cards one "Learn something new" asks your AI for (1-200).'),
                 SwitchListTile(
                   contentPadding: EdgeInsets.zero,

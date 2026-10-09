@@ -322,7 +322,7 @@ void main() {
       final g = await learn.outlinePrompt('Spanish', goal: 'travel conversation', now: d1);
       expect(g.text, contains('learning outline for the subject "Spanish"'));
       expect(g.text, contains('travel conversation'));
-      expect((await db.select(db.promptLogs).getSingle()).templateVersion, 'outline-v3');
+      expect((await db.select(db.promptLogs).getSingle()).templateVersion, 'outline-v4');
       expect((await learn.view(now: d1)).pending?.isOutline, isTrue);
 
       final p = await out.preview(outline([topic('Greetings'), topic('Numbers')], domain: 'spanish'));
@@ -385,6 +385,7 @@ void main() {
     raw.execute('ALTER TABLE domain DROP COLUMN speech_lang');
     raw.execute('ALTER TABLE domain DROP COLUMN speech_side');
     raw.execute('DROP TABLE IF EXISTS media');
+    raw.execute('ALTER TABLE syllabus_item DROP COLUMN practice'); // added in v9
     raw.execute('DROP TABLE IF EXISTS reading_item');
     raw.execute('ALTER TABLE domain DROP COLUMN learn_weight');
     raw.execute('ALTER TABLE domain DROP COLUMN revisit');

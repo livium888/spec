@@ -36,6 +36,11 @@ List<String> validateNoteEdit({
     limit('back', 'The answer', kMaxFieldChars);
   }
   limit('back', 'The answer', kMaxFieldChars);
+  if (type == 'problem') {
+    final lines = f('steps').split('\n').where((l) => l.trim().isNotEmpty).toList();
+    if (lines.length > kMaxProblemSteps) errors.add('A problem has at most $kMaxProblemSteps steps.');
+    if (lines.any((l) => l.length > 400)) errors.add('Each step is at most 400 characters.');
+  }
   limit('why_it_matters', '"Why it matters"', kMaxExtraChars);
   limit('example', '"Example"', kMaxExtraChars);
   limit('memory_hook', '"Memory hook"', kMaxExtraChars);

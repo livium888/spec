@@ -26,6 +26,7 @@ class _EditCardScreenState extends ConsumerState<EditCardScreen> {
   static const _labels = {
     'front': 'Question',
     'back': 'Answer',
+    'steps': 'Steps, one per line (harder levels hide the later ones)',
     'cloze': 'Text with gaps, like {{c1::answer}}',
     'why_it_matters': 'Why it matters (optional)',
     'example': 'Example (optional)',
@@ -56,7 +57,9 @@ class _EditCardScreenState extends ConsumerState<EditCardScreen> {
     if (n != null) {
       final keys = n.type == 'cloze'
           ? ['cloze', 'back', 'why_it_matters', 'example', 'memory_hook']
-          : ['front', 'back', 'why_it_matters', 'example', 'memory_hook'];
+          : n.type == 'problem'
+              ? ['front', 'steps', 'back', 'why_it_matters']
+              : ['front', 'back', 'why_it_matters', 'example', 'memory_hook'];
       for (final k in keys) {
         _ctl[k] = TextEditingController(text: n.fields[k] as String? ?? '');
       }

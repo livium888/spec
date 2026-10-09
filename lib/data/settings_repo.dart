@@ -28,6 +28,7 @@ class SettingsRepo {
   static const onlineReading = 'online_reading'; // 'v1': the learner agreed to check reading suggestions with Open Library and Crossref (D37)
   static const onlineReadingAgreed = 'v1';
   static const learnAheadMinutes = 'learn_ahead_min'; // 0-60: show a learning card this many minutes early when nothing else is due (D40)
+  static const problemsPerDay = 'problems_per_day'; // new problem cards a day, separate from new_per_day (D43)
   static const dailyMinutes = 'daily_minutes'; // study-time budget used by "Learn something new"
 
   Future<String?> get(String key) async {

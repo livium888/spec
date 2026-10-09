@@ -103,6 +103,7 @@ class OutlineService {
               position: Value(++pos),
               targetCards: Value(it.targetCards),
               description: Value(it.description),
+              practice: Value(it.practice),
             ));
         idByTitle[normalizeText(it.title)] = id;
       }

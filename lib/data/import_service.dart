@@ -7,6 +7,7 @@ import 'package:drift/drift.dart';
 import '../domain/import_parser.dart';
 import '../domain/learn_planner.dart' show LearnPlanner;
 import '../domain/prompt_template.dart' show kFoundationsTemplateVersion, kMaxFoundationCards;
+import '../domain/study_card.dart' show kProblemLevels;
 import 'db/database.dart';
 
 class ImportSummary {
@@ -120,10 +121,17 @@ class ImportService {
         final dupe = await (db.select(db.notes)..where((n) => n.guid.equals(guid))).getSingleOrNull();
         if (dupe != null) continue;
 
-        final tags = {...c.tags, if (c.unverified) 'unverified', if (foundationOf != null) 'foundation'};
+        final isProblem = c.type == 'problem';
+        final tags = {
+          ...c.tags,
+          if (c.unverified && !isProblem) 'unverified',
+          if (isProblem) 'problem',
+          if (foundationOf != null) 'foundation',
+        };
         final fields = <String, String>{
           if (c.type == 'cloze') 'cloze': c.cloze else 'front': c.front,
           'back': c.back,
+          if (isProblem) 'steps': c.steps.join('\n'),
           'supporting_quote': c.supportingQuote,
           if (c.whyItMatters.isNotEmpty) 'why_it_matters': c.whyItMatters,
           if (c.example.isNotEmpty) 'example': c.example,
@@ -147,10 +155,41 @@ class ImportService {
               createdAt: t,
             ));
         notes++;
-        final ords = c.type == 'cloze' ? (c.clozeNumbers.toList()..sort()) : [1];
+        final ords = c.type == 'cloze'
+            ? (c.clozeNumbers.toList()..sort())
+            : isProblem
+                ? [for (var l = 1; l <= kProblemLevels; l++) l] // one card per level
+                : [1];
         for (final n in ords) {
           // New card's `due` == note.created_at; RebuildCardsFromLog relies on it.
           await db.into(db.cards).insert(CardsCompanion.insert(noteId: noteId, ord: Value(n - 1), due: t));
+          cards++;
+        }
+        // Further problems of the same kind: one note each with only the final level, which unlocks
+        // when the family's third level has been answered well (see QueueService).
+        for (final v in c.variants) {
+          final vguid = guidFor(p.domain, v.statement);
+          if (await (db.select(db.notes)..where((n) => n.guid.equals(vguid))).getSingleOrNull() != null) continue;
+          final vId = await db.into(db.notes).insert(NotesCompanion.insert(
+                guid: vguid,
+                domainId: domainId,
+                syllabusItemId: Value(sylId),
+                type: 'problem',
+                fieldsJson: jsonEncode(<String, String>{
+                  'front': v.statement,
+                  'back': v.answer,
+                  'steps': v.steps.join('\n'),
+                  'supporting_quote': '',
+                  'variant_of': '$noteId',
+                }),
+                tags: Value(tags.join(' ')),
+                sourceType: Value(c.sourceType),
+                sourceRef: Value(c.sourceRef),
+                llmConfidence: Value(c.confidence),
+                createdAt: t,
+              ));
+          notes++;
+          await db.into(db.cards).insert(CardsCompanion.insert(noteId: vId, ord: const Value(kProblemLevels - 1), due: t));
           cards++;
         }
       }

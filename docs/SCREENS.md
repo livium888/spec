@@ -291,3 +291,12 @@ Each subject card now shows its topics straight under the subject name: "Topics:
 - **Where:** review (question, folded question, answer, Why it matters / Example / Memory hook, cloze sentence and its revealed gap); Edit card shows a live preview under any field that has formatting or formulas; Browse and read-aloud use the plain text.
 - **Drawn:** **bold**, *italic*, `code`, "- " bullets, "1. " numbers, paragraphs, inline $formula$ and standalone $$formula$$. **Never drawn:** HTML, links, images, headings, tables (shown as the text they are).
 - **States:** plain text (unchanged); formatted; formula cannot be drawn (its LaTeX source is shown in monospace); formula too long (> 500 characters) or more than 40 in one text (shown as text); display formula wider than the screen (scrolls sideways). Each formula has a screen-reader label "formula: <LaTeX>".
+
+## Problem cards (D43)
+- **Review face:** tags (subject, "Worked example" / "Problem - level N of 4" / "Practice problem", state); the problem; a "Steps" list (numbered; locked steps say "Hidden: work it out"); the line "Work it out on paper. Use a hint if you are stuck."; two buttons: "Show next step" (only while steps are hidden) and "Show solution". A tap on the card does not reveal.
+- **After the solution:** all steps, "Answer", a hint-based rating suggestion (levels 2 to 4), the optional "Why it matters", then the four rating buttons. Level 1 (the worked example) is shown whole and rated straight away.
+- **States:** hidden steps; some revealed by hints; solved; a variant with no steps (only the answer); a problem edited to have no steps (shows the problem and "Show solution").
+- **Subjects and topics:** each topic row has a menu: AI decides / Concepts only / Problems to solve / Concepts and problems; the label shows under the topic.
+- **Settings:** "New problems per day".
+- **Import preview:** a problem family shows "Problem with N steps in 4 levels, plus 2 more to practise" and whether the arithmetic was checked; a failed check is listed as an error and the family cannot be imported.
+- **Edit card:** a problem has the problem, steps (one per line), answer and why it matters.

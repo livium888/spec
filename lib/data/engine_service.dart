@@ -122,15 +122,18 @@ class PromptService {
     final t = (now ?? DateTime.now()).toUtc().millisecondsSinceEpoch;
     final dom = await (db.select(db.domains)..where((d) => d.id.equals(domainId))).getSingle();
     String? syl;
+    var practice = '';
     if (syllabusItemId != null) {
-      syl = (await (db.select(db.syllabusItems)..where((s) => s.id.equals(syllabusItemId))).getSingle()).title;
+      final item = await (db.select(db.syllabusItems)..where((s) => s.id.equals(syllabusItemId))).getSingle();
+      syl = item.title;
+      practice = item.practice;
     }
 
     final titles = await recentTitles(domainId, syllabusItemId);
 
     final text = renderPrompt(
         domain: dom.name, syllabusItem: syl, n: n, recentTitles: titles, sourceText: sourceText, round: round,
-        learnerProfile: await settings?.get(SettingsRepo.learnerProfile));
+        learnerProfile: await settings?.get(SettingsRepo.learnerProfile), practice: practice);
 
     // Prompts never imported within 14 days are abandoned.
     await (db.update(db.promptLogs)

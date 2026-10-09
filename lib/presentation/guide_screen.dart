@@ -117,6 +117,13 @@ class GuideScreen extends StatelessWidget {
               'The prompts ask your AI to use them for maths, physics and chemistry. When you edit a card, a preview shows how it will look. '
               'A formula the app cannot draw is shown as its source text, so nothing is lost.'),
 
+          heading('Problems to solve'),
+          para('For topics you learn by solving (calculations, derivations, balancing equations, code) the AI also writes problems. A problem comes in four levels on '
+              'different days: first a worked example to study, then versions with fewer and fewer steps shown, then solving alone. Work on paper; tap "Show next step" '
+              'if you are stuck, then "Show solution". The more hints you used, the lower the fair rating. The app checks the arithmetic of the AI\'s answer itself and '
+              'refuses a problem whose numbers do not add up. It cannot tell whether the method is right, so read the steps. In Library > Subjects and topics you can set '
+              'each topic to concepts, problems or both. Settings > New problems per day sets how many new problems appear a day.'),
+
           heading('A card is too hard?'),
           para('Tap the small tag at the top of a card (New, Learning, Review). The sheet explains where the card is in your memory, with numbers and a curve. '
               'If the card is hard but you like the idea, tap "Build the foundations": you get a prompt for 2 to 4 short cards on the ideas it rests on. '

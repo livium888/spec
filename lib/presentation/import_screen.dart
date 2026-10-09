@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../app/providers.dart';
 import '../data/outline_service.dart' show OutlineException;
 import '../domain/import_parser.dart';
+import '../domain/study_card.dart' show kProblemLevels;
 import '../domain/outline_parser.dart';
 import '../domain/plan_parser.dart';
 import 'keywords_screen.dart';
@@ -402,7 +403,12 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
         subtitle: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           if (label != null) Text(label, style: TextStyle(color: Theme.of(context).colorScheme.error)),
           for (final e in c.errors) Text('• $e'),
-          if (importable && c.unverified)
+          if (c.type == 'problem')
+            Text(
+                'Problem with ${c.steps.length} steps in $kProblemLevels levels'
+                '${c.variants.isEmpty ? '' : ', plus ${c.variants.length} more to practise'}'
+                '${c.arithmetic == 'checked' ? '. Arithmetic checked by the app.' : '. Arithmetic not checked.'}'),
+          if (importable && c.unverified && c.type != 'problem')
             const Row(children: [
               Icon(Icons.help_outline, size: 16),
               SizedBox(width: 4),

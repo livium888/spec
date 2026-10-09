@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'commons.dart' show cleanImageQuery;
+import 'expr_eval.dart';
 import 'reading.dart' show ReadingSuggestion, parseFurtherReading;
 
 /// Strict, pure validation of LLM-produced JSON. UNTRUSTED input: every field
@@ -12,6 +13,12 @@ const kMaxExtraChars = 600;
 const kMaxTags = 12;
 
 const _types = {'basic', 'cloze'};
+
+/// Problem families (D43): limits.
+const kMaxProblemsPerImport = 6;
+const kMaxProblemSteps = 6;
+const kMinProblemSteps = 2;
+const kMaxProblemVariants = 2;
 const _sourceTypes = {'quote', 'url', 'model_memory'};
 const _confidences = {'high', 'medium', 'low'};
 
@@ -33,7 +40,16 @@ class ParsedCard {
     this.memoryHook = '',
     this.imageQuery = '',
     this.imageSide = '',
+    this.steps = const [],
+    this.variants = const [],
+    this.arithmetic = '',
   });
+
+  /// Problem families (type 'problem'): the worked steps (one per line), further problems of the same
+  /// kind with other numbers, and what the arithmetic check said: '' (nothing to check), 'checked'.
+  final List<String> steps;
+  final List<ParsedVariant> variants;
+  final String arithmetic;
 
   final int index; // 0-based position in the payload
   final String type, front, back, cloze, sourceType, sourceRef, supportingQuote, confidence;
@@ -63,6 +79,13 @@ class ParsedCard {
       {for (final m in clozeRe.allMatches(cloze)) int.parse(m[1]!)};
 
   static final clozeRe = RegExp(r'\{\{c(\d+)::(.*?)(?:::(.*?))?\}\}', dotAll: true);
+}
+
+/// A further problem of the same kind with other numbers (final level only).
+class ParsedVariant {
+  const ParsedVariant({required this.statement, required this.answer, this.steps = const []});
+  final String statement, answer;
+  final List<String> steps;
 }
 
 enum PreviewStatus { ok, invalid, duplicateInDb, duplicateInPayload }
@@ -223,10 +246,14 @@ ImportPreview parseImportJson(String raw) {
   if (syl != null && syl is! String) fatal.add('"syllabus_item" must be a string or null.');
 
   final cardsRaw = decoded['cards'];
+  final problemsRaw = decoded['problems'];
+  final hasProblems = problemsRaw is List && problemsRaw.isNotEmpty;
   final cards = <ParsedCard>[];
-  if (cardsRaw is! List) {
+  if (cardsRaw == null && hasProblems) {
+    // An answer with problems only is fine.
+  } else if (cardsRaw is! List) {
     fatal.add('"cards" must be an array.');
-  } else if (cardsRaw.isEmpty) {
+  } else if (cardsRaw.isEmpty && !hasProblems) {
     fatal.add('"cards" is empty.');
   } else if (cardsRaw.length > kMaxCardsPerImport) {
     fatal.add('Too many cards (${cardsRaw.length}); max $kMaxCardsPerImport per import.');
@@ -234,6 +261,13 @@ ImportPreview parseImportJson(String raw) {
     for (var i = 0; i < cardsRaw.length; i++) {
       cards.add(_parseCard(i, cardsRaw[i]));
     }
+  }
+  if (problemsRaw is List) {
+    for (var i = 0; i < problemsRaw.length && i < kMaxProblemsPerImport; i++) {
+      cards.add(_parseProblem(cards.length, problemsRaw[i]));
+    }
+  } else if (problemsRaw != null) {
+    fatal.add('"problems" must be an array.');
   }
 
   return ImportPreview(
@@ -250,6 +284,128 @@ int? _positiveInt(Object? v) {
   final n = v is int ? v : (v is String ? int.tryParse(v.trim()) : null);
   return n != null && n > 0 ? n : null;
 }
+
+/// One problem family: a statement, 2-6 worked steps, the final answer, optional variants. The app
+/// does the arithmetic itself when "answer_expr" and "answer_value" are both given.
+ParsedCard _parseProblem(int i, Object? raw) {
+  if (raw is! Map<String, dynamic>) return ParsedCard(index: i, type: 'problem', errors: ['Problem must be an object.']);
+  final errors = <String>[];
+
+  String str(Map<String, dynamic> m, String key, {bool required = false, int max = kMaxFieldChars}) {
+    final v = m[key];
+    if (v == null) {
+      if (required) errors.add('"$key" is required.');
+      return '';
+    }
+    if (v is! String) {
+      errors.add('"$key" must be a string.');
+      return '';
+    }
+    if (v.length > max) {
+      errors.add('"$key" is too long (max $max).');
+      return '';
+    }
+    final t = v.trim();
+    if (required && t.isEmpty) errors.add('"$key" must not be empty.');
+    return t;
+  }
+
+  List<String> stepsOf(Map<String, dynamic> m, {required bool required}) {
+    final v = m['steps'];
+    if (v == null) {
+      if (required) errors.add('"steps" is required.');
+      return const [];
+    }
+    if (v is! List) {
+      errors.add('"steps" must be an array of strings.');
+      return const [];
+    }
+    final out = <String>[];
+    for (final e in v) {
+      if (e is! String || e.trim().isEmpty || e.length > 400) {
+        errors.add('Each step must be a non-empty string of at most 400 characters.');
+        return const [];
+      }
+      out.add(e.trim().replaceAll(RegExp(r'\s*\n\s*'), ' '));
+    }
+    if (required && (out.length < kMinProblemSteps || out.length > kMaxProblemSteps)) {
+      errors.add('"steps" needs $kMinProblemSteps to $kMaxProblemSteps steps.');
+      return const [];
+    }
+    if (out.length > kMaxProblemSteps) {
+      errors.add('Too many steps.');
+      return const [];
+    }
+    return out;
+  }
+
+  // The arithmetic check: the answer's number against the expression that should give it.
+  String check(Map<String, dynamic> m, String label) {
+    final expr = m['answer_expr'];
+    final value = m['answer_value'];
+    if (expr == null || value == null) return '';
+    if (expr is! String || value is! num) {
+      errors.add('$label: "answer_expr" must be text and "answer_value" a number.');
+      return '';
+    }
+    final exact = evalExpression(expr);
+    if (exact == null) return ''; // not something the calculator understands: skipped, not an error
+    if (!numbersAgree(value.toDouble(), exact)) {
+      errors.add('$label: arithmetic check failed. The answer says $value but the working gives ${_short(exact)}.');
+      return '';
+    }
+    return 'checked';
+  }
+
+  final statement = str(raw, 'statement', required: true);
+  final steps = stepsOf(raw, required: true);
+  final answer = str(raw, 'answer', required: true, max: 300);
+  final arithmetic = check(raw, 'Problem');
+  final why = str(raw, 'why_it_matters', max: kMaxExtraChars);
+  final tags = <String>[];
+  if (raw['tags'] is List) {
+    for (final t in (raw['tags'] as List).take(kMaxTags)) {
+      if (t is String && t.trim().isNotEmpty && t.length <= 40) tags.add(t.trim().toLowerCase());
+    }
+  }
+  final variants = <ParsedVariant>[];
+  final vr = raw['variants'];
+  if (vr is List) {
+    for (final v in vr.take(kMaxProblemVariants)) {
+      if (v is! Map<String, dynamic>) {
+        errors.add('A variant must be an object.');
+        continue;
+      }
+      final st = str(v, 'statement', required: true);
+      final an = str(v, 'answer', required: true, max: 300);
+      final vs = stepsOf(v, required: false);
+      check(v, 'Variant'); // a wrong variant rejects the whole family (see errors)
+      if (st.isNotEmpty && an.isNotEmpty) variants.add(ParsedVariant(statement: st, answer: an, steps: vs));
+    }
+  } else if (vr != null) {
+    errors.add('"variants" must be an array.');
+  }
+  final confidence = str(raw, 'confidence');
+
+  return ParsedCard(
+    index: i,
+    type: 'problem',
+    front: statement,
+    back: answer,
+    steps: steps,
+    variants: variants,
+    arithmetic: arithmetic,
+    whyItMatters: why,
+    tags: tags,
+    sourceType: 'model_memory',
+    confidence: const {'high', 'medium', 'low'}.contains(confidence) ? confidence : 'medium',
+    imageQuery: cleanImageQuery(raw['image_query']) ?? '',
+    imageSide: 'back',
+    errors: errors,
+  );
+}
+
+String _short(double v) => v.abs() >= 1000 || (v != 0 && v.abs() < 0.01) ? v.toStringAsExponential(3) : v.toStringAsFixed(3).replaceAll(RegExp(r'\.?0+$'), '');
 
 ParsedCard _parseCard(int i, Object? raw) {
   if (raw is! Map<String, dynamic>) {

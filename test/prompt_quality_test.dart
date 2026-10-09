@@ -30,9 +30,9 @@ Map<String, dynamic> embeddedExample(String p) {
 void main() {
   citationMarkerTests();
   group('the card prompt', () {
-    test('is version v8, fully rendered, and keeps the sentence other code relies on', () {
+    test('is version v9, fully rendered, and keeps the sentence other code relies on', () {
       final p = prompt();
-      expect(kPromptTemplateVersion, 'v8');
+      expect(kPromptTemplateVersion, 'v9');
       expect(p, contains('Create 8 flashcards for the domain "Biology", focusing on "Cell membrane".'));
       expect(p, contains('"syllabus_item": "Cell membrane"'));
       expect(p, contains('- Old card one?'));
@@ -40,7 +40,7 @@ void main() {
           '{syllabus_json}', '{recent_titles}', '{source_text}']) {
         expect(p, isNot(contains(leftover)), reason: leftover);
       }
-      expect(p.length, lessThan(12000)); // fewer tokens for the model to read and attend to
+      expect(p.length, lessThan(14000)); // fewer tokens for the model to read and attend to
     });
 
     test('teaches the things that make cards worth reviewing', () {
@@ -203,7 +203,7 @@ void main() {
       expect(r.text, contains('Loves cycling and cooking'));
       final r2 = await PromptService(db).build(domainId: dom, n: 5);
       expect(r2.text, isNot(contains('Loves cycling')));
-      expect((await db.select(db.promptLogs).get()).first.templateVersion, 'v8');
+      expect((await db.select(db.promptLogs).get()).first.templateVersion, 'v9');
     });
   });
 

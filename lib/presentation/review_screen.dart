@@ -55,6 +55,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
   final _speech = <int, (String, String)>{};
   bool _speakAuto = false;
   CardTextSize _textSize = CardTextSize.medium;
+  int _hints = 0; // problem cards: extra steps shown before the solution
   bool _questionOpen = false; // a long question folded after the reveal, shown whole again by a tap
   final _ratings = <int>[];
   int? _lastRating; // shown in the undo bar for a few seconds after an answer
@@ -102,7 +103,9 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
         _queue = q;
         _current = next;
         _preview = pv;
-        _revealed = false;
+        _hints = 0;
+        // A worked example (level 1 of a problem) is shown whole from the start.
+        _revealed = next != null && next.isProblem && next.problemSteps.isNotEmpty && next.stepsGiven >= next.problemSteps.length;
         _questionOpen = false;
         _loading = false;
         _error = null;
@@ -130,7 +133,9 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
     setState(() => _busy = true);
     rating == Rating.again ? HapticFeedback.mediumImpact() : HapticFeedback.lightImpact();
     _stopwatch.stop();
-    final ms = cappedCardMs(_stopwatch.elapsedMilliseconds); // an idle card must not count as hours
+    final ms = c.isProblem
+        ? cappedProblemMs(_stopwatch.elapsedMilliseconds)
+        : cappedCardMs(_stopwatch.elapsedMilliseconds); // an idle card must not count as hours
     try {
       final res = await ref.read(reviewServiceProvider).review(
             cardId: c.id,
@@ -426,7 +431,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
       ),
       Padding(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-        child: _revealed ? _ratingRow(context) : _showAnswerButton(),
+        child: _revealed ? _ratingRow(context) : (card.isProblem ? _problemButtons(card) : _showAnswerButton()),
       ),
     ]);
   }
@@ -468,7 +473,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
     final frontPicture = card.imageSha != null && card.imageOnFront;
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap: _revealed ? null : _reveal,
+      onTap: _revealed || card.isProblem ? null : _reveal, // a problem is revealed with its buttons, never by a stray tap
       child: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
         child: SoftCard(
@@ -484,6 +489,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Wrap(spacing: 8, runSpacing: 6, crossAxisAlignment: WrapCrossAlignment.center, children: [
                     if (name.isNotEmpty) _Tag(icon: style.icon, text: name, fg: style.strong, bg: style.tint),
+                    if (card.isProblem) _Tag(icon: Icons.calculate_outlined, text: _problemLabel(card), fg: style.strong, bg: style.tint),
                     _Tag(
                         text: _stateLabel(card),
                         fg: c.inkSoft,
@@ -540,13 +546,14 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                     )
                   else
                     RichCardText(card.front, style: questionStyle),
+                  if (card.isProblem) _problemSteps(context, card, style),
                   if (_revealed) RevealPanel(accent: style.strong, child: _answerSide(context, card, style)),
                   if (!_revealed) ...[
                     const SizedBox(height: 28),
                     Row(children: [
                       Icon(Icons.touch_app_outlined, size: 18, color: c.inkSoft),
                       const SizedBox(width: 6),
-                      Expanded(child: Text('Think of your answer, then tap to reveal', style: t.bodySmall)),
+                      Expanded(child: Text(card.isProblem ? 'Work it out on paper. Use a hint if you are stuck.' : 'Think of your answer, then tap to reveal', style: t.bodySmall)),
                     ]),
                   ],
                 ]),
@@ -569,14 +576,104 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
         CardPicture(sha: card.imageSha!, alt: card.imageAlt, credit: card.imageCredit),
         const SizedBox(height: 16),
       ],
+      if (card.isProblem && back.isNotEmpty)
+        Padding(
+          padding: const EdgeInsets.only(bottom: 4),
+          child: Text('Answer', style: Theme.of(context).textTheme.labelMedium?.copyWith(color: style.strong, fontWeight: FontWeight.w700)),
+        ),
       if (back.isNotEmpty)
         RichCardText(back, selectable: true, style: AppText.sans(answerFontSize(_textSize), weight: 650, height: 1.4, color: c.ink)),
+      if (card.isProblem && card.problemLevel > 1)
+        Padding(
+          padding: const EdgeInsets.only(top: 12),
+          child: Text(
+              _hints == 0
+                  ? 'No hints used. If you got it right, Good or Easy is fair.'
+                  : 'You used $_hints ${_hints == 1 ? 'hint' : 'hints'}. If you needed them, Hard is a fair rating.',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(color: c.inkSoft)),
+        ),
       ExtrasStack(extras: card.extras, strong: style.strong, scale: extrasScale(_textSize)),
       if (source.isNotEmpty)
         Padding(
           padding: const EdgeInsets.only(top: 18),
           child: Text('Source: “$source”', style: Theme.of(context).textTheme.bodySmall),
         ),
+    ]);
+  }
+
+  String _problemLabel(StudyCard c) {
+    if (c.fields['variant_of'] != null) return 'Practice problem';
+    return c.problemLevel == 1 ? 'Worked example' : 'Problem · level ${c.problemLevel} of $kProblemLevels';
+  }
+
+  /// The worked steps: the ones already given, the ones unlocked by hints, the rest hidden.
+  Widget _problemSteps(BuildContext context, StudyCard card, SubjectStyle style) {
+    final steps = card.problemSteps;
+    if (steps.isEmpty) return const SizedBox.shrink();
+    final c = AppColors.of(context);
+    final t = Theme.of(context).textTheme;
+    final shown = _revealed ? steps.length : (card.stepsGiven + _hints).clamp(0, steps.length);
+    final body = AppText.sans(16 * cardTextScale(_textSize), height: 1.4, color: c.ink);
+    return Padding(
+      padding: const EdgeInsets.only(top: 18),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Semantics(header: true, child: Text('Steps', style: t.labelMedium?.copyWith(color: style.strong, fontWeight: FontWeight.w700))),
+        const SizedBox(height: 6),
+        for (final (i, step) in steps.indexed)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Container(
+                width: 26,
+                height: 26,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(color: i < shown ? style.tint : c.surfaceDim, shape: BoxShape.circle),
+                child: Text('${i + 1}', style: t.labelMedium?.copyWith(color: i < shown ? style.strong : c.inkSoft)),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: i < shown
+                    ? RichCardText(step, selectable: true, style: body)
+                    : Semantics(
+                        label: 'Step ${i + 1}, hidden',
+                        excludeSemantics: true,
+                        child: Padding(
+                          padding: const EdgeInsets.only(top: 3),
+                          child: Row(children: [
+                            Icon(Icons.lock_outline, size: 16, color: c.inkSoft),
+                            const SizedBox(width: 6),
+                            Text('Hidden: work it out', style: t.bodyMedium?.copyWith(color: c.inkSoft)),
+                          ]),
+                        ),
+                      ),
+              ),
+            ]),
+          ),
+      ]),
+    );
+  }
+
+  /// Problem cards: ask for the next step, or open the whole solution.
+  Widget _problemButtons(StudyCard card) {
+    final hidden = card.problemSteps.length - (card.stepsGiven + _hints);
+    return Row(children: [
+      if (hidden > 0) ...[
+        Expanded(
+          child: OutlinedButton(
+            style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(60)),
+            onPressed: () => setState(() => _hints++),
+            child: const Text('Show next step'),
+          ),
+        ),
+        const SizedBox(width: 10),
+      ],
+      Expanded(
+        child: FilledButton(
+          style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(60)),
+          onPressed: _reveal,
+          child: const Text('Show solution'),
+        ),
+      ),
     ]);
   }
 

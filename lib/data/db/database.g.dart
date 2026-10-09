@@ -672,6 +672,18 @@ class $SyllabusItemsTable extends SyllabusItems
     requiredDuringInsert: false,
     defaultValue: const Constant(1),
   );
+  static const VerificationMeta _practiceMeta = const VerificationMeta(
+    'practice',
+  );
+  @override
+  late final GeneratedColumn<String> practice = GeneratedColumn<String>(
+    'practice',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -683,6 +695,7 @@ class $SyllabusItemsTable extends SyllabusItems
     targetCards,
     description,
     rounds,
+    practice,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -757,6 +770,12 @@ class $SyllabusItemsTable extends SyllabusItems
         rounds.isAcceptableOrUnknown(data['rounds']!, _roundsMeta),
       );
     }
+    if (data.containsKey('practice')) {
+      context.handle(
+        _practiceMeta,
+        practice.isAcceptableOrUnknown(data['practice']!, _practiceMeta),
+      );
+    }
     return context;
   }
 
@@ -802,6 +821,10 @@ class $SyllabusItemsTable extends SyllabusItems
         DriftSqlType.int,
         data['${effectivePrefix}rounds'],
       )!,
+      practice: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}practice'],
+      )!,
     );
   }
 
@@ -821,6 +844,7 @@ class SyllabusItem extends DataClass implements Insertable<SyllabusItem> {
   final int targetCards;
   final String description;
   final int rounds;
+  final String practice;
   const SyllabusItem({
     required this.id,
     required this.domainId,
@@ -831,6 +855,7 @@ class SyllabusItem extends DataClass implements Insertable<SyllabusItem> {
     required this.targetCards,
     required this.description,
     required this.rounds,
+    required this.practice,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -844,6 +869,7 @@ class SyllabusItem extends DataClass implements Insertable<SyllabusItem> {
     map['target_cards'] = Variable<int>(targetCards);
     map['description'] = Variable<String>(description);
     map['rounds'] = Variable<int>(rounds);
+    map['practice'] = Variable<String>(practice);
     return map;
   }
 
@@ -858,6 +884,7 @@ class SyllabusItem extends DataClass implements Insertable<SyllabusItem> {
       targetCards: Value(targetCards),
       description: Value(description),
       rounds: Value(rounds),
+      practice: Value(practice),
     );
   }
 
@@ -876,6 +903,7 @@ class SyllabusItem extends DataClass implements Insertable<SyllabusItem> {
       targetCards: serializer.fromJson<int>(json['targetCards']),
       description: serializer.fromJson<String>(json['description']),
       rounds: serializer.fromJson<int>(json['rounds']),
+      practice: serializer.fromJson<String>(json['practice']),
     );
   }
   @override
@@ -891,6 +919,7 @@ class SyllabusItem extends DataClass implements Insertable<SyllabusItem> {
       'targetCards': serializer.toJson<int>(targetCards),
       'description': serializer.toJson<String>(description),
       'rounds': serializer.toJson<int>(rounds),
+      'practice': serializer.toJson<String>(practice),
     };
   }
 
@@ -904,6 +933,7 @@ class SyllabusItem extends DataClass implements Insertable<SyllabusItem> {
     int? targetCards,
     String? description,
     int? rounds,
+    String? practice,
   }) => SyllabusItem(
     id: id ?? this.id,
     domainId: domainId ?? this.domainId,
@@ -914,6 +944,7 @@ class SyllabusItem extends DataClass implements Insertable<SyllabusItem> {
     targetCards: targetCards ?? this.targetCards,
     description: description ?? this.description,
     rounds: rounds ?? this.rounds,
+    practice: practice ?? this.practice,
   );
   SyllabusItem copyWithCompanion(SyllabusItemsCompanion data) {
     return SyllabusItem(
@@ -930,6 +961,7 @@ class SyllabusItem extends DataClass implements Insertable<SyllabusItem> {
           ? data.description.value
           : this.description,
       rounds: data.rounds.present ? data.rounds.value : this.rounds,
+      practice: data.practice.present ? data.practice.value : this.practice,
     );
   }
 
@@ -944,7 +976,8 @@ class SyllabusItem extends DataClass implements Insertable<SyllabusItem> {
           ..write('status: $status, ')
           ..write('targetCards: $targetCards, ')
           ..write('description: $description, ')
-          ..write('rounds: $rounds')
+          ..write('rounds: $rounds, ')
+          ..write('practice: $practice')
           ..write(')'))
         .toString();
   }
@@ -960,6 +993,7 @@ class SyllabusItem extends DataClass implements Insertable<SyllabusItem> {
     targetCards,
     description,
     rounds,
+    practice,
   );
   @override
   bool operator ==(Object other) =>
@@ -973,7 +1007,8 @@ class SyllabusItem extends DataClass implements Insertable<SyllabusItem> {
           other.status == this.status &&
           other.targetCards == this.targetCards &&
           other.description == this.description &&
-          other.rounds == this.rounds);
+          other.rounds == this.rounds &&
+          other.practice == this.practice);
 }
 
 class SyllabusItemsCompanion extends UpdateCompanion<SyllabusItem> {
@@ -986,6 +1021,7 @@ class SyllabusItemsCompanion extends UpdateCompanion<SyllabusItem> {
   final Value<int> targetCards;
   final Value<String> description;
   final Value<int> rounds;
+  final Value<String> practice;
   const SyllabusItemsCompanion({
     this.id = const Value.absent(),
     this.domainId = const Value.absent(),
@@ -996,6 +1032,7 @@ class SyllabusItemsCompanion extends UpdateCompanion<SyllabusItem> {
     this.targetCards = const Value.absent(),
     this.description = const Value.absent(),
     this.rounds = const Value.absent(),
+    this.practice = const Value.absent(),
   });
   SyllabusItemsCompanion.insert({
     this.id = const Value.absent(),
@@ -1007,6 +1044,7 @@ class SyllabusItemsCompanion extends UpdateCompanion<SyllabusItem> {
     this.targetCards = const Value.absent(),
     this.description = const Value.absent(),
     this.rounds = const Value.absent(),
+    this.practice = const Value.absent(),
   }) : domainId = Value(domainId),
        title = Value(title);
   static Insertable<SyllabusItem> custom({
@@ -1019,6 +1057,7 @@ class SyllabusItemsCompanion extends UpdateCompanion<SyllabusItem> {
     Expression<int>? targetCards,
     Expression<String>? description,
     Expression<int>? rounds,
+    Expression<String>? practice,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -1030,6 +1069,7 @@ class SyllabusItemsCompanion extends UpdateCompanion<SyllabusItem> {
       if (targetCards != null) 'target_cards': targetCards,
       if (description != null) 'description': description,
       if (rounds != null) 'rounds': rounds,
+      if (practice != null) 'practice': practice,
     });
   }
 
@@ -1043,6 +1083,7 @@ class SyllabusItemsCompanion extends UpdateCompanion<SyllabusItem> {
     Value<int>? targetCards,
     Value<String>? description,
     Value<int>? rounds,
+    Value<String>? practice,
   }) {
     return SyllabusItemsCompanion(
       id: id ?? this.id,
@@ -1054,6 +1095,7 @@ class SyllabusItemsCompanion extends UpdateCompanion<SyllabusItem> {
       targetCards: targetCards ?? this.targetCards,
       description: description ?? this.description,
       rounds: rounds ?? this.rounds,
+      practice: practice ?? this.practice,
     );
   }
 
@@ -1087,6 +1129,9 @@ class SyllabusItemsCompanion extends UpdateCompanion<SyllabusItem> {
     if (rounds.present) {
       map['rounds'] = Variable<int>(rounds.value);
     }
+    if (practice.present) {
+      map['practice'] = Variable<String>(practice.value);
+    }
     return map;
   }
 
@@ -1101,7 +1146,8 @@ class SyllabusItemsCompanion extends UpdateCompanion<SyllabusItem> {
           ..write('status: $status, ')
           ..write('targetCards: $targetCards, ')
           ..write('description: $description, ')
-          ..write('rounds: $rounds')
+          ..write('rounds: $rounds, ')
+          ..write('practice: $practice')
           ..write(')'))
         .toString();
   }
@@ -8109,6 +8155,7 @@ typedef $$SyllabusItemsTableCreateCompanionBuilder =
       Value<int> targetCards,
       Value<String> description,
       Value<int> rounds,
+      Value<String> practice,
     });
 typedef $$SyllabusItemsTableUpdateCompanionBuilder =
     SyllabusItemsCompanion Function({
@@ -8121,6 +8168,7 @@ typedef $$SyllabusItemsTableUpdateCompanionBuilder =
       Value<int> targetCards,
       Value<String> description,
       Value<int> rounds,
+      Value<String> practice,
     });
 
 final class $$SyllabusItemsTableReferences
@@ -8250,6 +8298,11 @@ class $$SyllabusItemsTableFilterComposer
 
   ColumnFilters<int> get rounds => $composableBuilder(
     column: $table.rounds,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get practice => $composableBuilder(
+    column: $table.practice,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -8401,6 +8454,11 @@ class $$SyllabusItemsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get practice => $composableBuilder(
+    column: $table.practice,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$DomainsTableOrderingComposer get domainId {
     final $$DomainsTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -8461,6 +8519,9 @@ class $$SyllabusItemsTableAnnotationComposer
 
   GeneratedColumn<int> get rounds =>
       $composableBuilder(column: $table.rounds, builder: (column) => column);
+
+  GeneratedColumn<String> get practice =>
+      $composableBuilder(column: $table.practice, builder: (column) => column);
 
   $$DomainsTableAnnotationComposer get domainId {
     final $$DomainsTableAnnotationComposer composer = $composerBuilder(
@@ -8603,6 +8664,7 @@ class $$SyllabusItemsTableTableManager
                 Value<int> targetCards = const Value.absent(),
                 Value<String> description = const Value.absent(),
                 Value<int> rounds = const Value.absent(),
+                Value<String> practice = const Value.absent(),
               }) => SyllabusItemsCompanion(
                 id: id,
                 domainId: domainId,
@@ -8613,6 +8675,7 @@ class $$SyllabusItemsTableTableManager
                 targetCards: targetCards,
                 description: description,
                 rounds: rounds,
+                practice: practice,
               ),
           createCompanionCallback:
               ({
@@ -8625,6 +8688,7 @@ class $$SyllabusItemsTableTableManager
                 Value<int> targetCards = const Value.absent(),
                 Value<String> description = const Value.absent(),
                 Value<int> rounds = const Value.absent(),
+                Value<String> practice = const Value.absent(),
               }) => SyllabusItemsCompanion.insert(
                 id: id,
                 domainId: domainId,
@@ -8635,6 +8699,7 @@ class $$SyllabusItemsTableTableManager
                 targetCards: targetCards,
                 description: description,
                 rounds: rounds,
+                practice: practice,
               ),
           withReferenceMapper: (p0) => p0
               .map(

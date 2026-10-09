@@ -177,7 +177,7 @@ void main() {
       expect(g2.text, contains('Colour first question 0?'), reason: 'existing cards are excluded');
       var item = await db.select(db.syllabusItems).getSingle();
       expect((item.rounds, item.targetCards, item.status), (2, 10, 'active'));
-      expect((await db.select(db.promptLogs).get()).last.templateVersion, 'v8+deeper');
+      expect((await db.select(db.promptLogs).get()).last.templateVersion, 'v9+deeper');
       expect(((await db.select(db.engineDecisions).get()).last.chosenJson), contains('revisit'));
 
       // Until the new cards arrive it is "in progress", and a repeat press shows the pending prompt.
@@ -256,6 +256,7 @@ void main() {
     raw.execute('ALTER TABLE domain DROP COLUMN speech_lang');
     raw.execute('ALTER TABLE domain DROP COLUMN speech_side');
     raw.execute('DROP TABLE IF EXISTS media'); // added in v6
+    raw.execute('ALTER TABLE syllabus_item DROP COLUMN practice'); // added in v9
     raw.execute('DROP TABLE IF EXISTS reading_item'); // added in v8
     raw.execute('ALTER TABLE card DROP COLUMN retired_at'); // added in v6
     raw.execute('PRAGMA user_version = 2');

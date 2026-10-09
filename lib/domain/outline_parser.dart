@@ -8,6 +8,9 @@ const kMaxOutlineItems = 60;
 const kMaxTitleChars = 120;
 const kMaxDescChars = 300;
 
+/// What a topic is practised with (D43). Anything else in an AI's answer is ignored.
+const kPracticeKinds = {'concepts', 'problems', 'both'};
+
 class ParsedOutlineItem {
   ParsedOutlineItem({
     required this.index,
@@ -17,9 +20,13 @@ class ParsedOutlineItem {
     this.targetCards = 10,
     this.prerequisites = const [],
     this.errors = const [],
+    this.practice = '',
   });
   final int index;
   final String title, description;
+
+  /// What to practise here: '' (the AI decides when it writes the cards), 'concepts', 'problems' or 'both'.
+  final String practice;
   final int level, targetCards;
   final List<String> prerequisites;
   final List<String> errors;
@@ -154,8 +161,12 @@ ParsedOutlineItem _parseItem(int i, Object? raw) {
     }
   }
 
+  final pr = raw['practice'];
+  final practice = pr is String && kPracticeKinds.contains(pr.trim().toLowerCase()) ? pr.trim().toLowerCase() : '';
+
   return ParsedOutlineItem(
     index: i,
+    practice: practice,
     title: title,
     level: level,
     description: desc,
