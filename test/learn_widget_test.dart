@@ -951,6 +951,40 @@ void phase3WidgetTests() {
     await done(t, db);
   });
 
+  testWidgets('Settings > Subjects and topics lists every topic of each subject with a tick-box: ticked = offered, unticked = skipped', (t) async {
+    final db = await boot(t, settings: {'guide_seen': '1'}, prepare: (db) async {
+      final out = OutlineService(db);
+      await out.commit(await out.preview('{"domain":"Astronomy","items":[{"title":"The Solar System","target_cards":8},{"title":"Stars and their lives","target_cards":8},{"title":"Galaxies","target_cards":8}]}'));
+    });
+    await t.tap(find.byTooltip('Settings and backup'));
+    await settle(t);
+    await tapSettingsEntry(t, 'Subjects and topics');
+    await until(t, find.text('Astronomy'));
+    await settle(t);
+    expect(find.text('Topics: 3 of 3 offered'), findsOneWidget);
+    for (final x in ['The Solar System', 'Stars and their lives', 'Galaxies']) {
+      expect(find.text(x), findsOneWidget, reason: x);
+    }
+    expect(find.text('Not started · 0 cards'), findsNWidgets(3));
+
+    await t.tap(find.text('Stars and their lives'));
+    await settle(t);
+    expect(find.text('Topics: 2 of 3 offered'), findsOneWidget);
+    expect(find.text('Not offered · 0 cards'), findsOneWidget);
+    var status = (await t.runAsync(() => db.customSelect("SELECT status FROM syllabus_item WHERE title = 'Stars and their lives'").getSingle()))!.read<String>('status');
+    expect(status, 'skipped');
+
+    await t.tap(find.text('Offer none'));
+    await settle(t);
+    expect(find.text('Topics: 0 of 3 offered'), findsOneWidget);
+    await t.tap(find.text('Offer all'));
+    await settle(t);
+    expect(find.text('Topics: 3 of 3 offered'), findsOneWidget);
+    status = (await t.runAsync(() => db.customSelect("SELECT status FROM syllabus_item WHERE title = 'Stars and their lives'").getSingle()))!.read<String>('status');
+    expect(status, 'todo');
+    await done(t, db);
+  });
+
   testWidgets('Review: a long question is set smaller, and folds after the reveal; a tap shows it whole again', (t) async {
     final db = await boot(t, settings: {'guide_seen': '1'}, prepare: (db) => longQuestionCard(db));
     await t.tap(find.text('Start review'));
@@ -1105,11 +1139,15 @@ void phase3WidgetTests() {
     await tapSettingsEntry(t, 'Subjects and topics');
     await until(t, find.text('Read cards aloud'));
     await t.scrollUntilVisible(find.text('Read cards aloud'), 200, scrollable: find.byType(Scrollable).first);
+    await t.ensureVisible(find.byType(DropdownButtonFormField<String?>).first); // the page is taller now: bring it fully on screen
+    await t.pumpAndSettle();
     await t.tap(find.byType(DropdownButtonFormField<String?>).first);
     await settle(t);
     await t.tap(find.text('Spanish').last);
     await settle(t);
     await t.scrollUntilVisible(find.text('Which side is written in that language?'), 200, scrollable: find.byType(Scrollable).first);
+    await t.ensureVisible(find.text('Question'));
+    await t.pumpAndSettle();
     await t.tap(find.text('Question'));
     await settle(t);
     final d = (await t.runAsync(() => db.select(db.domains).getSingle()))!;

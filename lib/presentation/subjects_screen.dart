@@ -8,10 +8,17 @@ import '../data/db/database.dart' show Domain;
 import 'starter_library_screen.dart';
 import 'topics_screen.dart';
 
+class _Topic {
+  const _Topic(this.id, this.title, this.status, this.cards);
+  final int id, cards;
+  final String title, status; // todo | active | done | skipped
+}
+
 class _Subject {
-  const _Subject(this.domain, this.total, this.covered, this.skipped);
+  const _Subject(this.domain, this.total, this.covered, this.skipped, this.topics);
   final Domain domain;
   final int total, covered, skipped;
+  final List<_Topic> topics;
 }
 
 /// Controls what "Learn something new" may offer, and how often.
@@ -55,7 +62,15 @@ class _SubjectsScreenState extends ConsumerState<SubjectsScreen> {
                  SUM(CASE WHEN status = 'skipped' THEN 1 ELSE 0 END) AS skipped
           FROM syllabus_item WHERE domain_id = ?''',
             variables: [Variable.withInt(d.id)]).getSingle();
-        out.add(_Subject(d, r.read<int>('total'), r.read<int?>('covered') ?? 0, r.read<int?>('skipped') ?? 0));
+        final ts = await db.customSelect('''
+          SELECT s.id AS id, s.title AS title, s.status AS status, COUNT(c.id) AS cards
+          FROM syllabus_item s
+          LEFT JOIN note n ON n.syllabus_item_id = s.id
+          LEFT JOIN card c ON c.note_id = n.id
+          WHERE s.domain_id = ? GROUP BY s.id ORDER BY s.position, s.id''', variables: [Variable.withInt(d.id)]).get();
+        out.add(_Subject(d, r.read<int>('total'), r.read<int?>('covered') ?? 0, r.read<int?>('skipped') ?? 0, [
+          for (final x in ts) _Topic(x.read<int>('id'), x.read<String>('title'), x.read<String>('status'), x.read<int>('cards')),
+        ]));
       }
       if (mounted) setState(() { _subjects = out; _error = null; });
     } catch (e) {
@@ -113,6 +128,70 @@ class _SubjectsScreenState extends ConsumerState<SubjectsScreen> {
     );
   }
 
+  static String _status(_Topic x) =>
+      '${switch (x.status) { 'done' => 'Covered', 'active' => 'In progress', 'skipped' => 'Not offered', _ => 'Not started' }}'
+      ' · ${x.cards} card${x.cards == 1 ? '' : 's'}';
+
+  /// Every topic of the subject with a tick-box: ticked topics are offered by "Learn something new",
+  /// unticked ones are skipped. Open for a subject that has no cards yet (a new one) or few topics.
+  Widget _topics(BuildContext context, _Subject s, TextTheme t) {
+    if (s.topics.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.only(top: 8),
+        child: Text('No topics yet. "Learn something new" will ask your AI for an outline.', style: t.bodySmall),
+      );
+    }
+    final learn = ref.read(learnServiceProvider);
+    final offered = s.topics.where((x) => x.status != 'skipped').length;
+    final startOpen = s.topics.every((x) => x.cards == 0) || s.topics.length <= 10;
+    return Theme(
+      data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+      child: ExpansionTile(
+        key: PageStorageKey('topics-${s.domain.id}'),
+        tilePadding: EdgeInsets.zero,
+        childrenPadding: EdgeInsets.zero,
+        initiallyExpanded: startOpen,
+        title: Text('Topics: $offered of ${s.topics.length} offered', style: t.titleSmall),
+        subtitle: const Text('Tick the topics you want offered for new cards.'),
+        children: [
+          Row(children: [
+            TextButton(
+              onPressed: () async {
+                for (final x in s.topics.where((x) => x.status == 'skipped')) {
+                  await learn.setTopicSkipped(x.id, false);
+                }
+                _load();
+              },
+              child: const Text('Offer all'),
+            ),
+            TextButton(
+              onPressed: () async {
+                for (final x in s.topics.where((x) => x.status != 'skipped' && x.status != 'done')) {
+                  await learn.setTopicSkipped(x.id, true);
+                }
+                _load();
+              },
+              child: const Text('Offer none'),
+            ),
+          ]),
+          for (final x in s.topics)
+            CheckboxListTile(
+              dense: true,
+              contentPadding: EdgeInsets.zero,
+              controlAffinity: ListTileControlAffinity.leading,
+              value: x.status != 'skipped',
+              onChanged: (v) async {
+                await learn.setTopicSkipped(x.id, v != true);
+                _load();
+              },
+              title: Text(x.title),
+              subtitle: Text(_status(x)),
+            ),
+        ],
+      ),
+    );
+  }
+
   Widget _card(BuildContext context, _Subject s, TextTheme t) {
     final d = s.domain;
     final learn = ref.read(learnServiceProvider);
@@ -123,6 +202,7 @@ class _SubjectsScreenState extends ConsumerState<SubjectsScreen> {
           Text(d.name, style: t.titleMedium),
           Text('${s.covered} of ${s.total - s.skipped} topics covered'
               '${s.skipped > 0 ? ' · ${s.skipped} skipped' : ''}'),
+          _topics(context, s, t),
           const SizedBox(height: 8),
           Text('How often to offer', style: t.labelMedium),
           const SizedBox(height: 4),
@@ -205,7 +285,7 @@ class _SubjectsScreenState extends ConsumerState<SubjectsScreen> {
             alignment: Alignment.centerLeft,
             child: TextButton.icon(
               icon: const Icon(Icons.list_alt),
-              label: const Text('Topics'),
+              label: const Text('More about each topic'),
               onPressed: () => _open(TopicsScreen(domainId: d.id)),
             ),
           ),

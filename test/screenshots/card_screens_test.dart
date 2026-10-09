@@ -8,6 +8,7 @@ import 'package:daily_learning/app/providers.dart';
 import 'package:daily_learning/data/db/database.dart';
 import 'package:daily_learning/data/import_service.dart';
 import 'package:daily_learning/data/media_service.dart';
+import 'package:daily_learning/data/outline_service.dart';
 import 'package:daily_learning/data/reading_service.dart';
 import 'package:daily_learning/data/picture_finder.dart';
 import 'package:daily_learning/domain/commons.dart';
@@ -207,6 +208,36 @@ void main() {
       await t.runAsync(db.close);
     }, skip: skip);
   }
+
+  testWidgets('subjects and topics with the topics inside (light)', (t) async {
+    Directory(_dir!).createSync(recursive: true);
+    final db = AppDatabase(NativeDatabase.memory());
+    final out = OutlineService(db);
+    await out.commit(await out.preview(jsonEncode({
+      'domain': 'Astronomy',
+      'items': [
+        {'title': 'The Solar System', 'target_cards': 8},
+        {'title': 'Stars and their lives', 'target_cards': 8},
+        {'title': 'Galaxies and the large-scale structure of the universe', 'target_cards': 8},
+      ]
+    })));
+    await db.customStatement("UPDATE syllabus_item SET status = 'skipped' WHERE id = 2");
+    final key = GlobalKey();
+    await boot(t, db, key);
+    await t.tap(find.byTooltip('Settings and backup'));
+    await settle(t);
+    for (var i = 0; i < 30 && find.text('Subjects and topics').evaluate().isEmpty; i++) {
+      await t.drag(find.byType(Scrollable).first, const Offset(0, -300));
+      await t.pumpAndSettle();
+    }
+    await t.ensureVisible(find.text('Subjects and topics'));
+    await t.pumpAndSettle();
+    await t.tap(find.text('Subjects and topics'));
+    await settle(t);
+    await shot(t, key, 'f_subjects_topics_light');
+    await t.pumpWidget(const SizedBox());
+    await t.runAsync(db.close);
+  }, skip: skip);
 }
 
 
