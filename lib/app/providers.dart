@@ -19,6 +19,7 @@ import '../data/outline_service.dart';
 import '../data/params_repo.dart';
 import '../data/picture_finder.dart';
 import '../data/queue_service.dart';
+import '../data/reading_service.dart';
 import '../data/reminder_service.dart';
 import '../data/plan_service.dart';
 import '../data/retire_service.dart';
@@ -49,6 +50,7 @@ final promptSharerProvider = Provider<PromptSharer>((_) => const SharePlusPrompt
 final shareInboxProvider = Provider<ShareInbox>((_) => const ChannelShareInbox());
 final reminderBackendProvider = Provider<ReminderBackend>((_) => LocalNotificationsBackend());
 final pictureFinderProvider = Provider<PictureFinder>((_) => PictureLookup());
+final pageOpenerProvider = Provider<PageOpener>((_) => const InAppPageOpener());
 final imagePickerProvider = Provider<ImagePickerService>((_) => const GalleryImagePicker());
 final speakerProvider = Provider<Speaker>((ref) {
   final s = PhoneSpeaker();
@@ -69,6 +71,8 @@ final cardEditServiceProvider = Provider((ref) => CardEditService(ref.watch(dbPr
 final reminderServiceProvider =
     Provider((ref) => ReminderService(ref.watch(settingsRepoProvider), ref.watch(reminderBackendProvider)));
 final keywordsServiceProvider = Provider((ref) => KeywordsService(ref.watch(dbProvider)));
+final readingServiceProvider = Provider((ref) => ReadingService(ref.watch(dbProvider)));
+final readingVerifierProvider = Provider<ReadingVerifier>((_) => CatalogueVerifier());
 final mediaServiceProvider = Provider((ref) => MediaService(ref.watch(dbProvider)));
 
 /// A card picture's bytes by id (null if missing). Cached while a screen shows it.

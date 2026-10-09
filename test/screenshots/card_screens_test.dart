@@ -8,9 +8,11 @@ import 'package:daily_learning/app/providers.dart';
 import 'package:daily_learning/data/db/database.dart';
 import 'package:daily_learning/data/import_service.dart';
 import 'package:daily_learning/data/media_service.dart';
+import 'package:daily_learning/data/reading_service.dart';
 import 'package:daily_learning/data/picture_finder.dart';
 import 'package:daily_learning/domain/commons.dart';
 import 'package:daily_learning/presentation/find_picture_screen.dart';
+import 'package:daily_learning/presentation/library_screen.dart' show LibraryScreen;
 import 'package:daily_learning/presentation/theme/app_theme.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:drift/native.dart';
@@ -162,6 +164,45 @@ void main() {
       await t.tap(find.text('Show the whole question'));
       await settle(t);
       await shot(t, key, 'd_long_${tag}_3expanded');
+      await t.pumpWidget(const SizedBox());
+      await t.runAsync(db.close);
+    }, skip: skip);
+  }
+
+  for (final dark in [false, true]) {
+    testWidgets('reading list (${dark ? 'dark' : 'light'})', (t) async {
+      Directory(_dir!).createSync(recursive: true);
+      final db = AppDatabase(NativeDatabase.memory());
+      final imp = ImportService(db);
+      await imp.commit(await imp.preview(jsonEncode({
+        'domain': 'History and Power',
+        'syllabus_item': 'Steam and coal',
+        'cards': [
+          {'type': 'basic', 'front': 'What powered the first factories?', 'back': 'Water, then steam.', 'source_type': 'model_memory', 'confidence': 'high'}
+        ],
+        'further_reading': [
+          {'kind': 'book', 'author': 'Robert C. Allen', 'title': 'The British Industrial Revolution in Global Perspective', 'why': 'Argues that cheap coal and expensive labour made Britain the place for machines.'},
+          {'kind': 'article', 'author': 'Joel Mokyr', 'title': 'The Gifts of Athena', 'why': 'How useful knowledge, not just coal, drove invention.'},
+          {'kind': 'review', 'author': 'Nobody Known', 'title': 'A Totally Invented Review of Steam'},
+          {'kind': 'course', 'author': 'Open University', 'title': 'Lectures on the Industrial Revolution'},
+        ]
+      })));
+      final rows = await ReadingService(db).list();
+      await ReadingService(db).recordCheck(rows[0].id, const ReadingCheck(status: 'found', url: 'https://openlibrary.org/works/OL1W', foundTitle: 'The British Industrial Revolution in Global Perspective', year: 2009));
+      await ReadingService(db).recordCheck(rows.firstWhere((r) => r.suggestion.author == 'Nobody Known').id, const ReadingCheck(status: 'notfound'));
+      final key = GlobalKey();
+      await boot(t, db, key, dark: dark);
+      await t.tap(find.descendant(of: find.byType(NavigationBar), matching: find.text('Library')));
+      await settle(t);
+      await t.scrollUntilVisible(find.text('Go deeper: reading list'), 200, scrollable: find.descendant(of: find.byType(LibraryScreen), matching: find.byType(Scrollable)).first);
+      await t.pump();
+      await t.tap(find.text('Go deeper: reading list'));
+      await settle(t);
+      final tag = dark ? 'dark' : 'light';
+      await shot(t, key, 'e_reading_${tag}_1top');
+      await t.drag(find.byType(Scrollable).first, const Offset(0, -520));
+      await settle(t);
+      await shot(t, key, 'e_reading_${tag}_2more');
       await t.pumpWidget(const SizedBox());
       await t.runAsync(db.close);
     }, skip: skip);

@@ -1,3 +1,4 @@
+import 'reading_service.dart';
 import 'dart:convert';
 
 import 'package:crypto/crypto.dart';
@@ -8,7 +9,8 @@ import '../domain/learn_planner.dart' show LearnPlanner;
 import 'db/database.dart';
 
 class ImportSummary {
-  const ImportSummary({required this.notes, required this.cards, required this.domainId});
+  const ImportSummary({required this.notes, required this.cards, required this.domainId, this.reading = 0});
+  final int reading; // reading suggestions added to the learner's list
   final int notes;
   final int cards;
   final int domainId;
@@ -152,7 +154,8 @@ class ImportService {
         await _updatePromptLog(domainId, sylId, notes);
         if (sylId != null) await _refreshItemStatus(sylId);
       }
-      return ImportSummary(notes: notes, cards: cards, domainId: domainId);
+      final reading = await ReadingService(db).addAll(p.reading, domainId: domainId, syllabusItemId: sylId, now: t);
+      return ImportSummary(notes: notes, cards: cards, domainId: domainId, reading: reading);
     });
   }
 

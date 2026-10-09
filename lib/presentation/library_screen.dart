@@ -10,6 +10,7 @@ import 'keywords_screen.dart';
 import 'new_subject_screen.dart';
 import 'plan_ahead_screen.dart';
 import 'prompt_screen.dart';
+import 'reading_screen.dart';
 import 'retire_screen.dart';
 import 'starter_library_screen.dart';
 import 'subjects_screen.dart';
@@ -83,6 +84,7 @@ class LibraryScreen extends ConsumerWidget {
         action(Icons.add_card, 'Add a card', 'Write a single card yourself', const AddCardScreen()),
         const SectionTitle('Manage'),
         action(Icons.search, 'Browse, edit or delete cards', 'Find any card you have', const BrowseCardsScreen()),
+        action(Icons.menu_book_outlined, 'Go deeper: reading list', 'Books and articles your AI suggested for your topics', const ReadingScreen()),
         action(Icons.image_search, 'Image keywords for older cards', 'Ask your AI for the words Find a picture searches with', const KeywordsScreen()),
         action(Icons.trending_up, 'Looking ahead', 'How much review time your library will need in the coming years', const PlanAheadScreen()),
         action(Icons.archive_outlined, 'Retire mastered cards', 'Stop reviewing what you have known for years', const RetireScreen()),

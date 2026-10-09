@@ -106,6 +106,12 @@ class GuideScreen extends StatelessWidget {
               'speaker on a card (or switch on automatic reading). It uses your phone\'s own voices; if one is missing the message tells you how to install it. '
               'Music: pictures help for notation, but the app cannot play sounds yet.'),
 
+          heading('Going deeper'),
+          para('When you import cards for a topic, your AI may add two or three books or articles for reading more. They collect in Library > Go deeper, '
+              'never in the middle of a review. They are suggestions and AIs sometimes get titles or authors wrong, so tap "Check it exists": the app asks Open Library '
+              'or Crossref whether a work with that title and author is listed (this goes online, once you agree). Listed does not mean good: look at the author and '
+              'the publisher. "Look it up" opens the catalogue page in a tab over the app; close it to go back to your list.'),
+
           heading('Daily reminder'),
           para('Settings > Daily reminder: one short, friendly nudge a day at the time you choose. If you have already done today\'s reviews, '
               'the next one is tomorrow. Some phones stop background reminders to save battery; if it does not appear, check the phone\'s battery settings for this app.'),

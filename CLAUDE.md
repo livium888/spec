@@ -21,7 +21,7 @@ tables go in `docs/SCREENS.md`. Update them in the same commit as the code they 
 - Offline only. No network calls from the app, with ONE exception: "Find a picture online" (D32), which
   asks the picture sites listed in `kPictureHosts` (D32, D33: Wikimedia Commons, Openverse, the Met, the
   Art Institute of Chicago) only when the learner taps it, only after they agreed, and only through
-  `SafeFetcher` (allowed hosts, https, redirects re-checked, size cap). Any other network use needs its own decision record.
+  `SafeFetcher` (allowed hosts, https, redirects re-checked, size cap). A second, separate exception: the reading-list "Check it exists" (D37) asks `kReadingHosts` (Open Library and Crossref) only when tapped, after consent, through its own `SafeFetcher`. Reading pages open in an in-app browser tab the learner asked for; the app fetches nothing from them. Any other network use needs its own decision record.
 
 ## Tooling
 Flutter SDK may be at /opt/sdk/flutter (not preinstalled). Tests: `flutter test`.

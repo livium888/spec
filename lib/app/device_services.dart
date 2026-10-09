@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 /// A picture chosen from the phone's gallery, already shrunk.
 class PickedImage {
@@ -84,3 +85,24 @@ const kSpeechLanguages = <(String, String)>[
   ('Korean', 'ko-KR'),
   ('Chinese (Mandarin)', 'zh-CN'),
 ];
+
+/// Opening a web page the learner asked for (a reading-list entry). A browser tab slides over the
+/// app (Chrome Custom Tab), so closing it returns to where they were; it is not an app of its own.
+abstract class PageOpener {
+  /// Returns an explanation if the page could not be opened, else null.
+  Future<String?> open(Uri uri);
+}
+
+class InAppPageOpener implements PageOpener {
+  const InAppPageOpener();
+  @override
+  Future<String?> open(Uri uri) async {
+    if (uri.scheme != 'https') return 'Only secure (https) pages are opened.';
+    try {
+      final ok = await launchUrl(uri, mode: LaunchMode.inAppBrowserView);
+      return ok ? null : 'This phone could not open the page.';
+    } catch (e) {
+      return 'Could not open the page: $e';
+    }
+  }
+}

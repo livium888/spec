@@ -116,7 +116,8 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
       if (!mounted) return;
       setState(() {
         _preview = null;
-        _message = 'Imported ${s.notes} notes (${s.cards} cards).';
+        _message = 'Imported ${s.notes} notes (${s.cards} cards).'
+            '${s.reading > 0 ? ' Added ${s.reading} reading suggestion${s.reading == 1 ? '' : 's'} (Library > Go deeper).' : ''}';
       });
     } catch (e) {
       setState(() => _message = 'Import failed, nothing was saved: $e');
@@ -330,6 +331,14 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
             title: Text('These go to "${p.domain}"'),
             subtitle: Text('The AI wrote the subject as "${p.renamedFrom}", but it matches the prompt you copied for "${p.domain}", '
                 'so the cards are added there.'),
+          ),
+        ),
+      if (p.reading.isNotEmpty)
+        Card(
+          child: ListTile(
+            leading: const Icon(Icons.menu_book_outlined),
+            title: Text('${p.reading.length} reading suggestion${p.reading.length == 1 ? '' : 's'} will be added'),
+            subtitle: const Text('For going deeper on this topic. They are AI suggestions and go to Library > Go deeper, where you can check them.'),
           ),
         ),
       if (p.newDomain)

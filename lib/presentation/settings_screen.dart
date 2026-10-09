@@ -291,6 +291,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 const _CardTextSizeSetting(),
                 const Divider(height: 40),
                 const _OnlinePicturesSwitch(),
+                const SizedBox(height: 8),
+                const _OnlineReadingSwitch(),
                 const Divider(height: 40),
                 Text('Study', style: t.titleLarge),
                 const SizedBox(height: 12),
@@ -429,4 +431,37 @@ class _CardTextSizeSettingState extends ConsumerState<_CardTextSizeSetting> {
           style: AppText.serif(questionFontSize(40, _size), weight: 600, height: 1.4)),
     ]);
   }
+}
+
+/// "Check reading suggestions online": Open Library and Crossref, only when "Check it exists" is tapped.
+class _OnlineReadingSwitch extends ConsumerStatefulWidget {
+  const _OnlineReadingSwitch();
+  @override
+  ConsumerState<_OnlineReadingSwitch> createState() => _OnlineReadingSwitchState();
+}
+
+class _OnlineReadingSwitchState extends ConsumerState<_OnlineReadingSwitch> {
+  bool _on = false;
+
+  @override
+  void initState() {
+    super.initState();
+    ref.read(settingsRepoProvider).get(SettingsRepo.onlineReading).then((v) {
+      if (mounted) setState(() => _on = v == SettingsRepo.onlineReadingAgreed);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) => SwitchListTile(
+        contentPadding: EdgeInsets.zero,
+        title: const Text('Check reading suggestions online'),
+        subtitle: const Text(
+            'Lets "Check it exists" ask Open Library and Crossref whether a suggested book or article is listed, when you tap it. '
+            'Only its title and author go online.'),
+        value: _on,
+        onChanged: (v) {
+          setState(() => _on = v);
+          ref.read(settingsRepoProvider).set(SettingsRepo.onlineReading, v ? SettingsRepo.onlineReadingAgreed : '0');
+        },
+      );
 }

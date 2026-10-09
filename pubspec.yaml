@@ -53,6 +53,7 @@ dependencies:
   flutter_timezone: ^5.1.1
   image_picker: ^1.2.4
   flutter_tts: ^4.2.5
+  url_launcher: ^6.3.3
 
 dev_dependencies:
   flutter_launcher_icons: ^0.14.4

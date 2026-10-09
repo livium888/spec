@@ -247,3 +247,19 @@ Count of cards with no keywords and no picture; batch size (20 / 40 / 80); "Send
 | Answer not usable | "This can't be used:" with the reasons (not JSON, wrong shape, empty, too many entries) |
 | Preview | one row per entry: ticked rows with the card's question, keywords and picture side; other rows say why skipped (no such card, already has keywords, already has a picture, not usable, repeated) |
 | Applied | "Added keywords to N cards. M still have none: send the next batch." / "Every card now has keywords." |
+
+## Library > Go deeper: reading list (D37)
+Header note (AI suggestions; "found" means listed, not good), "Check all that have not been checked", then entries grouped by subject. Each entry: kind and topic, title, author, why, a status line with icon AND words, and actions: Check it exists / Check again, Look it up (opens the catalogue page in an in-app browser tab), Mark as read / Not read yet, Remove (asks first). First check asks once for consent (names Open Library and Crossref, says what is sent).
+
+| State | Shows |
+|---|---|
+| Loading | spinner |
+| Error loading | "Could not load: ..." |
+| Empty | "No reading suggestions yet." and where they come from |
+| Entry not checked | "Not checked yet" and Check it exists |
+| Checking | spinner in place of the buttons; "Checking..." on Check all |
+| Found | "Listed in Open Library" or "Listed in Crossref", the catalogue's title and year, Look it up |
+| Not found | "Not found in the catalogue: the title or author may be wrong" and Check again |
+| Cannot be checked (course, other) | "Cannot be checked automatically" at once |
+| Check failed (offline, rate limit) | message naming the entry and the reason (live region); the entry stays unchecked; Check all stops at the first failure |
+| Consent declined | nothing is sent; asked again next time |

@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'commons.dart' show cleanImageQuery;
+import 'reading.dart' show ReadingSuggestion, parseFurtherReading;
 
 /// Strict, pure validation of LLM-produced JSON. UNTRUSTED input: every field
 /// is type-checked and length-capped; nothing is ever evaluated or rendered as
@@ -72,7 +73,11 @@ class ImportPreview {
     required this.syllabusItem,
     required this.cards,
     required this.fatalErrors,
+    this.reading = const [],
   });
+
+  /// Further reading the AI suggested for this topic (optional; never makes an import fail).
+  final List<ReadingSuggestion> reading;
 
   /// The subject the cards go to. Normally what the AI wrote; the data layer may replace it with
   /// the subject of the prompt the learner copied when the AI renamed it (see [renamedFrom]).
@@ -149,6 +154,7 @@ ImportPreview parseImportJson(String raw) {
     syllabusItem: syl is String && syl.trim().isNotEmpty ? syl.trim() : null,
     cards: cards,
     fatalErrors: fatal,
+    reading: parseFurtherReading(decoded['further_reading']),
   );
 }
 

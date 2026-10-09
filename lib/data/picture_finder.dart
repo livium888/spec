@@ -73,7 +73,7 @@ class SafeFetcher {
     final u = Uri.tryParse(url);
     if (u == null || !u.hasAuthority || u.host.isEmpty) throw PictureFinderException('That address is not valid.');
     if (requireHttps && u.scheme != 'https') throw PictureFinderException('Only secure (https) addresses are used.');
-    if (!allowedHosts.contains(u.host)) throw PictureFinderException('That picture is not on one of the picture sites this app uses.');
+    if (!allowedHosts.contains(u.host)) throw PictureFinderException('That address is not on the list of sites this app uses.');
     if (u.userInfo.isNotEmpty) throw PictureFinderException('That address is not valid.');
     return u;
   }
@@ -113,9 +113,9 @@ class SafeFetcher {
     } on PictureFinderException {
       rethrow;
     } on TimeoutException {
-      throw PictureFinderException('The picture site took too long to answer. Try again.');
+      throw PictureFinderException('The website took too long to answer. Try again.');
     } on SocketException {
-      throw PictureFinderException('Could not reach the picture site. Check your connection and try again.');
+      throw PictureFinderException('Could not reach the website. Check your connection and try again.');
     } on HandshakeException {
       throw PictureFinderException('Could not make a secure connection. Check the date and time on your phone.');
     } on HttpException catch (e) {
@@ -143,17 +143,17 @@ class SafeFetcher {
       final location = res.headers.value(HttpHeaders.locationHeader);
       await res.drain<void>().catchError((_) {});
       if (location == null || hop >= maxRedirects) {
-        throw PictureFinderException('The picture site sent the app somewhere unexpected (${res.statusCode}).');
+        throw PictureFinderException('The website sent the app somewhere unexpected (${res.statusCode}).');
       }
       target = checked(target.resolve(location).toString());
     }
     if (res.statusCode == 429) {
       await res.drain<void>();
-      throw PictureFinderException('The picture site is asking apps to slow down. Wait a minute and try again.');
+      throw PictureFinderException('The website is asking apps to slow down. Wait a minute and try again.');
     }
     if (res.statusCode != 200) {
       await res.drain<void>();
-      throw PictureFinderException('The picture site (${uri.host}) answered with an error (${res.statusCode}).');
+      throw PictureFinderException('The website (${uri.host}) answered with an error (${res.statusCode}).');
     }
     if (res.contentLength > maxBytes) {
       await res.drain<void>().catchError((_) {});

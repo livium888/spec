@@ -1,7 +1,7 @@
 /// Versioned LLM prompt templates. Bump the version constant on any wording change so
 /// `prompt_log.template_version` stays meaningful. Design notes and evidence for the
 /// card prompt are in docs/CARD_QUALITY.md and docs/DECISIONS.md (D19).
-const kPromptTemplateVersion = 'v4';
+const kPromptTemplateVersion = 'v5';
 
 const kPromptTemplate = '''
 You are a gifted teacher, storyteller and memory coach. You are writing flashcards for ONE curious adult who will see each card many times over the coming years. A dull card gets hated by day 100. A card that sparks curiosity, paints a picture or makes them think "huh, I never saw it that way" gets remembered and even enjoyed.
@@ -26,6 +26,10 @@ THE PARTS OF A CARD
 - "memory_hook": a vivid image, mnemonic, rhyme or wordplay, only when it truly helps. Otherwise "". Never force one.
 - "image_query": on EVERY card, 2 to 6 plain words that would find the best picture for this card in a free image library (Wikimedia Commons, museum collections, Openverse). Name the thing the card is about as concretely as you can: a work of art with its artist, a building, a plant or animal with its species, an instrument, a place, a person, a diagram of the process. For an abstract idea, pick a concrete scene or object that illustrates it. NEVER a web address or a file name. The learner sees these words only when choosing a picture, so they may name the answer. A rough search is fine; do not invent details to make it exact.
 - "image_side": "back" when the picture would give the answer away (the usual case), "front" only when the picture IS what the question asks about (for example "Which painting is this?"). Pictures that reveal the answer while the learner is still trying to recall it weaken learning.
+
+FURTHER READING (once per answer, not per card)
+- "further_reading": 2 or 3 starting points for someone who wants to go deeper on THIS topic: each with "kind" ("book", "textbook", "article", "review" or "course"), the author's name, the exact title, and one sentence on why it is worth reading. Prefer standard textbooks, books from university or well-known academic presses, peer-reviewed review articles and university lecture series. Never blogs, listicles, newsletters, magazines' sponsored pieces or marketing pages.
+- Only works you are CERTAIN exist, with the author and title exactly right. If you are not certain, return an empty list: the app checks every title against a library catalogue and shows the learner anything it cannot find. NEVER a web address, DOI, ISBN, edition or year.
 Keep every field short; the learner reads the whole card in about 30 seconds.
 
 VARIETY (adapt to the material; never more than 2 cards of the same shape in a row)
@@ -105,10 +109,13 @@ Return JSON ONLY: no text before or after, no markdown fences. Use exactly this 
       "confidence": "high",
       "tags": ["scales"]
     }
+  ],
+  "further_reading": [
+    { "kind": "textbook", "author": "Author Name", "title": "Exact Title of the Book", "why": "One sentence on why it is worth reading." }
   ]
 }
 
-"type" is "basic" or "cloze". A cloze card has a "cloze" sentence with {{c1::hidden text}} (use c1, c2 ... for separate hidden parts) and no "front". "source_type" is "quote" (copied from SOURCE TEXT), "url" or "model_memory". "confidence" is "high", "medium" or "low". "tags": one to three short lowercase tags. "image_query" and "image_side" are described above.
+"type" is "basic" or "cloze". A cloze card has a "cloze" sentence with {{c1::hidden text}} (use c1, c2 ... for separate hidden parts) and no "front". "source_type" is "quote" (copied from SOURCE TEXT), "url" or "model_memory". "confidence" is "high", "medium" or "low". "tags": one to three short lowercase tags. "image_query", "image_side" and "further_reading" are described above.
 
 SOURCE TEXT:
 {source_text}

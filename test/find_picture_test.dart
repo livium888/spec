@@ -54,7 +54,7 @@ Map<String, dynamic> response(List<Map<String, dynamic>> pages) => {
 };
 
 class FakeFetcher extends SafeFetcher {
-  FakeFetcher(this.answers);
+  FakeFetcher(this.answers, {Set<String>? hosts}) : super(allowedHosts: hosts ?? kPictureHosts);
   final Map<String, Object>
   answers; // substring of the URL -> JSON object or bytes
   final urls = <Uri>[];

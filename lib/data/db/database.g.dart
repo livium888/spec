@@ -6415,6 +6415,869 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
   }
 }
 
+class $ReadingItemsTable extends ReadingItems
+    with TableInfo<$ReadingItemsTable, ReadingItem> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ReadingItemsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _domainIdMeta = const VerificationMeta(
+    'domainId',
+  );
+  @override
+  late final GeneratedColumn<int> domainId = GeneratedColumn<int>(
+    'domain_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES domain (id)',
+    ),
+  );
+  static const VerificationMeta _syllabusItemIdMeta = const VerificationMeta(
+    'syllabusItemId',
+  );
+  @override
+  late final GeneratedColumn<int> syllabusItemId = GeneratedColumn<int>(
+    'syllabus_item_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES syllabus_item (id)',
+    ),
+  );
+  static const VerificationMeta _kindMeta = const VerificationMeta('kind');
+  @override
+  late final GeneratedColumn<String> kind = GeneratedColumn<String>(
+    'kind',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _titleMeta = const VerificationMeta('title');
+  @override
+  late final GeneratedColumn<String> title = GeneratedColumn<String>(
+    'title',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _authorMeta = const VerificationMeta('author');
+  @override
+  late final GeneratedColumn<String> author = GeneratedColumn<String>(
+    'author',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _whyMeta = const VerificationMeta('why');
+  @override
+  late final GeneratedColumn<String> why = GeneratedColumn<String>(
+    'why',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _titleKeyMeta = const VerificationMeta(
+    'titleKey',
+  );
+  @override
+  late final GeneratedColumn<String> titleKey = GeneratedColumn<String>(
+    'title_key',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _checkStatusMeta = const VerificationMeta(
+    'checkStatus',
+  );
+  @override
+  late final GeneratedColumn<String> checkStatus = GeneratedColumn<String>(
+    'check_status',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('unchecked'),
+  );
+  static const VerificationMeta _catalogueUrlMeta = const VerificationMeta(
+    'catalogueUrl',
+  );
+  @override
+  late final GeneratedColumn<String> catalogueUrl = GeneratedColumn<String>(
+    'catalogue_url',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _foundTitleMeta = const VerificationMeta(
+    'foundTitle',
+  );
+  @override
+  late final GeneratedColumn<String> foundTitle = GeneratedColumn<String>(
+    'found_title',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _foundYearMeta = const VerificationMeta(
+    'foundYear',
+  );
+  @override
+  late final GeneratedColumn<int> foundYear = GeneratedColumn<int>(
+    'found_year',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _checkedAtMeta = const VerificationMeta(
+    'checkedAt',
+  );
+  @override
+  late final GeneratedColumn<int> checkedAt = GeneratedColumn<int>(
+    'checked_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _doneMeta = const VerificationMeta('done');
+  @override
+  late final GeneratedColumn<bool> done = GeneratedColumn<bool>(
+    'done',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("done" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<int> createdAt = GeneratedColumn<int>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    domainId,
+    syllabusItemId,
+    kind,
+    title,
+    author,
+    why,
+    titleKey,
+    checkStatus,
+    catalogueUrl,
+    foundTitle,
+    foundYear,
+    checkedAt,
+    done,
+    createdAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'reading_item';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<ReadingItem> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('domain_id')) {
+      context.handle(
+        _domainIdMeta,
+        domainId.isAcceptableOrUnknown(data['domain_id']!, _domainIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_domainIdMeta);
+    }
+    if (data.containsKey('syllabus_item_id')) {
+      context.handle(
+        _syllabusItemIdMeta,
+        syllabusItemId.isAcceptableOrUnknown(
+          data['syllabus_item_id']!,
+          _syllabusItemIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('kind')) {
+      context.handle(
+        _kindMeta,
+        kind.isAcceptableOrUnknown(data['kind']!, _kindMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_kindMeta);
+    }
+    if (data.containsKey('title')) {
+      context.handle(
+        _titleMeta,
+        title.isAcceptableOrUnknown(data['title']!, _titleMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_titleMeta);
+    }
+    if (data.containsKey('author')) {
+      context.handle(
+        _authorMeta,
+        author.isAcceptableOrUnknown(data['author']!, _authorMeta),
+      );
+    }
+    if (data.containsKey('why')) {
+      context.handle(
+        _whyMeta,
+        why.isAcceptableOrUnknown(data['why']!, _whyMeta),
+      );
+    }
+    if (data.containsKey('title_key')) {
+      context.handle(
+        _titleKeyMeta,
+        titleKey.isAcceptableOrUnknown(data['title_key']!, _titleKeyMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_titleKeyMeta);
+    }
+    if (data.containsKey('check_status')) {
+      context.handle(
+        _checkStatusMeta,
+        checkStatus.isAcceptableOrUnknown(
+          data['check_status']!,
+          _checkStatusMeta,
+        ),
+      );
+    }
+    if (data.containsKey('catalogue_url')) {
+      context.handle(
+        _catalogueUrlMeta,
+        catalogueUrl.isAcceptableOrUnknown(
+          data['catalogue_url']!,
+          _catalogueUrlMeta,
+        ),
+      );
+    }
+    if (data.containsKey('found_title')) {
+      context.handle(
+        _foundTitleMeta,
+        foundTitle.isAcceptableOrUnknown(data['found_title']!, _foundTitleMeta),
+      );
+    }
+    if (data.containsKey('found_year')) {
+      context.handle(
+        _foundYearMeta,
+        foundYear.isAcceptableOrUnknown(data['found_year']!, _foundYearMeta),
+      );
+    }
+    if (data.containsKey('checked_at')) {
+      context.handle(
+        _checkedAtMeta,
+        checkedAt.isAcceptableOrUnknown(data['checked_at']!, _checkedAtMeta),
+      );
+    }
+    if (data.containsKey('done')) {
+      context.handle(
+        _doneMeta,
+        done.isAcceptableOrUnknown(data['done']!, _doneMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  List<Set<GeneratedColumn>> get uniqueKeys => [
+    {domainId, titleKey},
+  ];
+  @override
+  ReadingItem map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ReadingItem(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      domainId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}domain_id'],
+      )!,
+      syllabusItemId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}syllabus_item_id'],
+      ),
+      kind: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}kind'],
+      )!,
+      title: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}title'],
+      )!,
+      author: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}author'],
+      )!,
+      why: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}why'],
+      )!,
+      titleKey: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}title_key'],
+      )!,
+      checkStatus: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}check_status'],
+      )!,
+      catalogueUrl: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}catalogue_url'],
+      ),
+      foundTitle: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}found_title'],
+      ),
+      foundYear: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}found_year'],
+      ),
+      checkedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}checked_at'],
+      ),
+      done: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}done'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}created_at'],
+      )!,
+    );
+  }
+
+  @override
+  $ReadingItemsTable createAlias(String alias) {
+    return $ReadingItemsTable(attachedDatabase, alias);
+  }
+}
+
+class ReadingItem extends DataClass implements Insertable<ReadingItem> {
+  final int id;
+  final int domainId;
+  final int? syllabusItemId;
+
+  /// book | textbook | article | review | course | other
+  final String kind;
+  final String title;
+  final String author;
+  final String why;
+
+  /// Normalised title + author: the same suggestion twice in one subject is kept once.
+  final String titleKey;
+
+  /// unchecked | found | notfound | cannot (the kind cannot be checked automatically)
+  final String checkStatus;
+  final String? catalogueUrl;
+  final String? foundTitle;
+  final int? foundYear;
+  final int? checkedAt;
+  final bool done;
+  final int createdAt;
+  const ReadingItem({
+    required this.id,
+    required this.domainId,
+    this.syllabusItemId,
+    required this.kind,
+    required this.title,
+    required this.author,
+    required this.why,
+    required this.titleKey,
+    required this.checkStatus,
+    this.catalogueUrl,
+    this.foundTitle,
+    this.foundYear,
+    this.checkedAt,
+    required this.done,
+    required this.createdAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['domain_id'] = Variable<int>(domainId);
+    if (!nullToAbsent || syllabusItemId != null) {
+      map['syllabus_item_id'] = Variable<int>(syllabusItemId);
+    }
+    map['kind'] = Variable<String>(kind);
+    map['title'] = Variable<String>(title);
+    map['author'] = Variable<String>(author);
+    map['why'] = Variable<String>(why);
+    map['title_key'] = Variable<String>(titleKey);
+    map['check_status'] = Variable<String>(checkStatus);
+    if (!nullToAbsent || catalogueUrl != null) {
+      map['catalogue_url'] = Variable<String>(catalogueUrl);
+    }
+    if (!nullToAbsent || foundTitle != null) {
+      map['found_title'] = Variable<String>(foundTitle);
+    }
+    if (!nullToAbsent || foundYear != null) {
+      map['found_year'] = Variable<int>(foundYear);
+    }
+    if (!nullToAbsent || checkedAt != null) {
+      map['checked_at'] = Variable<int>(checkedAt);
+    }
+    map['done'] = Variable<bool>(done);
+    map['created_at'] = Variable<int>(createdAt);
+    return map;
+  }
+
+  ReadingItemsCompanion toCompanion(bool nullToAbsent) {
+    return ReadingItemsCompanion(
+      id: Value(id),
+      domainId: Value(domainId),
+      syllabusItemId: syllabusItemId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(syllabusItemId),
+      kind: Value(kind),
+      title: Value(title),
+      author: Value(author),
+      why: Value(why),
+      titleKey: Value(titleKey),
+      checkStatus: Value(checkStatus),
+      catalogueUrl: catalogueUrl == null && nullToAbsent
+          ? const Value.absent()
+          : Value(catalogueUrl),
+      foundTitle: foundTitle == null && nullToAbsent
+          ? const Value.absent()
+          : Value(foundTitle),
+      foundYear: foundYear == null && nullToAbsent
+          ? const Value.absent()
+          : Value(foundYear),
+      checkedAt: checkedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(checkedAt),
+      done: Value(done),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory ReadingItem.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ReadingItem(
+      id: serializer.fromJson<int>(json['id']),
+      domainId: serializer.fromJson<int>(json['domainId']),
+      syllabusItemId: serializer.fromJson<int?>(json['syllabusItemId']),
+      kind: serializer.fromJson<String>(json['kind']),
+      title: serializer.fromJson<String>(json['title']),
+      author: serializer.fromJson<String>(json['author']),
+      why: serializer.fromJson<String>(json['why']),
+      titleKey: serializer.fromJson<String>(json['titleKey']),
+      checkStatus: serializer.fromJson<String>(json['checkStatus']),
+      catalogueUrl: serializer.fromJson<String?>(json['catalogueUrl']),
+      foundTitle: serializer.fromJson<String?>(json['foundTitle']),
+      foundYear: serializer.fromJson<int?>(json['foundYear']),
+      checkedAt: serializer.fromJson<int?>(json['checkedAt']),
+      done: serializer.fromJson<bool>(json['done']),
+      createdAt: serializer.fromJson<int>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'domainId': serializer.toJson<int>(domainId),
+      'syllabusItemId': serializer.toJson<int?>(syllabusItemId),
+      'kind': serializer.toJson<String>(kind),
+      'title': serializer.toJson<String>(title),
+      'author': serializer.toJson<String>(author),
+      'why': serializer.toJson<String>(why),
+      'titleKey': serializer.toJson<String>(titleKey),
+      'checkStatus': serializer.toJson<String>(checkStatus),
+      'catalogueUrl': serializer.toJson<String?>(catalogueUrl),
+      'foundTitle': serializer.toJson<String?>(foundTitle),
+      'foundYear': serializer.toJson<int?>(foundYear),
+      'checkedAt': serializer.toJson<int?>(checkedAt),
+      'done': serializer.toJson<bool>(done),
+      'createdAt': serializer.toJson<int>(createdAt),
+    };
+  }
+
+  ReadingItem copyWith({
+    int? id,
+    int? domainId,
+    Value<int?> syllabusItemId = const Value.absent(),
+    String? kind,
+    String? title,
+    String? author,
+    String? why,
+    String? titleKey,
+    String? checkStatus,
+    Value<String?> catalogueUrl = const Value.absent(),
+    Value<String?> foundTitle = const Value.absent(),
+    Value<int?> foundYear = const Value.absent(),
+    Value<int?> checkedAt = const Value.absent(),
+    bool? done,
+    int? createdAt,
+  }) => ReadingItem(
+    id: id ?? this.id,
+    domainId: domainId ?? this.domainId,
+    syllabusItemId: syllabusItemId.present
+        ? syllabusItemId.value
+        : this.syllabusItemId,
+    kind: kind ?? this.kind,
+    title: title ?? this.title,
+    author: author ?? this.author,
+    why: why ?? this.why,
+    titleKey: titleKey ?? this.titleKey,
+    checkStatus: checkStatus ?? this.checkStatus,
+    catalogueUrl: catalogueUrl.present ? catalogueUrl.value : this.catalogueUrl,
+    foundTitle: foundTitle.present ? foundTitle.value : this.foundTitle,
+    foundYear: foundYear.present ? foundYear.value : this.foundYear,
+    checkedAt: checkedAt.present ? checkedAt.value : this.checkedAt,
+    done: done ?? this.done,
+    createdAt: createdAt ?? this.createdAt,
+  );
+  ReadingItem copyWithCompanion(ReadingItemsCompanion data) {
+    return ReadingItem(
+      id: data.id.present ? data.id.value : this.id,
+      domainId: data.domainId.present ? data.domainId.value : this.domainId,
+      syllabusItemId: data.syllabusItemId.present
+          ? data.syllabusItemId.value
+          : this.syllabusItemId,
+      kind: data.kind.present ? data.kind.value : this.kind,
+      title: data.title.present ? data.title.value : this.title,
+      author: data.author.present ? data.author.value : this.author,
+      why: data.why.present ? data.why.value : this.why,
+      titleKey: data.titleKey.present ? data.titleKey.value : this.titleKey,
+      checkStatus: data.checkStatus.present
+          ? data.checkStatus.value
+          : this.checkStatus,
+      catalogueUrl: data.catalogueUrl.present
+          ? data.catalogueUrl.value
+          : this.catalogueUrl,
+      foundTitle: data.foundTitle.present
+          ? data.foundTitle.value
+          : this.foundTitle,
+      foundYear: data.foundYear.present ? data.foundYear.value : this.foundYear,
+      checkedAt: data.checkedAt.present ? data.checkedAt.value : this.checkedAt,
+      done: data.done.present ? data.done.value : this.done,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ReadingItem(')
+          ..write('id: $id, ')
+          ..write('domainId: $domainId, ')
+          ..write('syllabusItemId: $syllabusItemId, ')
+          ..write('kind: $kind, ')
+          ..write('title: $title, ')
+          ..write('author: $author, ')
+          ..write('why: $why, ')
+          ..write('titleKey: $titleKey, ')
+          ..write('checkStatus: $checkStatus, ')
+          ..write('catalogueUrl: $catalogueUrl, ')
+          ..write('foundTitle: $foundTitle, ')
+          ..write('foundYear: $foundYear, ')
+          ..write('checkedAt: $checkedAt, ')
+          ..write('done: $done, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    domainId,
+    syllabusItemId,
+    kind,
+    title,
+    author,
+    why,
+    titleKey,
+    checkStatus,
+    catalogueUrl,
+    foundTitle,
+    foundYear,
+    checkedAt,
+    done,
+    createdAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ReadingItem &&
+          other.id == this.id &&
+          other.domainId == this.domainId &&
+          other.syllabusItemId == this.syllabusItemId &&
+          other.kind == this.kind &&
+          other.title == this.title &&
+          other.author == this.author &&
+          other.why == this.why &&
+          other.titleKey == this.titleKey &&
+          other.checkStatus == this.checkStatus &&
+          other.catalogueUrl == this.catalogueUrl &&
+          other.foundTitle == this.foundTitle &&
+          other.foundYear == this.foundYear &&
+          other.checkedAt == this.checkedAt &&
+          other.done == this.done &&
+          other.createdAt == this.createdAt);
+}
+
+class ReadingItemsCompanion extends UpdateCompanion<ReadingItem> {
+  final Value<int> id;
+  final Value<int> domainId;
+  final Value<int?> syllabusItemId;
+  final Value<String> kind;
+  final Value<String> title;
+  final Value<String> author;
+  final Value<String> why;
+  final Value<String> titleKey;
+  final Value<String> checkStatus;
+  final Value<String?> catalogueUrl;
+  final Value<String?> foundTitle;
+  final Value<int?> foundYear;
+  final Value<int?> checkedAt;
+  final Value<bool> done;
+  final Value<int> createdAt;
+  const ReadingItemsCompanion({
+    this.id = const Value.absent(),
+    this.domainId = const Value.absent(),
+    this.syllabusItemId = const Value.absent(),
+    this.kind = const Value.absent(),
+    this.title = const Value.absent(),
+    this.author = const Value.absent(),
+    this.why = const Value.absent(),
+    this.titleKey = const Value.absent(),
+    this.checkStatus = const Value.absent(),
+    this.catalogueUrl = const Value.absent(),
+    this.foundTitle = const Value.absent(),
+    this.foundYear = const Value.absent(),
+    this.checkedAt = const Value.absent(),
+    this.done = const Value.absent(),
+    this.createdAt = const Value.absent(),
+  });
+  ReadingItemsCompanion.insert({
+    this.id = const Value.absent(),
+    required int domainId,
+    this.syllabusItemId = const Value.absent(),
+    required String kind,
+    required String title,
+    this.author = const Value.absent(),
+    this.why = const Value.absent(),
+    required String titleKey,
+    this.checkStatus = const Value.absent(),
+    this.catalogueUrl = const Value.absent(),
+    this.foundTitle = const Value.absent(),
+    this.foundYear = const Value.absent(),
+    this.checkedAt = const Value.absent(),
+    this.done = const Value.absent(),
+    required int createdAt,
+  }) : domainId = Value(domainId),
+       kind = Value(kind),
+       title = Value(title),
+       titleKey = Value(titleKey),
+       createdAt = Value(createdAt);
+  static Insertable<ReadingItem> custom({
+    Expression<int>? id,
+    Expression<int>? domainId,
+    Expression<int>? syllabusItemId,
+    Expression<String>? kind,
+    Expression<String>? title,
+    Expression<String>? author,
+    Expression<String>? why,
+    Expression<String>? titleKey,
+    Expression<String>? checkStatus,
+    Expression<String>? catalogueUrl,
+    Expression<String>? foundTitle,
+    Expression<int>? foundYear,
+    Expression<int>? checkedAt,
+    Expression<bool>? done,
+    Expression<int>? createdAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (domainId != null) 'domain_id': domainId,
+      if (syllabusItemId != null) 'syllabus_item_id': syllabusItemId,
+      if (kind != null) 'kind': kind,
+      if (title != null) 'title': title,
+      if (author != null) 'author': author,
+      if (why != null) 'why': why,
+      if (titleKey != null) 'title_key': titleKey,
+      if (checkStatus != null) 'check_status': checkStatus,
+      if (catalogueUrl != null) 'catalogue_url': catalogueUrl,
+      if (foundTitle != null) 'found_title': foundTitle,
+      if (foundYear != null) 'found_year': foundYear,
+      if (checkedAt != null) 'checked_at': checkedAt,
+      if (done != null) 'done': done,
+      if (createdAt != null) 'created_at': createdAt,
+    });
+  }
+
+  ReadingItemsCompanion copyWith({
+    Value<int>? id,
+    Value<int>? domainId,
+    Value<int?>? syllabusItemId,
+    Value<String>? kind,
+    Value<String>? title,
+    Value<String>? author,
+    Value<String>? why,
+    Value<String>? titleKey,
+    Value<String>? checkStatus,
+    Value<String?>? catalogueUrl,
+    Value<String?>? foundTitle,
+    Value<int?>? foundYear,
+    Value<int?>? checkedAt,
+    Value<bool>? done,
+    Value<int>? createdAt,
+  }) {
+    return ReadingItemsCompanion(
+      id: id ?? this.id,
+      domainId: domainId ?? this.domainId,
+      syllabusItemId: syllabusItemId ?? this.syllabusItemId,
+      kind: kind ?? this.kind,
+      title: title ?? this.title,
+      author: author ?? this.author,
+      why: why ?? this.why,
+      titleKey: titleKey ?? this.titleKey,
+      checkStatus: checkStatus ?? this.checkStatus,
+      catalogueUrl: catalogueUrl ?? this.catalogueUrl,
+      foundTitle: foundTitle ?? this.foundTitle,
+      foundYear: foundYear ?? this.foundYear,
+      checkedAt: checkedAt ?? this.checkedAt,
+      done: done ?? this.done,
+      createdAt: createdAt ?? this.createdAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (domainId.present) {
+      map['domain_id'] = Variable<int>(domainId.value);
+    }
+    if (syllabusItemId.present) {
+      map['syllabus_item_id'] = Variable<int>(syllabusItemId.value);
+    }
+    if (kind.present) {
+      map['kind'] = Variable<String>(kind.value);
+    }
+    if (title.present) {
+      map['title'] = Variable<String>(title.value);
+    }
+    if (author.present) {
+      map['author'] = Variable<String>(author.value);
+    }
+    if (why.present) {
+      map['why'] = Variable<String>(why.value);
+    }
+    if (titleKey.present) {
+      map['title_key'] = Variable<String>(titleKey.value);
+    }
+    if (checkStatus.present) {
+      map['check_status'] = Variable<String>(checkStatus.value);
+    }
+    if (catalogueUrl.present) {
+      map['catalogue_url'] = Variable<String>(catalogueUrl.value);
+    }
+    if (foundTitle.present) {
+      map['found_title'] = Variable<String>(foundTitle.value);
+    }
+    if (foundYear.present) {
+      map['found_year'] = Variable<int>(foundYear.value);
+    }
+    if (checkedAt.present) {
+      map['checked_at'] = Variable<int>(checkedAt.value);
+    }
+    if (done.present) {
+      map['done'] = Variable<bool>(done.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<int>(createdAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ReadingItemsCompanion(')
+          ..write('id: $id, ')
+          ..write('domainId: $domainId, ')
+          ..write('syllabusItemId: $syllabusItemId, ')
+          ..write('kind: $kind, ')
+          ..write('title: $title, ')
+          ..write('author: $author, ')
+          ..write('why: $why, ')
+          ..write('titleKey: $titleKey, ')
+          ..write('checkStatus: $checkStatus, ')
+          ..write('catalogueUrl: $catalogueUrl, ')
+          ..write('foundTitle: $foundTitle, ')
+          ..write('foundYear: $foundYear, ')
+          ..write('checkedAt: $checkedAt, ')
+          ..write('done: $done, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -6440,6 +7303,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   );
   late final $BackupLogsTable backupLogs = $BackupLogsTable(this);
   late final $SettingsTable settings = $SettingsTable(this);
+  late final $ReadingItemsTable readingItems = $ReadingItemsTable(this);
   late final Index cardDueIdx = Index(
     'card_due_idx',
     'CREATE INDEX card_due_idx ON card (due)',
@@ -6475,6 +7339,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     engineDecisions,
     backupLogs,
     settings,
+    readingItems,
     cardDueIdx,
     cardNoteIdx,
     reviewLogCardIdx,
@@ -6577,6 +7442,24 @@ final class $$DomainsTableReferences
     ).filter((f) => f.domainId.id.sqlEquals($_itemColumn<int>('id')!));
 
     final cache = $_typedResult.readTableOrNull(_interestLogsRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<$ReadingItemsTable, List<ReadingItem>>
+  _readingItemsRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.readingItems,
+    aliasName: 'domain__id__reading_item__domain_id',
+  );
+
+  $$ReadingItemsTableProcessedTableManager get readingItemsRefs {
+    final manager = $$ReadingItemsTableTableManager(
+      $_db,
+      $_db.readingItems,
+    ).filter((f) => f.domainId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_readingItemsRefsTable($_db));
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: cache),
     );
@@ -6728,6 +7611,31 @@ class $$DomainsTableFilterComposer
           }) => $$InterestLogsTableFilterComposer(
             $db: $db,
             $table: $db.interestLogs,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> readingItemsRefs(
+    Expression<bool> Function($$ReadingItemsTableFilterComposer f) f,
+  ) {
+    final $$ReadingItemsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.readingItems,
+      getReferencedColumn: (t) => t.domainId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ReadingItemsTableFilterComposer(
+            $db: $db,
+            $table: $db.readingItems,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -6934,6 +7842,31 @@ class $$DomainsTableAnnotationComposer
     );
     return f(composer);
   }
+
+  Expression<T> readingItemsRefs<T extends Object>(
+    Expression<T> Function($$ReadingItemsTableAnnotationComposer a) f,
+  ) {
+    final $$ReadingItemsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.readingItems,
+      getReferencedColumn: (t) => t.domainId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ReadingItemsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.readingItems,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$DomainsTableTableManager
@@ -6954,6 +7887,7 @@ class $$DomainsTableTableManager
             bool notesRefs,
             bool promptLogsRefs,
             bool interestLogsRefs,
+            bool readingItemsRefs,
           })
         > {
   $$DomainsTableTableManager(_$AppDatabase db, $DomainsTable table)
@@ -7025,6 +7959,7 @@ class $$DomainsTableTableManager
                 notesRefs = false,
                 promptLogsRefs = false,
                 interestLogsRefs = false,
+                readingItemsRefs = false,
               }) {
                 return PrefetchHooks(
                   db: db,
@@ -7033,6 +7968,7 @@ class $$DomainsTableTableManager
                     if (notesRefs) db.notes,
                     if (promptLogsRefs) db.promptLogs,
                     if (interestLogsRefs) db.interestLogs,
+                    if (readingItemsRefs) db.readingItems,
                   ],
                   addJoins: null,
                   getPrefetchedDataCallback: (items) async {
@@ -7113,6 +8049,27 @@ class $$DomainsTableTableManager
                               ),
                           typedResults: items,
                         ),
+                      if (readingItemsRefs)
+                        await $_getPrefetchedData<
+                          Domain,
+                          $DomainsTable,
+                          ReadingItem
+                        >(
+                          currentTable: table,
+                          referencedTable: $$DomainsTableReferences
+                              ._readingItemsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$DomainsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).readingItemsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.domainId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
                     ];
                   },
                 );
@@ -7138,6 +8095,7 @@ typedef $$DomainsTableProcessedTableManager =
         bool notesRefs,
         bool promptLogsRefs,
         bool interestLogsRefs,
+        bool readingItemsRefs,
       })
     >;
 typedef $$SyllabusItemsTableCreateCompanionBuilder =
@@ -7222,6 +8180,24 @@ final class $$SyllabusItemsTableReferences
     ).filter((f) => f.syllabusItemId.id.sqlEquals($_itemColumn<int>('id')!));
 
     final cache = $_typedResult.readTableOrNull(_promptLogsRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<$ReadingItemsTable, List<ReadingItem>>
+  _readingItemsRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.readingItems,
+    aliasName: 'syllabus_item__id__reading_item__syllabus_item_id',
+  );
+
+  $$ReadingItemsTableProcessedTableManager get readingItemsRefs {
+    final manager = $$ReadingItemsTableTableManager(
+      $_db,
+      $_db.readingItems,
+    ).filter((f) => f.syllabusItemId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_readingItemsRefsTable($_db));
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: cache),
     );
@@ -7341,6 +8317,31 @@ class $$SyllabusItemsTableFilterComposer
           }) => $$PromptLogsTableFilterComposer(
             $db: $db,
             $table: $db.promptLogs,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> readingItemsRefs(
+    Expression<bool> Function($$ReadingItemsTableFilterComposer f) f,
+  ) {
+    final $$ReadingItemsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.readingItems,
+      getReferencedColumn: (t) => t.syllabusItemId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ReadingItemsTableFilterComposer(
+            $db: $db,
+            $table: $db.readingItems,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -7533,6 +8534,31 @@ class $$SyllabusItemsTableAnnotationComposer
     );
     return f(composer);
   }
+
+  Expression<T> readingItemsRefs<T extends Object>(
+    Expression<T> Function($$ReadingItemsTableAnnotationComposer a) f,
+  ) {
+    final $$ReadingItemsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.readingItems,
+      getReferencedColumn: (t) => t.syllabusItemId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ReadingItemsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.readingItems,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$SyllabusItemsTableTableManager
@@ -7552,6 +8578,7 @@ class $$SyllabusItemsTableTableManager
             bool domainId,
             bool notesRefs,
             bool promptLogsRefs,
+            bool readingItemsRefs,
           })
         > {
   $$SyllabusItemsTableTableManager(_$AppDatabase db, $SyllabusItemsTable table)
@@ -7618,12 +8645,18 @@ class $$SyllabusItemsTableTableManager
               )
               .toList(),
           prefetchHooksCallback:
-              ({domainId = false, notesRefs = false, promptLogsRefs = false}) {
+              ({
+                domainId = false,
+                notesRefs = false,
+                promptLogsRefs = false,
+                readingItemsRefs = false,
+              }) {
                 return PrefetchHooks(
                   db: db,
                   explicitlyWatchedTables: [
                     if (notesRefs) db.notes,
                     if (promptLogsRefs) db.promptLogs,
+                    if (readingItemsRefs) db.readingItems,
                   ],
                   addJoins:
                       <
@@ -7699,6 +8732,27 @@ class $$SyllabusItemsTableTableManager
                               ),
                           typedResults: items,
                         ),
+                      if (readingItemsRefs)
+                        await $_getPrefetchedData<
+                          SyllabusItem,
+                          $SyllabusItemsTable,
+                          ReadingItem
+                        >(
+                          currentTable: table,
+                          referencedTable: $$SyllabusItemsTableReferences
+                              ._readingItemsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$SyllabusItemsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).readingItemsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.syllabusItemId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
                     ];
                   },
                 );
@@ -7723,6 +8777,7 @@ typedef $$SyllabusItemsTableProcessedTableManager =
         bool domainId,
         bool notesRefs,
         bool promptLogsRefs,
+        bool readingItemsRefs,
       })
     >;
 typedef $$SyllabusPrereqsTableCreateCompanionBuilder =
@@ -11839,6 +12894,596 @@ typedef $$SettingsTableProcessedTableManager =
       Setting,
       PrefetchHooks Function()
     >;
+typedef $$ReadingItemsTableCreateCompanionBuilder =
+    ReadingItemsCompanion Function({
+      Value<int> id,
+      required int domainId,
+      Value<int?> syllabusItemId,
+      required String kind,
+      required String title,
+      Value<String> author,
+      Value<String> why,
+      required String titleKey,
+      Value<String> checkStatus,
+      Value<String?> catalogueUrl,
+      Value<String?> foundTitle,
+      Value<int?> foundYear,
+      Value<int?> checkedAt,
+      Value<bool> done,
+      required int createdAt,
+    });
+typedef $$ReadingItemsTableUpdateCompanionBuilder =
+    ReadingItemsCompanion Function({
+      Value<int> id,
+      Value<int> domainId,
+      Value<int?> syllabusItemId,
+      Value<String> kind,
+      Value<String> title,
+      Value<String> author,
+      Value<String> why,
+      Value<String> titleKey,
+      Value<String> checkStatus,
+      Value<String?> catalogueUrl,
+      Value<String?> foundTitle,
+      Value<int?> foundYear,
+      Value<int?> checkedAt,
+      Value<bool> done,
+      Value<int> createdAt,
+    });
+
+final class $$ReadingItemsTableReferences
+    extends BaseReferences<_$AppDatabase, $ReadingItemsTable, ReadingItem> {
+  $$ReadingItemsTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static $DomainsTable _domainIdTable(_$AppDatabase db) =>
+      db.domains.createAlias('reading_item__domain_id__domain__id');
+
+  $$DomainsTableProcessedTableManager get domainId {
+    final $_column = $_itemColumn<int>('domain_id')!;
+
+    final manager = $$DomainsTableTableManager(
+      $_db,
+      $_db.domains,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_domainIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static $SyllabusItemsTable _syllabusItemIdTable(_$AppDatabase db) => db
+      .syllabusItems
+      .createAlias('reading_item__syllabus_item_id__syllabus_item__id');
+
+  $$SyllabusItemsTableProcessedTableManager? get syllabusItemId {
+    final $_column = $_itemColumn<int>('syllabus_item_id');
+    if ($_column == null) return null;
+    final manager = $$SyllabusItemsTableTableManager(
+      $_db,
+      $_db.syllabusItems,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_syllabusItemIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$ReadingItemsTableFilterComposer
+    extends Composer<_$AppDatabase, $ReadingItemsTable> {
+  $$ReadingItemsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get kind => $composableBuilder(
+    column: $table.kind,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get author => $composableBuilder(
+    column: $table.author,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get why => $composableBuilder(
+    column: $table.why,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get titleKey => $composableBuilder(
+    column: $table.titleKey,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get checkStatus => $composableBuilder(
+    column: $table.checkStatus,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get catalogueUrl => $composableBuilder(
+    column: $table.catalogueUrl,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get foundTitle => $composableBuilder(
+    column: $table.foundTitle,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get foundYear => $composableBuilder(
+    column: $table.foundYear,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get checkedAt => $composableBuilder(
+    column: $table.checkedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get done => $composableBuilder(
+    column: $table.done,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$DomainsTableFilterComposer get domainId {
+    final $$DomainsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.domainId,
+      referencedTable: $db.domains,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DomainsTableFilterComposer(
+            $db: $db,
+            $table: $db.domains,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$SyllabusItemsTableFilterComposer get syllabusItemId {
+    final $$SyllabusItemsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.syllabusItemId,
+      referencedTable: $db.syllabusItems,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SyllabusItemsTableFilterComposer(
+            $db: $db,
+            $table: $db.syllabusItems,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$ReadingItemsTableOrderingComposer
+    extends Composer<_$AppDatabase, $ReadingItemsTable> {
+  $$ReadingItemsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get kind => $composableBuilder(
+    column: $table.kind,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get author => $composableBuilder(
+    column: $table.author,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get why => $composableBuilder(
+    column: $table.why,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get titleKey => $composableBuilder(
+    column: $table.titleKey,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get checkStatus => $composableBuilder(
+    column: $table.checkStatus,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get catalogueUrl => $composableBuilder(
+    column: $table.catalogueUrl,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get foundTitle => $composableBuilder(
+    column: $table.foundTitle,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get foundYear => $composableBuilder(
+    column: $table.foundYear,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get checkedAt => $composableBuilder(
+    column: $table.checkedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get done => $composableBuilder(
+    column: $table.done,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$DomainsTableOrderingComposer get domainId {
+    final $$DomainsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.domainId,
+      referencedTable: $db.domains,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DomainsTableOrderingComposer(
+            $db: $db,
+            $table: $db.domains,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$SyllabusItemsTableOrderingComposer get syllabusItemId {
+    final $$SyllabusItemsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.syllabusItemId,
+      referencedTable: $db.syllabusItems,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SyllabusItemsTableOrderingComposer(
+            $db: $db,
+            $table: $db.syllabusItems,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$ReadingItemsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $ReadingItemsTable> {
+  $$ReadingItemsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get kind =>
+      $composableBuilder(column: $table.kind, builder: (column) => column);
+
+  GeneratedColumn<String> get title =>
+      $composableBuilder(column: $table.title, builder: (column) => column);
+
+  GeneratedColumn<String> get author =>
+      $composableBuilder(column: $table.author, builder: (column) => column);
+
+  GeneratedColumn<String> get why =>
+      $composableBuilder(column: $table.why, builder: (column) => column);
+
+  GeneratedColumn<String> get titleKey =>
+      $composableBuilder(column: $table.titleKey, builder: (column) => column);
+
+  GeneratedColumn<String> get checkStatus => $composableBuilder(
+    column: $table.checkStatus,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get catalogueUrl => $composableBuilder(
+    column: $table.catalogueUrl,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get foundTitle => $composableBuilder(
+    column: $table.foundTitle,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get foundYear =>
+      $composableBuilder(column: $table.foundYear, builder: (column) => column);
+
+  GeneratedColumn<int> get checkedAt =>
+      $composableBuilder(column: $table.checkedAt, builder: (column) => column);
+
+  GeneratedColumn<bool> get done =>
+      $composableBuilder(column: $table.done, builder: (column) => column);
+
+  GeneratedColumn<int> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  $$DomainsTableAnnotationComposer get domainId {
+    final $$DomainsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.domainId,
+      referencedTable: $db.domains,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DomainsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.domains,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$SyllabusItemsTableAnnotationComposer get syllabusItemId {
+    final $$SyllabusItemsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.syllabusItemId,
+      referencedTable: $db.syllabusItems,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SyllabusItemsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.syllabusItems,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$ReadingItemsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $ReadingItemsTable,
+          ReadingItem,
+          $$ReadingItemsTableFilterComposer,
+          $$ReadingItemsTableOrderingComposer,
+          $$ReadingItemsTableAnnotationComposer,
+          $$ReadingItemsTableCreateCompanionBuilder,
+          $$ReadingItemsTableUpdateCompanionBuilder,
+          (ReadingItem, $$ReadingItemsTableReferences),
+          ReadingItem,
+          PrefetchHooks Function({bool domainId, bool syllabusItemId})
+        > {
+  $$ReadingItemsTableTableManager(_$AppDatabase db, $ReadingItemsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$ReadingItemsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$ReadingItemsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$ReadingItemsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<int> domainId = const Value.absent(),
+                Value<int?> syllabusItemId = const Value.absent(),
+                Value<String> kind = const Value.absent(),
+                Value<String> title = const Value.absent(),
+                Value<String> author = const Value.absent(),
+                Value<String> why = const Value.absent(),
+                Value<String> titleKey = const Value.absent(),
+                Value<String> checkStatus = const Value.absent(),
+                Value<String?> catalogueUrl = const Value.absent(),
+                Value<String?> foundTitle = const Value.absent(),
+                Value<int?> foundYear = const Value.absent(),
+                Value<int?> checkedAt = const Value.absent(),
+                Value<bool> done = const Value.absent(),
+                Value<int> createdAt = const Value.absent(),
+              }) => ReadingItemsCompanion(
+                id: id,
+                domainId: domainId,
+                syllabusItemId: syllabusItemId,
+                kind: kind,
+                title: title,
+                author: author,
+                why: why,
+                titleKey: titleKey,
+                checkStatus: checkStatus,
+                catalogueUrl: catalogueUrl,
+                foundTitle: foundTitle,
+                foundYear: foundYear,
+                checkedAt: checkedAt,
+                done: done,
+                createdAt: createdAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required int domainId,
+                Value<int?> syllabusItemId = const Value.absent(),
+                required String kind,
+                required String title,
+                Value<String> author = const Value.absent(),
+                Value<String> why = const Value.absent(),
+                required String titleKey,
+                Value<String> checkStatus = const Value.absent(),
+                Value<String?> catalogueUrl = const Value.absent(),
+                Value<String?> foundTitle = const Value.absent(),
+                Value<int?> foundYear = const Value.absent(),
+                Value<int?> checkedAt = const Value.absent(),
+                Value<bool> done = const Value.absent(),
+                required int createdAt,
+              }) => ReadingItemsCompanion.insert(
+                id: id,
+                domainId: domainId,
+                syllabusItemId: syllabusItemId,
+                kind: kind,
+                title: title,
+                author: author,
+                why: why,
+                titleKey: titleKey,
+                checkStatus: checkStatus,
+                catalogueUrl: catalogueUrl,
+                foundTitle: foundTitle,
+                foundYear: foundYear,
+                checkedAt: checkedAt,
+                done: done,
+                createdAt: createdAt,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$ReadingItemsTable, ReadingItem>(table),
+                  $$ReadingItemsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({domainId = false, syllabusItemId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (domainId) {
+                      state = state.withJoin(
+                        currentTable: table,
+                        currentColumn: table.domainId,
+                        referencedTable: $$ReadingItemsTableReferences
+                            ._domainIdTable(db),
+                        referencedColumn: $$ReadingItemsTableReferences
+                            ._domainIdTable(db)
+                            .id,
+                      ) as T;
+                    }
+                    if (syllabusItemId) {
+                      state = state.withJoin(
+                        currentTable: table,
+                        currentColumn: table.syllabusItemId,
+                        referencedTable: $$ReadingItemsTableReferences
+                            ._syllabusItemIdTable(db),
+                        referencedColumn: $$ReadingItemsTableReferences
+                            ._syllabusItemIdTable(db)
+                            .id,
+                      ) as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$ReadingItemsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $ReadingItemsTable,
+      ReadingItem,
+      $$ReadingItemsTableFilterComposer,
+      $$ReadingItemsTableOrderingComposer,
+      $$ReadingItemsTableAnnotationComposer,
+      $$ReadingItemsTableCreateCompanionBuilder,
+      $$ReadingItemsTableUpdateCompanionBuilder,
+      (ReadingItem, $$ReadingItemsTableReferences),
+      ReadingItem,
+      PrefetchHooks Function({bool domainId, bool syllabusItemId})
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -11871,4 +13516,6 @@ class $AppDatabaseManager {
       $$BackupLogsTableTableManager(_db, _db.backupLogs);
   $$SettingsTableTableManager get settings =>
       $$SettingsTableTableManager(_db, _db.settings);
+  $$ReadingItemsTableTableManager get readingItems =>
+      $$ReadingItemsTableTableManager(_db, _db.readingItems);
 }

@@ -385,6 +385,7 @@ void main() {
     raw.execute('ALTER TABLE domain DROP COLUMN speech_lang');
     raw.execute('ALTER TABLE domain DROP COLUMN speech_side');
     raw.execute('DROP TABLE IF EXISTS media');
+    raw.execute('DROP TABLE IF EXISTS reading_item');
     raw.execute('ALTER TABLE domain DROP COLUMN learn_weight');
     raw.execute('ALTER TABLE domain DROP COLUMN revisit');
     raw.execute('PRAGMA user_version = 1');

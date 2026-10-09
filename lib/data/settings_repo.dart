@@ -25,6 +25,8 @@ class SettingsRepo {
   static const guideSeen = 'guide_seen'; // the first-run "how it works" card was opened or dismissed
   static const onlinePictures = 'online_pictures'; // 'v2': the learner agreed to "Find a picture" asking the four picture sites (D32, D33); an older '1' (Commons only) is asked again
   static const onlinePicturesAgreed = 'v2';
+  static const onlineReading = 'online_reading'; // 'v1': the learner agreed to check reading suggestions with Open Library and Crossref (D37)
+  static const onlineReadingAgreed = 'v1';
   static const dailyMinutes = 'daily_minutes'; // study-time budget used by "Learn something new"
 
   Future<String?> get(String key) async {

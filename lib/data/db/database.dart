@@ -4,7 +4,7 @@ part 'database.g.dart';
 
 /// Bump together with a migration step in [AppDatabase.migration].
 /// Also checked by RestoreBackup against `PRAGMA user_version` of a backup file.
-const int kSchemaVersion = 7;
+const int kSchemaVersion = 8;
 
 class Domains extends Table {
   @override
@@ -26,6 +26,40 @@ class Domains extends Table {
 
   /// Which side of the card is written in that language: 'front' or 'back'.
   TextColumn get speechSide => text().withDefault(const Constant('back'))();
+}
+
+/// v8: further reading the AI suggested for a topic (a book, an article...). The learner's reading
+/// list; nothing here affects cards or scheduling. A suggestion is only a suggestion: `check_status`
+/// says whether a catalogue (Open Library, Crossref) was asked and what it answered.
+class ReadingItems extends Table {
+  @override
+  String get tableName => 'reading_item';
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get domainId => integer().references(Domains, #id)();
+  IntColumn get syllabusItemId => integer().nullable().references(SyllabusItems, #id)();
+
+  /// book | textbook | article | review | course | other
+  TextColumn get kind => text()();
+  TextColumn get title => text()();
+  TextColumn get author => text().withDefault(const Constant(''))();
+  TextColumn get why => text().withDefault(const Constant(''))();
+
+  /// Normalised title + author: the same suggestion twice in one subject is kept once.
+  TextColumn get titleKey => text()();
+
+  /// unchecked | found | notfound | cannot (the kind cannot be checked automatically)
+  TextColumn get checkStatus => text().withDefault(const Constant('unchecked'))();
+  TextColumn get catalogueUrl => text().nullable()();
+  TextColumn get foundTitle => text().nullable()();
+  IntColumn get foundYear => integer().nullable()();
+  IntColumn get checkedAt => integer().nullable()();
+  BoolColumn get done => boolean().withDefault(const Constant(false))();
+  IntColumn get createdAt => integer()();
+
+  @override
+  List<Set<Column>> get uniqueKeys => [
+        {domainId, titleKey},
+      ];
 }
 
 /// v7: pictures attached to cards, stored inside the database so they travel with every backup.
@@ -221,6 +255,7 @@ class Settings extends Table {
   EngineDecisions,
   BackupLogs,
   Settings,
+  ReadingItems,
 ])
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
@@ -256,6 +291,9 @@ class AppDatabase extends _$AppDatabase {
             await m.createTable(mediaItems);
             await m.addColumn(domains, domains.speechLang);
             await m.addColumn(domains, domains.speechSide);
+          }
+          if (from < 8) {
+            await m.createTable(readingItems);
           }
         },
         beforeOpen: (details) async {
