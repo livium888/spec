@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'cloze.dart';
 import 'commons.dart' show cleanImageQuery;
 import 'expr_eval.dart';
 import 'reading.dart' show ReadingSuggestion, parseFurtherReading;
@@ -75,10 +76,7 @@ class ParsedCard {
   String get dedupeText => type == 'cloze' ? cloze : front;
 
   /// Distinct cloze numbers, e.g. {1,2} for "{{c1::a}} {{c2::b}}".
-  Set<int> get clozeNumbers =>
-      {for (final m in clozeRe.allMatches(cloze)) int.parse(m[1]!)};
-
-  static final clozeRe = RegExp(r'\{\{c(\d+)::(.*?)(?:::(.*?))?\}\}', dotAll: true);
+  Set<int> get clozeNumbers => clozeNumbersOf(cloze);
 }
 
 /// A further problem of the same kind with other numbers (final level only).
@@ -125,6 +123,15 @@ class ImportPreview {
       cards.where((c) => status[c.index] == PreviewStatus.ok);
 }
 
+/// Tags the app sets itself; an AI cannot claim them (a "leech" tag from an AI would mark a card as hard).
+const kReservedTags = {'leech', 'unverified', 'foundation', 'problem'};
+
+/// One tag, tidied (spaces become "_", lower case, at most 40 characters), or nothing if it is empty or reserved.
+List<String> cleanTag(String t) {
+  final clean = t.trim().toLowerCase().replaceAll(RegExp(r'\s+'), '_');
+  return clean.isEmpty || clean.length > 40 || kReservedTags.contains(clean) ? const [] : [clean];
+}
+
 /// Normalised key for dedupe: strip tags, lowercase, drop punctuation, collapse space.
 String normalizeText(String s) => s
     .replaceAll(RegExp(r'<[^>]*>'), ' ')
@@ -137,6 +144,33 @@ String stripCodeFence(String raw) {
   final t = raw.trim();
   final m = RegExp(r'^```[a-zA-Z]*\s*\n([\s\S]*?)\n?```$').firstMatch(t);
   return m != null ? m.group(1)!.trim() : t;
+}
+
+/// Is there an unescaped "$" between [from] and the end of the current JSON string?
+bool _closesLater(String raw, int from) {
+  var i = from;
+  while (i < raw.length) {
+    final c = raw[i];
+    if (c == '"') return false;
+    if (c == r'\') {
+      i += 2; // an escape pair, including a doubled backslash and an escaped dollar
+      continue;
+    }
+    if (c == r'$') return true;
+    i++;
+  }
+  return false;
+}
+
+/// Does the backslash before [at] start a TeX command (not a JSON escape)? [at] is the first letter.
+/// Only \b \f \n \r \t \u are also JSON escapes. Inside a formula such a letter followed by another
+/// letter is a command (\nabla, \textcolor, \bigoplus, \underbrace); a JSON line break or tab is followed
+/// by something else, and a formula never holds a line break.
+bool _isTexCommandAt(String raw, int at, RegExp hex) {
+  final first = raw[at];
+  if (!'bfnrtu'.contains(first)) return true; // not a JSON escape letter: only TeX can mean it
+  if (first == 'u' && at + 5 <= raw.length && hex.hasMatch(raw.substring(at + 1, at + 5))) return false; // \u00e9
+  return at + 1 < raw.length && RegExp(r'[a-zA-Z]').hasMatch(raw[at + 1]);
 }
 
 /// Repairs what chat apps do to LaTeX inside a JSON answer, touching only the inside of string values:
@@ -178,7 +212,7 @@ String repairJsonStrings(String raw) {
       } else if (next == r'$') {
         out.write('$bs$bs\$'); // JSON has no "\$": a doubled backslash and the dollar, kept literal
         i += 2;
-      } else if (inMath && letter.hasMatch(next) && !(next == 'u' && i + 6 <= raw.length && hex.hasMatch(raw.substring(i + 2, i + 6)))) {
+      } else if (inMath && letter.hasMatch(next) && _isTexCommandAt(raw, i + 1, hex)) {
         out.write('$bs$bs'); // a TeX command written with one backslash; the letter follows next
         i++;
       } else if (next.isNotEmpty && !validEscape.contains(next)) {
@@ -190,13 +224,14 @@ String repairJsonStrings(String raw) {
         i += 2;
       }
     } else if (c == r'$') {
-      inMath = !inMath;
       out.write(c);
       i++;
       if (next == r'$') {
         out.write(r'$'); // "$$" is one delimiter
         i++;
       }
+      // A "$" opens maths only if another one closes it before the string ends: "costs $5." is money.
+      inMath = inMath ? false : _closesLater(raw, i);
     } else if (c == '\n') {
       out.write('${bs}n');
       i++;
@@ -215,12 +250,12 @@ String repairJsonStrings(String raw) {
 }
 
 /// Chat apps that search the web can leave reference markers inside the text they write: private-use
-/// "cite" tokens (U+E200 ... U+E201) and 【...】 brackets. They can never be JSON structure, only
+/// "cite" tokens (U+E200 ... U+E201) and 【4:0†source】 brackets (a number, then a dagger). They can never be JSON structure, only
 /// part of a string, so removing them is safe. Plain "[1]" is left alone (it can be real card text).
 String stripCitationMarkers(String raw) => raw
     .replaceAll(RegExp('\uE200[^\uE201]*\uE201'), '')
-    .replaceAll(RegExp('【[^】]*】'), '')
-    .replaceAll(RegExp('[\uE000-\uF8FF]'), '');
+    .replaceAll(RegExp('【\\d+(?:[:：]\\d+)?†[^】]*】'), '') // 【4:0†source】, never real text like 【名詞】
+    .replaceAll(RegExp('[\uE200-\uE2FF]'), '');
 
 ImportPreview parseImportJson(String raw) {
   final fatal = <String>[];
@@ -263,8 +298,12 @@ ImportPreview parseImportJson(String raw) {
     }
   }
   if (problemsRaw is List) {
-    for (var i = 0; i < problemsRaw.length && i < kMaxProblemsPerImport; i++) {
-      cards.add(_parseProblem(cards.length, problemsRaw[i]));
+    for (var i = 0; i < problemsRaw.length && i < kMaxProblemsPerImport + 20; i++) {
+      final p = _parseProblem(cards.length, problemsRaw[i]);
+      // More than the limit are listed, not silently dropped: each one shows as invalid with the reason.
+      cards.add(i < kMaxProblemsPerImport
+          ? p
+          : ParsedCard(index: p.index, type: 'problem', front: p.front, errors: ['Too many problems in one answer (the limit is $kMaxProblemsPerImport); ask for the rest separately.']));
     }
   } else if (problemsRaw != null) {
     fatal.add('"problems" must be an array.');
@@ -365,7 +404,7 @@ ParsedCard _parseProblem(int i, Object? raw) {
   final tags = <String>[];
   if (raw['tags'] is List) {
     for (final t in (raw['tags'] as List).take(kMaxTags)) {
-      if (t is String && t.trim().isNotEmpty && t.length <= 40) tags.add(t.trim().toLowerCase());
+      if (t is String) tags.addAll(cleanTag(t));
     }
   }
   final variants = <ParsedVariant>[];
@@ -442,7 +481,7 @@ ParsedCard _parseCard(int i, Object? raw) {
   } else if (type == 'cloze') {
     cloze = str('cloze', required: true);
     back = str('back');
-    if (cloze.isNotEmpty && !ParsedCard.clozeRe.hasMatch(cloze)) {
+    if (cloze.isNotEmpty && findClozes(cloze).isEmpty) {
       errors.add('"cloze" must contain {{c1::...}}.');
     }
   }
@@ -496,8 +535,7 @@ ParsedCard _parseCard(int i, Object? raw) {
       errors.add('Too many tags (max $kMaxTags).');
     } else {
       for (final t in tagsRaw.cast<String>()) {
-        final clean = t.trim().replaceAll(RegExp(r'\s+'), '_');
-        if (clean.isNotEmpty && clean.length <= 40) tags.add(clean);
+        tags.addAll(cleanTag(t));
       }
     }
   }

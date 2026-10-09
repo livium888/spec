@@ -203,22 +203,27 @@ class ImportService {
     });
   }
 
-  /// The note these cards are foundations for: the id the answer carries, else the one in the latest
-  /// unimported foundations prompt for this subject. Null unless that note exists in this subject.
+  /// The note these cards are foundations for: the id the answer carries, else the one in the NEWEST unimported
+  /// prompt for this subject, but only if that prompt is a foundations prompt (an answer to an ordinary card
+  /// prompt must never be taken for foundations). Null unless that note exists in this subject and is not
+  /// itself a foundation card (foundations of foundations would never end).
   Future<int?> _foundationTarget(ImportPreview p, int domainId) async {
     var id = p.foundationOf;
     if (id == null) {
       final row = await (db.select(db.promptLogs)
-            ..where((x) => x.domainId.equals(domainId) & x.status.equals('issued') & x.templateVersion.equals(kFoundationsTemplateVersion))
+            ..where((x) => x.domainId.equals(domainId) & x.status.equals('issued'))
             ..orderBy([(x) => OrderingTerm.desc(x.createdAt), (x) => OrderingTerm.desc(x.id)])
             ..limit(1))
           .getSingleOrNull();
-      final m = row == null ? null : RegExp(r'"foundation_of": (\d+)').firstMatch(row.promptText);
+      final m = row == null || row.templateVersion != kFoundationsTemplateVersion
+          ? null
+          : RegExp(r'"foundation_of": (\d+)').firstMatch(row.promptText);
       id = m == null ? null : int.tryParse(m.group(1)!);
     }
     if (id == null) return null;
     final note = await (db.select(db.notes)..where((n) => n.id.equals(id!) & n.domainId.equals(domainId))).getSingleOrNull();
-    return note?.id;
+    if (note == null || note.fieldsJson.contains('"foundation_of"')) return null;
+    return note.id;
   }
 
   /// Which syllabus topic do these cards belong to?

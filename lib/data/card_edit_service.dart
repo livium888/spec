@@ -4,7 +4,7 @@ import 'dart:convert';
 import 'package:drift/drift.dart';
 
 import '../domain/card_edit.dart';
-import '../domain/import_parser.dart';
+import '../domain/cloze.dart';
 import 'activity_cache.dart';
 import 'db/database.dart';
 import 'media_service.dart';
@@ -85,7 +85,7 @@ class CardEditService {
   Future<List<String>> update(int noteId, Map<String, String> edited) async {
     final n = await note(noteId);
     if (n == null) return ['This card no longer exists.'];
-    final existing = {for (final m in ParsedCard.clozeRe.allMatches(n.fields['cloze'] as String? ?? '')) int.parse(m[1]!)};
+    final existing = clozeNumbersOf(n.fields['cloze'] as String? ?? '');
     final errors = validateNoteEdit(type: n.type, fields: edited, existingClozeNumbers: existing);
     if (errors.isNotEmpty) return errors;
 
@@ -111,8 +111,8 @@ class CardEditService {
         };
         // New card's `due` == note.created_at; RebuildCardsFromLog relies on it.
         final createdAt = (await (db.select(db.notes)..where((x) => x.id.equals(noteId))).getSingle()).createdAt;
-        for (final m in ParsedCard.clozeRe.allMatches(fields['cloze'] as String)) {
-          final ord = int.parse(m[1]!) - 1;
+        for (final m in findClozes(fields['cloze'] as String)) {
+          final ord = m.number - 1;
           if (have.add(ord)) {
             await db.into(db.cards).insert(CardsCompanion.insert(noteId: noteId, ord: Value(ord), due: createdAt));
           }

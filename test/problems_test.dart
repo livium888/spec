@@ -111,6 +111,20 @@ void main() {
       expect(unknown.arithmetic, '');
     });
 
+    test('too many problems in one answer are listed as invalid, not silently dropped; reserved tags are not accepted from an AI', () {
+      final many = parseImportJson(answer([for (var i = 0; i < 8; i++) problem(statement: 'Problem $i?')]));
+      expect(many.cards.length, 8);
+      expect(many.cards.where((c) => c.valid).length, kMaxProblemsPerImport);
+      expect(many.cards.last.errors.single, contains('Too many problems'));
+      final tagged = problem();
+      tagged['tags'] = ['free fall', 'leech', 'Problem', 'foundation', 'unverified'];
+      expect(parseImportJson(answer([tagged])).cards.single.tags, ['free_fall']);
+      final card = parseImportJson(jsonEncode({'domain': 'X', 'cards': [
+        {'type': 'basic', 'front': 'q?', 'back': 'a', 'source_type': 'model_memory', 'confidence': 'high', 'tags': ['Leech', 'physics', 'two words']}
+      ]})).cards.single;
+      expect(card.tags, ['physics', 'two_words']);
+    });
+
     test('shape rules: steps 2 to 6, text fields, at most 2 variants, problems alone are enough', () {
       expect(parseImportJson(answer([problem(steps: ['only one'])])).cards.single.valid, isFalse);
       expect(parseImportJson(answer([problem(steps: List.filled(7, 'step'))])).cards.single.valid, isFalse);
@@ -198,7 +212,7 @@ void main() {
 
       await e.review.review(cardId: lvl1.id, rating: 4, durationMs: 1000, now: t.add(const Duration(days: 1)));
       final q = await offered(t.add(const Duration(days: 2)));
-      expect(q.map((c) => c.ord), [1]); // Easy unlocked level 2 (and level 3 only after level 2 or an Easy on it)
+      expect(q.map((c) => c.ord), [2]); // Easy on level 1: level 2 is skipped, level 3 is offered
       expect(q.single.noteId, id);
     });
 
@@ -213,6 +227,18 @@ void main() {
       final q = await offered(t);
       expect(q.where((c) => c.isProblem).length, 1);
       expect(q.where((c) => !c.isProblem).length, 3);
+    });
+
+    test('further problems are not stranded when the family\'s own problem is deleted', () async {
+      final id = await importFamily();
+      var day = t;
+      Future<int> variants() async => (await offered(day)).where((c) => c.fields['variant_of'] != null).length;
+      expect(await variants(), 0);
+      await e.db.customStatement('DELETE FROM review_log WHERE card_id IN (SELECT id FROM card WHERE note_id = $id)');
+      await e.db.customStatement('DELETE FROM card WHERE note_id = $id');
+      await e.db.customStatement('DELETE FROM note WHERE id = $id');
+      day = day.add(const Duration(days: 1));
+      expect(await variants(), 2); // the two further problems are separate notes, both offered (budget 5)
     });
 
     test('a further problem unlocks after the family\'s third level', () async {

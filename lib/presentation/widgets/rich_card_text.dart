@@ -100,7 +100,7 @@ class _MathView extends StatelessWidget {
   Widget build(BuildContext context) {
     final fallback = Text(tex, style: style.copyWith(fontFamily: 'monospace', fontSize: (style.fontSize ?? 16) * 0.9));
     return Semantics(
-      label: 'formula: $tex',
+      label: 'formula: ${texToWords(tex).isEmpty ? tex : texToWords(tex)}',
       excludeSemantics: true,
       child: Math.tex(
         tex,

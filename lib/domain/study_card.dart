@@ -1,3 +1,4 @@
+import 'cloze.dart';
 import 'models.dart';
 
 /// One piece of a cloze sentence: plain text, or the gap this card asks about.
@@ -83,20 +84,18 @@ class StudyCard {
           if ((fields[key] as String? ?? '').trim().isNotEmpty) (label, (fields[key] as String).trim()),
       ];
 
-  static final _clozeRe = RegExp(r'\{\{c(\d+)::(.*?)(?:::(.*?))?\}\}', dotAll: true);
-
   /// The sentence of a cloze card in order: plain text, with this card's own deletion as a gap.
   /// Other deletions of the same note are shown as ordinary text (their answers), as in [front].
   List<ClozePart> get clozeParts {
     final text = fields['cloze'] as String? ?? '';
     final parts = <ClozePart>[];
     var at = 0;
-    for (final m in _clozeRe.allMatches(text)) {
+    for (final m in findClozes(text)) {
       if (m.start > at) parts.add(ClozePart.text(text.substring(at, m.start)));
-      if (int.parse(m[1]!) == ord + 1) {
-        parts.add(ClozePart.gap(m[2]!, hint: m[3]));
+      if (m.number == ord + 1) {
+        parts.add(ClozePart.gap(m.answer, hint: m.hint));
       } else {
-        parts.add(ClozePart.text(m[2]!));
+        parts.add(ClozePart.text(m.answer));
       }
       at = m.end;
     }
@@ -111,10 +110,7 @@ class StudyCard {
   String get front {
     if (noteType == 'cloze') {
       final text = fields['cloze'] as String? ?? '';
-      return text.replaceAllMapped(_clozeRe, (m) {
-        if (int.parse(m[1]!) == ord + 1) return '[${m[3] ?? '...'}]';
-        return m[2]!;
-      });
+      return replaceClozes(text, (m) => m.number == ord + 1 ? '[${m.hint ?? '...'}]' : m.answer);
     }
     return fields['front'] as String? ?? '';
   }
@@ -123,7 +119,7 @@ class StudyCard {
   String get back {
     if (noteType == 'cloze') {
       final text = fields['cloze'] as String? ?? '';
-      final full = text.replaceAllMapped(_clozeRe, (m) => m[2]!);
+      final full = replaceClozes(text, (m) => m.answer);
       final extra = fields['back'] as String? ?? '';
       return extra.isEmpty ? full : '$full\n\n$extra';
     }

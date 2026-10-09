@@ -362,3 +362,20 @@ New pushes cancel older builds (`concurrency`), and the rolling `latest-apk` rel
 - **Not built:** a map across subjects (the AI would have to invent links I cannot check); editing prerequisites on the map; a mastery ring on the Library subject tile and a Progress summary (small follow-ups); history over time.
 - **Honest limits:** if the AI wrote wrong prerequisites, "next up" and "held back" are wrong; the thresholds (70%, 85%, 3 cards) are my choices, not measured; the screenshots use the real fonts but I have not seen the map on a phone, nor with 100+ topics.
 - **Revisit if:** the advice feels wrong (adjust the thresholds first), a subject has so many topics that the map is unreadable (cluster by level or fold finished topics), or the prerequisites are poor (add editing on the map).
+
+## D45 — Bug hunt (independent review, fuzz tests, a simulated month)
+- **Method:** (1) a read-only review by a separate agent of the D38-D44 code, each finding traced or reproduced; (2) seeded fuzz tests for everything that reads AI text (markup, calculator, JSON repair, all four importers); (3) an 8-seed simulation of a month of learning (imports, problem families, foundations, answers, undo) checking the queue rules every step and that a replay of the review log gives the same card states.
+- **Found and fixed:**
+  - Cloze gaps holding a formula with braces (`{{c1::$\\sqrt{\\frac{a}{b}}$}}`) were cut at the first `}}`; the end is now the first `}}` at brace depth zero (`lib/domain/cloze.dart`, used everywhere the old pattern was).
+  - An answer to an ORDINARY card prompt could be taken for foundation cards (and capped at 4) when an unimported foundations prompt existed: the fallback now applies only if the newest unimported prompt is the foundations one; a foundation card cannot itself have foundations.
+  - The 8-a-day cap on foundation cards applied per queue build, so it reset after every answer: it now subtracts the ones already answered today.
+  - Problem cards could be starved: only the first 60 new problem cards were examined before the unlock filter; the queue now pages through them. Further problems of a deleted family are no longer stranded.
+  - "An Easy skips a level" did nothing: it now does (level 2 is skipped after an Easy on level 1; the final level is never skipped).
+  - LaTeX repair: a JSON line break inside a text with a lone dollar sign became a literal backslash-n; and commands that share a first letter with a JSON escape (`\\nRightarrow`, `\\bigoplus`, `\\textcolor`, `\\underbrace`) were misread. A dollar sign opens maths only if another closes it in the same string, and a backslash plus a letter pair inside maths is TeX unless the letter stands alone.
+  - `stripCitationMarkers` removed real text such as `【名詞】`: it now removes only `【4:0†source】` forms and the chat-app private-use range.
+  - An AI could set the app's own tags (`leech`, `unverified`, `foundation`, `problem`): they are dropped; tags with spaces get `_` in problem families too.
+  - More than 6 problems in one answer were silently dropped: they are listed as invalid with the reason.
+  - Spoken exponents (`x^{23}` read "x squared3"), formula screen-reader labels (rough words instead of raw LaTeX), and subject names with a quote or backslash breaking the prompt's example JSON (now escaped).
+- **Checked and clean:** the calculator (no exceptions, finite results), the knowledge map logic, schema v9 migration, the review screen's state handling, replay == live over the simulated months, no card twice in a queue and one card per note.
+- **Not fixed (low):** a formula that spans a cloze gap shows its dollar signs raw; a gap answer written `std::vector` is split into an answer and a hint (the old behaviour); the old-version migration tests drop columns from a current file rather than starting from a genuinely old one.
+- **Known limit:** the fuzz tests cannot tell `$a$$b$` (two formulas side by side) from display maths.

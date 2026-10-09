@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 /// Versioned LLM prompt templates. Bump the version constant on any wording change so
 /// `prompt_log.template_version` stays meaningful. Design notes and evidence for the
 /// card prompt are in docs/CARD_QUALITY.md and docs/DECISIONS.md (D19).
@@ -73,7 +75,7 @@ The two cards in <output> show the exact format, a basic card and a cloze card.
 Return ONE JSON object and nothing else: no text before or after, no markdown fences. Exactly this shape:
 
 {
-  "domain": "{domain}",
+  "domain": {domain_json},
   "syllabus_item": {syllabus_json},
   "cards": [
     {
@@ -158,7 +160,8 @@ String renderPrompt({
         ? ''
         : '\nAbout the learner (use it to choose examples and analogies they will care about; '
             'never mention it): "${profile.replaceAll('"', "'")}".',
-    'syllabus_json': syl == null || syl.isEmpty ? 'null' : '"${syl.replaceAll('"', r'\"')}"',
+    'syllabus_json': syl == null || syl.isEmpty ? 'null' : jsonEncode(syl),
+    'domain_json': jsonEncode(domain),
     'recent_titles': recent,
     'source_text': source,
     'problems_clause': switch (practice) {
@@ -170,7 +173,7 @@ String renderPrompt({
     'problems_section': practice == 'concepts' ? '' : '\n$kProblemsSection\n',
   };
   return kPromptTemplate.replaceAllMapped(
-    RegExp(r'\{(n|domain|syllabus_clause|depth_clause|learner_clause|syllabus_json|recent_titles|source_text|problems_clause|problems_section)\}'),
+    RegExp(r'\{(n|domain|domain_json|syllabus_clause|depth_clause|learner_clause|syllabus_json|recent_titles|source_text|problems_clause|problems_section)\}'),
     (m) => values[m[1]]!,
   );
 }
@@ -222,7 +225,7 @@ Original card: "Why does a rent ceiling cause a shortage of flats?" One foundati
 Return ONE JSON object and nothing else: no text before or after, no markdown fences. Exactly this shape (the "cards" follow the example above):
 
 {
-  "domain": "{domain}",
+  "domain": {domain_json},
   "syllabus_item": {syllabus_json},
   "foundation_of": {note_id},
   "cards": [ ]
@@ -271,7 +274,8 @@ String renderFoundationsPrompt({
     'learner_clause': profile.isEmpty
         ? ''
         : '\nAbout the learner (use it to choose everyday cases they will care about; never mention it): "${profile.replaceAll('"', "'")}".',
-    'syllabus_json': syl == null || syl.isEmpty ? 'null' : '"${syl.replaceAll('"', r'\"')}"',
+    'syllabus_json': syl == null || syl.isEmpty ? 'null' : jsonEncode(syl),
+    'domain_json': jsonEncode(domain),
     'note_id': '$noteId',
     'card_front': one(front, 600),
     'card_back': one(back, 400),
@@ -279,7 +283,7 @@ String renderFoundationsPrompt({
     'recent_titles': recentTitles.isEmpty ? '(none yet)' : recentTitles.map((t) => '- $t').join('\n'),
   };
   return kFoundationsTemplate.replaceAllMapped(
-    RegExp(r'\{(n|domain|syllabus_clause|learner_clause|syllabus_json|note_id|card_front|card_back|card_why|recent_titles)\}'),
+    RegExp(r'\{(n|domain|domain_json|syllabus_clause|learner_clause|syllabus_json|note_id|card_front|card_back|card_why|recent_titles)\}'),
     (m) => values[m[1]]!,
   );
 }
@@ -310,7 +314,7 @@ RULES
 10. Output JSON ONLY. No prose, no markdown fences. Match this schema exactly:
 
 {
-  "domain": "{domain}",
+  "domain": {domain_json},
   "items": [
     {
       "title": "string",
@@ -332,6 +336,7 @@ String renderOutlinePrompt({
   final g = goal?.trim();
   final values = {
     'domain': domain,
+    'domain_json': jsonEncode(domain),
     'goal_clause': g == null || g.isEmpty ? '' : ' (learner goal: $g)',
     'existing_titles': existingTitles.isEmpty
         ? '(none yet)'
@@ -345,7 +350,7 @@ String renderOutlinePrompt({
           ].join('\n'),
   };
   return kOutlineTemplateV1.replaceAllMapped(
-    RegExp(r'\{(domain|goal_clause|existing_titles)\}'),
+    RegExp(r'\{(domain|domain_json|goal_clause|existing_titles)\}'),
     (m) => values[m[1]]!,
   );
 }
@@ -375,7 +380,7 @@ RULES
 - Output JSON ONLY, no markdown fences. Schema:
 
 {
-  "domain": "{domain}",
+  "domain": {domain_json},
   "syllabus_item": {syllabus_json},
   "cards": [
     {
@@ -415,11 +420,12 @@ String renderRemediatePrompt({
   final values = {
     'domain': domain,
     'syllabus_item': syllabusItem,
-    'syllabus_json': '"${syllabusItem.replaceAll('"', r'\"')}"',
+    'syllabus_json': jsonEncode(syllabusItem),
+    'domain_json': jsonEncode(domain),
     'problem_cards': cards,
   };
   return kRemediateTemplate.replaceAllMapped(
-    RegExp(r'\{(domain|syllabus_item|syllabus_json|problem_cards)\}'),
+    RegExp(r'\{(domain|domain_json|syllabus_item|syllabus_json|problem_cards)\}'),
     (m) => values[m[1]]!,
   );
 }

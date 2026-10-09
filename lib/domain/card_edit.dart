@@ -1,3 +1,4 @@
+import 'cloze.dart';
 import 'commons.dart' show cleanImageQuery, kMaxImageQueryChars;
 import 'import_parser.dart';
 
@@ -21,7 +22,7 @@ List<String> validateNoteEdit({
     if (text.isEmpty) {
       errors.add('The text cannot be empty.');
     } else {
-      final nums = {for (final m in ParsedCard.clozeRe.allMatches(text)) int.parse(m[1]!)};
+      final nums = clozeNumbersOf(text);
       if (nums.isEmpty) {
         errors.add('The text must contain a gap like {{c1::answer}}.');
       } else if (!nums.containsAll(existingClozeNumbers)) {

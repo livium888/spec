@@ -124,7 +124,7 @@ void main() {
       expect(await svc.countFor(chemNote.id), 0);
       final plain = (await e.db.select(e.db.notes).get()).firstWhere((n) => n.fieldsJson.contains('Bogus link?'));
       expect(plain.fieldsJson.contains('foundation_of'), isFalse);
-      expect(plain.tags.split(' ').contains('foundation'), isTrue); // the AI's own tag stays, harmless
+      expect(plain.tags.split(' ').contains('foundation'), isFalse); // the app's own tags cannot be claimed by an AI
     });
 
     test('one request adds at most 4 cards', () async {

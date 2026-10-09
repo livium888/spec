@@ -37,7 +37,7 @@ class QueueService {
     final base = await settings.getInt(SettingsRepo.newPerDay, 10);
     final divisor = await settings.getInt(SettingsRepo.backlogDivisor, 25);
 
-    Future<List<StudyCard>> fetch(Expression<bool> where, List<OrderingTerm> order, {int? limit}) async {
+    Future<List<StudyCard>> fetch(Expression<bool> where, List<OrderingTerm> order, {int? limit, int offset = 0}) async {
       final q = db.select(db.cards).join([
         innerJoin(db.notes, db.notes.id.equalsExp(db.cards.noteId)),
       ])
@@ -46,7 +46,7 @@ class QueueService {
             (db.cards.buriedUntil.isNull() | db.cards.buriedUntil.isSmallerOrEqualValue(nowMs)) &
             (domainId == null ? const Constant(true) : db.notes.domainId.equals(domainId)))
         ..orderBy(order);
-      if (limit != null) q.limit(limit);
+      if (limit != null) q.limit(limit, offset: offset);
       return [for (final r in await q.get()) _study(r.readTable(db.cards), r.readTable(db.notes))];
     }
 
@@ -68,7 +68,10 @@ class QueueService {
     final remaining = (limit - introduced).clamp(0, limit);
     // Foundation cards (made to prepare for a hard card) come first and do not use up the daily limit.
     final isFoundation = CustomExpression<bool>("note.fields_json LIKE '%\"foundation_of\":%'");
-    final foundationNew = await fetch(
+    final foundationRoom = (kMaxFoundationPerDay - await _foundationsIntroducedToday(dayStart, domainId)).clamp(0, kMaxFoundationPerDay);
+    final foundationNew = foundationRoom == 0
+        ? <StudyCard>[]
+        : await fetch(
       db.cards.state.equals('new') & isFoundation,
       [OrderingTerm.asc(db.notes.createdAt), OrderingTerm.asc(db.cards.id)],
       limit: kMaxFoundationPerDay * 2,
@@ -93,18 +96,25 @@ class QueueService {
     final problemRoom = (problemLimit - problemsIntroduced).clamp(0, problemLimit);
     final problemNew = <StudyCard>[];
     if (problemRoom > 0) {
-      final candidates = await fetch(
-        db.cards.state.equals('new') & isProblem,
-        [OrderingTerm.asc(db.notes.createdAt), OrderingTerm.asc(db.cards.noteId), OrderingTerm.asc(db.cards.ord)],
-        limit: 60,
-      );
-      for (final c in candidates) {
-        if (problemNew.length >= problemRoom * 2) break;
-        if (await _unlocked(c)) problemNew.add(c);
+      // Locked cards (later levels of families in progress) come first in the order of creation, so page
+      // through them instead of looking at the first few only: a new family must never be starved.
+      const page = 60;
+      for (var offset = 0; offset < 3000 && problemNew.length < problemRoom * 2; offset += page) {
+        final candidates = await fetch(
+          db.cards.state.equals('new') & isProblem,
+          [OrderingTerm.asc(db.notes.createdAt), OrderingTerm.asc(db.cards.noteId), OrderingTerm.asc(db.cards.ord)],
+          limit: page,
+          offset: offset,
+        );
+        if (candidates.isEmpty) break;
+        for (final c in candidates) {
+          if (problemNew.length >= problemRoom * 2) break;
+          if (await _unlocked(c)) problemNew.add(c);
+        }
       }
     }
     final n = [
-      ...dedupe(foundationNew).take(kMaxFoundationPerDay),
+      ...dedupe(foundationNew).take(foundationRoom),
       ...dedupe(newCards).take(remaining),
       ...dedupe(problemNew).take(problemRoom),
     ];
@@ -172,6 +182,18 @@ class QueueService {
     return rows.read<int>('n');
   }
 
+  /// Foundation cards answered for the first time today (they have a daily cap of their own).
+  Future<int> _foundationsIntroducedToday(int dayStart, int? domainId) async {
+    final rows = await db.customSelect(
+      'SELECT COUNT(DISTINCT l.card_id) AS n FROM review_log l '
+      'JOIN card c ON c.id = l.card_id JOIN note n ON n.id = c.note_id '
+      "WHERE l.revoked_at IS NULL AND l.state_before = 'new' AND l.reviewed_at >= ? "
+      "AND (? IS NULL OR n.domain_id = ?) AND n.fields_json LIKE '%\"foundation_of\":%'",
+      variables: [Variable.withInt(dayStart), Variable<int>(domainId), Variable<int>(domainId)],
+    ).getSingle();
+    return rows.read<int>('n');
+  }
+
   /// Has the learner answered the card of [noteId] at [ord] with at least [minRating]?
   Future<bool> _answered(int noteId, int ord, int minRating) async {
     final r = await db.customSelect(
@@ -187,9 +209,17 @@ class QueueService {
   /// waits for its family's third level.
   Future<bool> _unlocked(StudyCard c) async {
     final variantOf = int.tryParse('${c.fields['variant_of'] ?? ''}');
-    if (variantOf != null) return _answered(variantOf, kProblemLevels - 2, 3);
+    if (variantOf != null) {
+      // If the family's own problem was deleted, its further problems are offered like ordinary new cards
+      // (they would otherwise wait for a level that no longer exists).
+      final main = await db.customSelect('SELECT 1 AS x FROM note WHERE id = ? LIMIT 1', variables: [Variable.withInt(variantOf)]).get();
+      return main.isEmpty || await _answered(variantOf, kProblemLevels - 2, 3);
+    }
     final level = c.ord; // 0-based
     if (level == 0) return true;
+    // An Easy on the level before means "you know this": the next level is skipped and the one after is
+    // offered instead (the final level is never skipped).
+    if (level <= kProblemLevels - 2 && await _answered(c.noteId, level - 1, 4)) return false;
     if (await _answered(c.noteId, level - 1, 3)) return true;
     return level >= 2 && await _answered(c.noteId, level - 2, 4);
   }

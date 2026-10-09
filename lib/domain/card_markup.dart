@@ -204,11 +204,14 @@ String plainFromMarkup(String source) {
   return parts.join('\n').trim();
 }
 
+/// A formula as rough words, for reading aloud and for screen readers.
+String texToWords(String tex) => _texToWords(tex);
+
 String _texToWords(String tex) {
   var t = tex;
   t = t.replaceAllMapped(RegExp(r'\\[dt]?frac\s*\{([^{}]*)\}\s*\{([^{}]*)\}'), (m) => '${m[1]} over ${m[2]}');
   t = t.replaceAllMapped(RegExp(r'\\sqrt\s*\{([^{}]*)\}'), (m) => 'square root of ${m[1]}');
-  t = t.replaceAll(RegExp(r'\^\{?2\}?'), ' squared').replaceAll(RegExp(r'\^\{?3\}?'), ' cubed');
+  t = t.replaceAll(RegExp(r'\^\{2\}|\^2(?![0-9])'), ' squared').replaceAll(RegExp(r'\^\{3\}|\^3(?![0-9])'), ' cubed');
   t = t.replaceAllMapped(RegExp(r'\^\{([^{}]*)\}|\^(\w)'), (m) => ' to the power ${m[1] ?? m[2]}');
   t = t.replaceAll(RegExp(r'_\{([^{}]*)\}|_(\w)'), '').replaceAll(RegExp(r'\\[a-zA-Z]+'), ' ').replaceAll(RegExp(r'[{}\\]'), '');
   return t.replaceAll(RegExp(r'\s+'), ' ').trim();
