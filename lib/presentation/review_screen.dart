@@ -1,3 +1,4 @@
+import '../domain/review_timing.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -118,7 +119,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
     setState(() => _busy = true);
     rating == Rating.again ? HapticFeedback.mediumImpact() : HapticFeedback.lightImpact();
     _stopwatch.stop();
-    final ms = _stopwatch.elapsedMilliseconds;
+    final ms = cappedCardMs(_stopwatch.elapsedMilliseconds); // an idle card must not count as hours
     try {
       final res = await ref.read(reviewServiceProvider).review(
             cardId: c.id,
