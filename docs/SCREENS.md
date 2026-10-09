@@ -275,3 +275,9 @@ Each subject card now shows its topics straight under the subject name: "Topics:
 - **Settings and backup:** "How the app works" first; Advanced (collapsed) at the bottom above Save: Memory model, Diagnostics and phone check.
 - **Review:** the tag row shows subject and state only (New / Learning / Review / Forgotten); no Unverified tag.
 - States are unchanged for the screens opened from these entries.
+
+## Review: undo bar, learn-ahead, about this card (D40)
+- **Undo bar:** zone above the answer buttons; text "Rated <rating>" and an Undo button (48 dp); live region; 6 s; hidden by Undo, by the next answer replacing it, or on leaving. On the finished screen it sits near the bottom.
+- **Learn-ahead:** the queue appends not-yet-due learning cards (within the setting) only when it is otherwise empty. "Next card in about N min" appears only when no card is within the window.
+- **About this card (bottom sheet from the state tag, 48 dp target, label "<State>. About this card's memory"):** reading order: state title + plain explanation; Memory statistics; How this memory fades (chart with a text equivalent); Your last answers; footnote about estimates.
+- **States:** loading (spinner); error ("Could not load the card details"); new card (explanation + times answered/forgotten; "Nothing to show yet" for the model numbers); partial (a learning card with a stability but no history: numbers without the list); success (all sections).

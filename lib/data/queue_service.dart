@@ -7,6 +7,13 @@ import 'db/database.dart';
 import 'review_service.dart';
 import 'settings_repo.dart';
 
+/// Learn-ahead window (minutes): default and upper limit; 0 switches it off.
+const kDefaultLearnAheadMinutes = 20;
+const kMaxLearnAheadMinutes = 60;
+
+/// A card answered less than this long ago is not offered early again.
+const kLearnAheadMinGapMs = 60000;
+
 /// BuildDailyQueue use case.
 class QueueService {
   QueueService(this.db, this.settings);
@@ -67,12 +74,29 @@ class QueueService {
     final r = dedupe(reviews);
     final n = dedupe(newCards).take(remaining).toList();
 
-    // Next not-yet-due learning card, for the "come back at" message.
+    // Learn-ahead: when nothing else is due, learning cards that are only minutes away are offered
+    // now. A card answered in the last minute is not shown again at once (that is not spacing).
+    final aheadMin = (await settings.getInt(SettingsRepo.learnAheadMinutes, kDefaultLearnAheadMinutes)).clamp(0, kMaxLearnAheadMinutes);
+    final aheadMs = aheadMin * 60000;
+    var ahead = <StudyCard>[];
+    if (aheadMs > 0 && l.isEmpty && r.isEmpty && n.isEmpty) {
+      ahead = dedupe(await fetch(
+        db.cards.state.isIn(['learning', 'relearning']) &
+            db.cards.due.isBiggerThanValue(nowMs) &
+            db.cards.due.isSmallerOrEqualValue(nowMs + aheadMs) &
+            (db.cards.lastReview.isNull() | db.cards.lastReview.isSmallerOrEqualValue(nowMs - kLearnAheadMinGapMs)),
+        [OrderingTerm.asc(db.cards.due), OrderingTerm.asc(db.cards.id)],
+      ));
+    }
+
+    // Next not-yet-due learning card, for the "come back at" message (cards already offered early are not "later").
+    final aheadIds = {for (final c in ahead) c.id};
     final futureQ = db.selectOnly(db.cards)
       ..addColumns([db.cards.due.min()])
       ..where(db.cards.state.isIn(['learning', 'relearning']) &
           db.cards.due.isBiggerThanValue(nowMs) &
-          db.cards.suspended.equals(false));
+          db.cards.suspended.equals(false) &
+          (aheadIds.isEmpty ? const Constant(true) : db.cards.id.isNotIn(aheadIds)));
     final nextLearning = await futureQ.map((x) => x.read(db.cards.due.min())).getSingle();
 
     return DailyQueue(
@@ -83,6 +107,7 @@ class QueueService {
       newLimit: limit,
       newIntroducedToday: introduced,
       nextLearningDue: nextLearning,
+      learnAhead: ahead,
     );
   }
 

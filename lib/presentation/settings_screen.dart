@@ -9,6 +9,7 @@ import '../app/bootstrap.dart';
 import '../app/providers.dart';
 import '../data/backup/backup_service.dart';
 import '../data/backup/backup_storage.dart';
+import '../data/queue_service.dart' show kDefaultLearnAheadMinutes, kMaxLearnAheadMinutes;
 import '../data/settings_repo.dart';
 import '../domain/card_text.dart';
 import '../domain/prompt_template.dart' show kMaxProfileChars;
@@ -37,6 +38,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   final _rollover = TextEditingController();
   final _minutes = TextEditingController();
   final _revisit = TextEditingController();
+  final _ahead = TextEditingController();
   final _profile = TextEditingController();
   String? _folder;
   int _lastBackup = 0;
@@ -52,7 +54,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   @override
   void dispose() {
-    for (final c in [_newPerDay, _divisor, _perPrompt, _retention, _steps, _relearn, _rollover, _minutes, _revisit, _profile]) {
+    for (final c in [_newPerDay, _divisor, _perPrompt, _retention, _steps, _relearn, _rollover, _minutes, _revisit, _ahead, _profile]) {
       c.dispose();
     }
     super.dispose();
@@ -70,6 +72,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     _rollover.text = '${await s.getInt(SettingsRepo.rolloverHour, 4)}';
     _minutes.text = '${await s.getInt(SettingsRepo.dailyMinutes, 20)}';
     _revisit.text = '${await s.getInt(SettingsRepo.revisitMonths, 3)}';
+    _ahead.text = '${await s.getInt(SettingsRepo.learnAheadMinutes, kDefaultLearnAheadMinutes)}';
     _profile.text = await s.get(SettingsRepo.learnerProfile) ?? '';
     _folder = await s.get(SettingsRepo.backupTreeUri);
     _lastBackup = await s.getInt(BackupService.lastSuccessKey, 0);
@@ -86,6 +89,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final h = int.tryParse(_rollover.text.trim());
     final mins = int.tryParse(_minutes.text.trim());
     final rev = int.tryParse(_revisit.text.trim());
+    final ahead = int.tryParse(_ahead.text.trim());
     List<int>? parse(String t) {
       final parts = t.split(',').map((e) => int.tryParse(e.trim())).toList();
       return parts.isEmpty || parts.contains(null) || parts.any((e) => e! < 1 || e > 1440)
@@ -102,6 +106,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     if (h == null || h < 0 || h > 23) err = 'Day rollover hour must be 0-23.';
     if (mins == null || mins < 5 || mins > 1440) err = 'Daily study time must be 5-1440 minutes.';
     if (rev == null || rev < 1 || rev > 24) err = 'First revisit delay must be 1-24 months.';
+    if (ahead == null || ahead < 0 || ahead > kMaxLearnAheadMinutes) err = 'Show waiting cards early: 0-$kMaxLearnAheadMinutes minutes (0 = off).';
     if (_profile.text.length > kMaxProfileChars) err = 'Keep "About you" under $kMaxProfileChars characters.';
     if (ls == null) err = 'Steps for new cards: minutes separated by commas, e.g. 1,10.';
     if (rs == null) err = 'Steps after forgetting: minutes separated by commas, e.g. 10.';
@@ -119,6 +124,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     await s.set(SettingsRepo.rolloverHour, '$h');
     await s.set(SettingsRepo.dailyMinutes, '$mins');
     await s.set(SettingsRepo.revisitMonths, '$rev');
+    await s.set(SettingsRepo.learnAheadMinutes, '$ahead');
     await s.set(SettingsRepo.learnerProfile, _profile.text.trim());
     // New params row (old log rows keep theirs, so replay stays exact).
     await ref.read(paramsRepoProvider).syncFromSettings();
@@ -303,6 +309,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 field(_retention, 'How much to remember (target recall)', help: '0.90 = aim to remember 90% at review time.'),
                 field(_steps, 'Steps for new cards (minutes)', number: false, help: 'e.g. 1,10'),
                 field(_relearn, 'Steps after forgetting (minutes)', number: false, help: 'e.g. 10'),
+                field(_ahead, 'Show waiting cards early (minutes)', help: 'When nothing else is due, a card that is only a few minutes from coming back is shown now. 0 = off.'),
                 field(_rollover, 'Day rolls over at (hour, local)', help: '4 = 04:00'),
                 Padding(
                   padding: const EdgeInsets.only(bottom: 12),

@@ -99,6 +99,29 @@ void main() {
   }
 
   for (final dark in [false, true]) {
+    testWidgets('about this card (${dark ? 'dark' : 'light'})', (t) async {
+      Directory(_dir!).createSync(recursive: true);
+      final db = (await t.runAsync(seedCards))!;
+      final nowMs = DateTime.now().toUtc().millisecondsSinceEpoch;
+      await t.runAsync(() => db.customStatement(
+          "UPDATE card SET state='review', stability=12.0, difficulty=5.6, reps=6, lapses=1, last_review=${nowMs - 8 * 86400000}, due=${nowMs - 3600000} "
+          'WHERE id = (SELECT MIN(id) FROM card)'));
+      final key = GlobalKey();
+      await boot(t, db, key, dark: dark);
+      final tag = dark ? 'dark' : 'light';
+      await t.tap(find.text('Start review'));
+      await settle(t);
+      await t.tapAt(const Offset(200, 380));
+      await settle(t);
+      await t.tap(find.byIcon(Icons.info_outline));
+      await settle(t);
+      await shot(t, key, 'd_about_${tag}_1');
+      await t.pumpWidget(const SizedBox());
+      await t.runAsync(db.close);
+    }, skip: skip);
+  }
+
+  for (final dark in [false, true]) {
     testWidgets('find a picture screen (${dark ? 'dark' : 'light'})', (t) async {
       Directory(_dir!).createSync(recursive: true);
       final path = Platform.environment['ART_IMAGE'];

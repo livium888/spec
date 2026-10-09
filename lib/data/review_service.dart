@@ -51,6 +51,23 @@ class Mismatch {
 
 /// ReviewCard, UndoReview, suspend, and RebuildCardsFromLog.
 /// `review_log` is the source of truth; `card` scheduling fields are a cache.
+/// One past answer of a card, for the "about this card" sheet.
+class ReviewEntry {
+  const ReviewEntry({required this.at, required this.rating, required this.elapsedDays, required this.scheduledDays, required this.durationMs});
+  final int at, rating, durationMs;
+  final double elapsedDays, scheduledDays;
+}
+
+/// A card's answers, newest first (at most [kHistoryShown]), with totals over all of them.
+class CardHistory {
+  const CardHistory({required this.entries, required this.total, required this.passed, required this.avgMs});
+  final List<ReviewEntry> entries;
+  final int total, passed, avgMs;
+  double? get passRate => total == 0 ? null : passed / total;
+}
+
+const kHistoryShown = 8;
+
 class ReviewService {
   ReviewService(this.db, this.settings, this.params);
   final AppDatabase db;
@@ -108,6 +125,25 @@ class ReviewService {
 
       return ReviewResult(logId, after, becameLeech: leech);
     });
+  }
+
+  /// Answers given to one card (undone ones left out): the last few, plus totals.
+  Future<CardHistory> history(int cardId) async {
+    final rows = await (db.select(db.reviewLogs)
+          ..where((l) => l.cardId.equals(cardId) & l.revokedAt.isNull())
+          ..orderBy([(l) => OrderingTerm.desc(l.reviewedAt), (l) => OrderingTerm.desc(l.id)]))
+        .get();
+    final passed = rows.where((r) => r.rating > 1).length;
+    final avg = rows.isEmpty ? 0 : rows.fold<int>(0, (a, r) => a + r.durationMs) ~/ rows.length;
+    return CardHistory(
+      entries: [
+        for (final r in rows.take(kHistoryShown))
+          ReviewEntry(at: r.reviewedAt, rating: r.rating, elapsedDays: r.elapsedDays, scheduledDays: r.scheduledDays, durationMs: r.durationMs),
+      ],
+      total: rows.length,
+      passed: passed,
+      avgMs: avg,
+    );
   }
 
   /// Undo the most recent non-revoked answer. Returns the restored card, or

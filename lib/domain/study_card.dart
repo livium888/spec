@@ -120,6 +120,7 @@ class DailyQueue {
     required this.newLimit,
     required this.newIntroducedToday,
     this.nextLearningDue,
+    this.learnAhead = const [],
   });
 
   final List<StudyCard> learning; // due now
@@ -132,8 +133,12 @@ class DailyQueue {
   /// Earliest due time (ms) of a learning card not yet due, for "come back at".
   final int? nextLearningDue;
 
-  /// Order the spec mandates: due learning, due reviews, then new.
-  List<StudyCard> get ordered => [...learning, ...reviews, ...newCards];
+  /// Learning cards whose short wait is not quite over, offered ONLY when nothing else is due, so a
+  /// session does not end with cards that are minutes away (D40).
+  final List<StudyCard> learnAhead;
+
+  /// Order the spec mandates: due learning, due reviews, then new; early learning cards last.
+  List<StudyCard> get ordered => [...learning, ...reviews, ...newCards, ...learnAhead];
   StudyCard? get next => ordered.isEmpty ? null : ordered.first;
   bool get isEmpty => ordered.isEmpty;
 }

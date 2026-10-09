@@ -128,6 +128,48 @@ void main() {
     await done(t, db);
   });
 
+  testWidgets('review: after an answer a bar offers Undo for a few seconds, and Undo brings the card back', (t) async {
+    final db = await boot(t);
+    await t.tap(find.text('Keep going'));
+    await settle(t);
+    final first = find.textContaining('Music question');
+    expect(first, findsOneWidget);
+    final title = (t.widget(first) as Text).data!;
+    await t.tap(first);
+    await t.pump(const Duration(milliseconds: 400));
+    await t.tap(find.text('Good'));
+    await settle(t);
+    expect(find.byKey(const Key('undo-bar')), findsOneWidget);
+    expect(find.text('Rated Good'), findsOneWidget);
+    await t.tap(find.descendant(of: find.byKey(const Key('undo-bar')), matching: find.text('Undo')));
+    await settle(t);
+    expect(find.byKey(const Key('undo-bar')), findsNothing);
+    expect(find.text(title), findsOneWidget); // the same card is back, unanswered
+    expect(find.text('Show answer'), findsOneWidget);
+
+    // Answer again; with no tap the bar goes away by itself.
+    await t.tap(find.text(title));
+    await t.pump(const Duration(milliseconds: 400));
+    await t.tap(find.text('Good'));
+    await settle(t);
+    expect(find.byKey(const Key('undo-bar')), findsOneWidget);
+    await t.pump(const Duration(seconds: 7));
+    expect(find.byKey(const Key('undo-bar')), findsNothing);
+    await done(t, db);
+  });
+
+  testWidgets('review: the state tag opens "about this card" with the state in words, statistics and the curve', (t) async {
+    final db = await boot(t);
+    await t.tap(find.text('Keep going'));
+    await settle(t);
+    await t.tap(find.byIcon(Icons.info_outline));
+    await settle(t);
+    expect(find.text('Memory statistics'), findsOneWidget);
+    expect(find.text('Times answered'), findsOneWidget);
+    expect(find.textContaining('estimates (FSRS-6)'), findsOneWidget);
+    await done(t, db);
+  });
+
   testWidgets('finishing a session shows a summary with the streak', (t) async {
     final db = await boot(t);
     await t.tap(find.text('Keep going'));

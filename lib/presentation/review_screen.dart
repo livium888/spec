@@ -16,6 +16,7 @@ import 'advice_card.dart';
 import 'format.dart';
 import 'theme/app_theme.dart';
 import 'theme/subject_style.dart';
+import 'card_info_sheet.dart';
 import 'card_picture.dart';
 import 'widgets/card_parts.dart';
 import 'edit_card_screen.dart';
@@ -54,6 +55,8 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
   CardTextSize _textSize = CardTextSize.medium;
   bool _questionOpen = false; // a long question folded after the reveal, shown whole again by a tap
   final _ratings = <int>[];
+  int? _lastRating; // shown in the undo bar for a few seconds after an answer
+  Timer? _undoTimer;
 
   @override
   void initState() {
@@ -64,6 +67,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
   @override
   void dispose() {
     _poll?.cancel();
+    _undoTimer?.cancel();
     super.dispose();
   }
 
@@ -135,6 +139,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
       _ratings.add(rating);
       _answered++;
       _totalMs += ms;
+      _showUndoBar(rating);
       if (res.becameLeech && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('This card is a leech: suspended and tagged.')));
@@ -151,8 +156,23 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
     }
   }
 
+  /// "Rated Good · Undo" for a few seconds after an answer. The undo button in the top bar stays.
+  void _showUndoBar(int rating) {
+    _undoTimer?.cancel();
+    if (mounted) setState(() => _lastRating = rating);
+    _undoTimer = Timer(const Duration(seconds: 6), () {
+      if (mounted) setState(() => _lastRating = null);
+    });
+  }
+
+  void _hideUndoBar() {
+    _undoTimer?.cancel();
+    if (_lastRating != null && mounted) setState(() => _lastRating = null);
+  }
+
   Future<void> _undo() async {
     if (_busy) return;
+    _hideUndoBar();
     setState(() => _busy = true);
     try {
       final restored = await ref.read(reviewServiceProvider).undoLast();
@@ -321,8 +341,46 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
             ]),
           ),
           if (!_loading && _error == null && _current != null) _progressCaption(context, left),
-          Expanded(child: _content(context)),
+          Expanded(
+            child: Stack(children: [
+              Positioned.fill(child: _content(context)),
+              if (_lastRating != null)
+                Positioned(
+                  left: 16,
+                  right: 16,
+                  // Above the answer buttons, so nothing the learner is about to tap moves or is covered.
+                  bottom: _current == null ? 16 : 104,
+                  child: _undoBar(context, _lastRating!),
+                ),
+            ]),
+          ),
         ]),
+      ),
+    );
+  }
+
+  Widget _undoBar(BuildContext context, int rating) {
+    final c = AppColors.of(context);
+    final t = Theme.of(context).textTheme;
+    return Semantics(
+      liveRegion: true,
+      container: true,
+      child: Material(
+        key: const Key('undo-bar'),
+        color: c.ink,
+        elevation: 3,
+        borderRadius: BorderRadius.circular(14),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 2, 4, 2),
+          child: Row(children: [
+            Expanded(child: Text('Rated ${ratingName(rating)}', style: t.bodyMedium?.copyWith(color: c.surface))),
+            TextButton(
+              style: TextButton.styleFrom(foregroundColor: c.surface, minimumSize: const Size(64, 48)),
+              onPressed: _busy ? null : _undo,
+              child: const Text('Undo'),
+            ),
+          ]),
+        ),
       ),
     );
   }
@@ -424,7 +482,13 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Wrap(spacing: 8, runSpacing: 6, crossAxisAlignment: WrapCrossAlignment.center, children: [
                     if (name.isNotEmpty) _Tag(icon: style.icon, text: name, fg: style.strong, bg: style.tint),
-                    _Tag(text: _stateLabel(card), fg: c.inkSoft, bg: c.surfaceDim),
+                    _Tag(
+                        text: _stateLabel(card),
+                        fg: c.inkSoft,
+                        bg: c.surfaceDim,
+                        icon: Icons.info_outline,
+                        semanticLabel: '${_stateLabel(card)}. About this card\'s memory',
+                        onTap: () => showCardInfo(context, card)),
                     if (_speech[card.domainId] != null)
                       Semantics(
                         button: true,
@@ -642,20 +706,36 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
 }
 
 class _Tag extends StatelessWidget {
-  const _Tag({required this.text, required this.fg, required this.bg, this.icon});
+  const _Tag({required this.text, required this.fg, required this.bg, this.icon, this.onTap, this.semanticLabel});
   final String text;
   final Color fg, bg;
   final IconData? icon;
+  final VoidCallback? onTap;
+  final String? semanticLabel;
 
   @override
-  Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-        decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(Rd.pill)),
-        child: Row(mainAxisSize: MainAxisSize.min, children: [
-          if (icon != null) ...[Icon(icon, size: 15, color: fg), const SizedBox(width: 5)],
-          Text(text, style: AppText.sans(12.5, weight: 650, color: fg)),
-        ]),
-      );
+  Widget build(BuildContext context) {
+    final pill = Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(Rd.pill)),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        if (icon != null) ...[Icon(icon, size: 15, color: fg), const SizedBox(width: 5)],
+        Text(text, style: AppText.sans(12.5, weight: 650, color: fg)),
+      ]),
+    );
+    if (onTap == null) return pill;
+    // A tappable tag keeps a 48 dp target (WCAG 2.2 target size) around the small pill.
+    return Semantics(
+      button: true,
+      label: semanticLabel ?? text,
+      excludeSemantics: true,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(Rd.pill),
+        onTap: onTap,
+        child: ConstrainedBox(constraints: const BoxConstraints(minHeight: 48), child: Center(widthFactor: 1, child: pill)),
+      ),
+    );
+  }
 }
 
 class _SummaryStat extends StatelessWidget {
