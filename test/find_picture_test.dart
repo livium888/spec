@@ -9,6 +9,7 @@ import 'package:daily_learning/data/settings_repo.dart';
 import 'package:daily_learning/domain/commons.dart';
 import 'package:daily_learning/domain/picture_sources.dart';
 import 'package:daily_learning/domain/import_parser.dart';
+import 'package:daily_learning/domain/prompt_template.dart';
 import 'package:daily_learning/presentation/find_picture_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -647,6 +648,50 @@ void main() {
         'image_credit': 'x' * 301,
       });
       expect(bad, isNotEmpty);
+    });
+  });
+
+  group('image keywords from the AI prompt', () {
+    test('the card prompt asks for keywords on EVERY card, with a side hint, and the examples show both', () {
+      final p = renderPrompt(domain: 'Art', syllabusItem: 'Impressionism', n: 5, recentTitles: const []);
+      expect(p, contains('"image_query": on EVERY card'));
+      expect(p, contains('NEVER a web address'));
+      expect(p, contains('"image_side"'));
+      expect(p, contains('"image_query": "mitochondrion electron micrograph"'));
+      expect(p, contains('"image_query": "piano keyboard white and black keys"'));
+      final remedial = renderRemediatePrompt(domain: 'Art', syllabusItem: 'x', problems: const []);
+      expect(remedial, contains('"image_query"'));
+    });
+
+    test('the side hint is kept when it is front or back, ignored otherwise, and stored on the card', () async {
+      Map<String, dynamic> card(Object? side) => {
+            'type': 'basic', 'front': 'Which painting gave Impressionism its name, shown here?', 'back': 'Impression, Sunrise',
+            'source_type': 'model_memory', 'confidence': 'high', 'image_query': 'Monet Impression Sunrise', 'image_side': side,
+          };
+      for (final (v, want) in <(Object?, String)>[('front', 'front'), ('back', 'back'), ('left', ''), (3, ''), (null, '')]) {
+        final c = parseImportJson(jsonEncode({'domain': 'Art', 'cards': [card(v)]})).cards.single;
+        expect(c.valid, isTrue);
+        expect(c.imageSide, want, reason: '$v');
+      }
+      final e = Env();
+      await e.import.commit(await e.import.preview(jsonEncode({'domain': 'Art', 'cards': [card('front')]})));
+      final n = (await CardEditService(e.db, e.settings).search()).single;
+      expect(n.fields['image_query'], 'Monet Impression Sunrise');
+      expect(n.fields['image_side'], 'front');
+    });
+
+    test('the keywords can be edited, cleared, and a web address is refused', () async {
+      final e = Env();
+      await e.addBasic(1);
+      final svc = CardEditService(e.db, e.settings);
+      final n = (await svc.search()).single;
+      Map<String, String> edit(String kw) => {'front': n.fields['front'] as String, 'back': n.fields['back'] as String, 'image_query': kw};
+      expect(await svc.update(n.noteId, edit('  Monet   sunrise harbour ')), isEmpty);
+      expect((await svc.note(n.noteId))!.fields['image_query'], 'Monet sunrise harbour');
+      expect(await svc.update(n.noteId, edit('https://example.com/a.jpg')), isNotEmpty);
+      expect((await svc.note(n.noteId))!.fields['image_query'], 'Monet sunrise harbour'); // nothing changed
+      expect(await svc.update(n.noteId, edit('')), isEmpty);
+      expect((await svc.note(n.noteId))!.fields.containsKey('image_query'), isFalse);
     });
   });
 

@@ -132,7 +132,47 @@ void main() {
       await shot(t, key, 'c_find_${tag}_2preview');
     }, skip: skip);
   }
+
+  for (final dark in [false, true]) {
+    testWidgets('long question, front and back (${dark ? 'dark' : 'light'})', (t) async {
+      Directory(_dir!).createSync(recursive: true);
+      final db = AppDatabase(NativeDatabase.memory());
+      final imp = ImportService(db);
+      await imp.commit(await imp.preview(jsonEncode({
+        'domain': 'History and Power',
+        'cards': [
+          {
+            'type': 'basic',
+            'front': "Thomas Newcomen's steam engine of 1712 worked, but burned coal so greedily that only one kind of site could afford it. Which, and why?",
+            'back': 'Coal mines, where fuel was effectively free and the engine pumped out flood water.',
+            'why_it_matters': "Steam power began as a drainage tool for mines. Only when James Watt's separate condenser slashed fuel use could it spread to factories and, later, railways.",
+            'example': 'A Cornish tin mine could burn its own waste coal while a mill owner paid for every sack.',
+            'memory_hook': 'Newcomen: the mine that drank its own coal.',
+            'source_type': 'model_memory',
+            'confidence': 'low',
+          }
+        ]
+      })));
+      final key = GlobalKey();
+      t.platformDispatcher.textScaleFactorTestValue = 1.2; // the learner's phone setting
+      addTearDown(t.platformDispatcher.clearTextScaleFactorTestValue);
+      await boot(t, db, key, dark: dark);
+      final tag = dark ? 'dark' : 'light';
+      await t.tap(find.text('Start review'));
+      await settle(t);
+      await shot(t, key, 'd_long_${tag}_1front');
+      await t.tapAt(const Offset(200, 380));
+      await settle(t);
+      await shot(t, key, 'd_long_${tag}_2back');
+      await t.tap(find.text('Show the whole question'));
+      await settle(t);
+      await shot(t, key, 'd_long_${tag}_3expanded');
+      await t.pumpWidget(const SizedBox());
+      await t.runAsync(db.close);
+    }, skip: skip);
+  }
 }
+
 
 class _ArtFinder implements PictureFinder {
   _ArtFinder(this.results, this.bytes);

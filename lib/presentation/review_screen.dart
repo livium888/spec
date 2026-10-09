@@ -1,4 +1,3 @@
-import '../domain/review_timing.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -8,7 +7,9 @@ import 'package:flutter/services.dart';
 
 import '../app/providers.dart';
 import '../data/stats_service.dart';
+import '../domain/card_text.dart';
 import '../domain/models.dart';
+import '../domain/review_timing.dart';
 import '../domain/study_advisor.dart';
 import '../domain/study_card.dart';
 import 'advice_card.dart';
@@ -50,6 +51,8 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
   /// Per subject: the language to read aloud and which side is in it.
   final _speech = <int, (String, String)>{};
   bool _speakAuto = false;
+  CardTextSize _textSize = CardTextSize.medium;
+  bool _questionOpen = false; // a long question folded after the reveal, shown whole again by a tap
   final _ratings = <int>[];
 
   @override
@@ -85,6 +88,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
         }
       }
       _speakAuto = await ref.read(settingsRepoProvider).get('speak_auto') == '1';
+      _textSize = cardTextSizeFrom(await ref.read(settingsRepoProvider).get(kCardTextSizeKey));
       if (!mounted) return;
       setState(() {
         _advice = adv;
@@ -93,6 +97,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
         _current = next;
         _preview = pv;
         _revealed = false;
+        _questionOpen = false;
         _loading = false;
         _error = null;
       });
@@ -394,8 +399,12 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
     final t = Theme.of(context).textTheme;
     final name = _domainNames[card.domainId] ?? '';
     final style = SubjectStyle.of(card.domainId, name, c.brightness);
-    final questionStyle = AppText.serif(26, weight: 600, height: 1.4, color: c.ink);
     final isCloze = card.noteType == 'cloze';
+    final questionText = isCloze ? (card.fields['cloze'] as String? ?? '') : card.front;
+    final questionStyle = AppText.serif(questionFontSize(questionText.length, _textSize), weight: 600, height: 1.4, color: c.ink);
+    // With the answer showing, a long question is folded so the answer gets the room.
+    final fold = _revealed && !isCloze && shouldCollapseQuestion(card.front) && !_questionOpen;
+    final foldedStyle = AppText.sans(15 * cardTextScale(_textSize), weight: 500, height: 1.4, color: c.inkSoft);
     final frontPicture = card.imageSha != null && card.imageOnFront;
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
@@ -439,6 +448,31 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                   if (isCloze)
                     ClozeSentence(
                         parts: card.clozeParts, revealed: _revealed, style: questionStyle, strong: style.strong, tint: style.tint)
+                  else if (_revealed && shouldCollapseQuestion(card.front))
+                    Semantics(
+                      button: true,
+                      label: fold ? 'Question, folded. Double tap to show all of it' : 'Question. Double tap to fold it',
+                      excludeSemantics: true,
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(Rd.card),
+                        onTap: () => setState(() => _questionOpen = !_questionOpen),
+                        child: AnimatedSize(
+                          duration: reduce ? Duration.zero : const Duration(milliseconds: 220),
+                          alignment: Alignment.topLeft,
+                          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                            Text(card.front,
+                                style: fold ? foldedStyle : questionStyle,
+                                maxLines: fold ? 3 : null,
+                                overflow: fold ? TextOverflow.ellipsis : null),
+                            Padding(
+                              padding: const EdgeInsets.only(top: 4),
+                              child: Text(fold ? 'Show the whole question' : 'Fold the question',
+                                  style: t.labelSmall?.copyWith(color: style.strong)),
+                            ),
+                          ]),
+                        ),
+                      ),
+                    )
                   else
                     Text(card.front, style: questionStyle),
                   if (_revealed) RevealPanel(accent: style.strong, child: _answerSide(context, card, style)),
@@ -470,8 +504,8 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
         CardPicture(sha: card.imageSha!, alt: card.imageAlt, credit: card.imageCredit),
         const SizedBox(height: 16),
       ],
-      if (back.isNotEmpty) SelectableText(back, style: AppText.sans(20, weight: 650, height: 1.4, color: c.ink)),
-      ExtrasTabs(extras: card.extras, strong: style.strong, tint: style.tint),
+      if (back.isNotEmpty) SelectableText(back, style: AppText.sans(answerFontSize(_textSize), weight: 650, height: 1.4, color: c.ink)),
+      ExtrasTabs(extras: card.extras, strong: style.strong, tint: style.tint, scale: extrasScale(_textSize)),
       if (source.isNotEmpty)
         Padding(
           padding: const EdgeInsets.only(top: 18),

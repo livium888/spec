@@ -1,7 +1,7 @@
 /// Versioned LLM prompt templates. Bump the version constant on any wording change so
 /// `prompt_log.template_version` stays meaningful. Design notes and evidence for the
 /// card prompt are in docs/CARD_QUALITY.md and docs/DECISIONS.md (D19).
-const kPromptTemplateVersion = 'v3';
+const kPromptTemplateVersion = 'v4';
 
 const kPromptTemplate = '''
 You are a gifted teacher, storyteller and memory coach. You are writing flashcards for ONE curious adult who will see each card many times over the coming years. A dull card gets hated by day 100. A card that sparks curiosity, paints a picture or makes them think "huh, I never saw it that way" gets remembered and even enjoyed.
@@ -24,7 +24,8 @@ THE PARTS OF A CARD
 - "why_it_matters": one or two sentences that make the answer stick: the story behind it, the surprising consequence, the reason it is true, or why anyone should care. Include it on at least 80% of cards. This is where the passion lives.
 - "example": a concrete example, scenario or analogy (1 to 2 sentences). Use real names, places and numbers only where you are certain of them.
 - "memory_hook": a vivid image, mnemonic, rhyme or wordplay, only when it truly helps. Otherwise "". Never force one.
-- "image_query": ONLY when seeing the thing is part of knowing it (a painting, a building, a plant or animal, an anatomy diagram, an instrument, a knot, a map). 2 to 6 plain words someone would type into the Wikimedia Commons search box, such as "Hokusai Great Wave off Kanagawa". NEVER a web address or a file name. Otherwise "". The learner looks at the pictures and chooses one, so a rough search is fine; do not invent details to make it exact.
+- "image_query": on EVERY card, 2 to 6 plain words that would find the best picture for this card in a free image library (Wikimedia Commons, museum collections, Openverse). Name the thing the card is about as concretely as you can: a work of art with its artist, a building, a plant or animal with its species, an instrument, a place, a person, a diagram of the process. For an abstract idea, pick a concrete scene or object that illustrates it. NEVER a web address or a file name. The learner sees these words only when choosing a picture, so they may name the answer. A rough search is fine; do not invent details to make it exact.
+- "image_side": "back" when the picture would give the answer away (the usual case), "front" only when the picture IS what the question asks about (for example "Which painting is this?"). Pictures that reveal the answer while the learner is still trying to recall it weaken learning.
 Keep every field short; the learner reads the whole card in about 30 seconds.
 
 VARIETY (adapt to the material; never more than 2 cards of the same shape in a row)
@@ -82,6 +83,7 @@ Return JSON ONLY: no text before or after, no markdown fences. Use exactly this 
       "example": "Chloroplasts in plants tell the same story, with their own DNA and a bacterial look.",
       "memory_hook": "A lodger who never moved out and still keeps their own front-door key.",
       "image_query": "mitochondrion electron micrograph",
+      "image_side": "back",
       "source_type": "model_memory",
       "source_ref": "",
       "supporting_quote": "",
@@ -95,7 +97,8 @@ Return JSON ONLY: no text before or after, no markdown fences. Use exactly this 
       "why_it_matters": "On a piano's white keys the two half-steps are exactly where no black key sits between neighbours (E to F, B to C), which is why C major uses only white keys.",
       "example": "",
       "memory_hook": "",
-      "image_query": "",
+      "image_query": "piano keyboard white and black keys",
+      "image_side": "back",
       "source_type": "model_memory",
       "source_ref": "",
       "supporting_quote": "",
@@ -105,7 +108,7 @@ Return JSON ONLY: no text before or after, no markdown fences. Use exactly this 
   ]
 }
 
-"type" is "basic" or "cloze". A cloze card has a "cloze" sentence with {{c1::hidden text}} (use c1, c2 ... for separate hidden parts) and no "front". "source_type" is "quote" (copied from SOURCE TEXT), "url" or "model_memory". "confidence" is "high", "medium" or "low". "tags": one to three short lowercase tags.
+"type" is "basic" or "cloze". A cloze card has a "cloze" sentence with {{c1::hidden text}} (use c1, c2 ... for separate hidden parts) and no "front". "source_type" is "quote" (copied from SOURCE TEXT), "url" or "model_memory". "confidence" is "high", "medium" or "low". "tags": one to three short lowercase tags. "image_query" and "image_side" are described above.
 
 SOURCE TEXT:
 {source_text}
@@ -219,7 +222,7 @@ String renderOutlinePrompt({
 // ---------------------------------------------------------------------------
 // Remediation prompt (rewrite cards the learner keeps forgetting).
 // ---------------------------------------------------------------------------
-const kRemediateTemplateVersion = 'remediate-v2';
+const kRemediateTemplateVersion = 'remediate-v3';
 
 const kRemediateTemplate = '''
 You are a gifted teacher and memory coach. A learner keeps forgetting the cards below (domain "{domain}", topic "{syllabus_item}"). Cards get forgotten for a reason: too much in one card, a vague cue, nothing vivid to hook the memory on, or two look-alike cards that blur together. Rewrite each problem card as 1 to 3 NEW cards that remove the cause.
@@ -249,6 +252,8 @@ RULES
       "why_it_matters": "string",
       "example": "string",
       "memory_hook": "string or empty",
+      "image_query": "2 to 6 plain words to find a picture in a free image library, never a web address",
+      "image_side": "back" | "front",
       "source_type": "quote" | "url" | "model_memory",
       "source_ref": "string",
       "supporting_quote": "string",

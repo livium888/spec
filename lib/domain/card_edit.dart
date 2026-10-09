@@ -1,3 +1,4 @@
+import 'commons.dart' show cleanImageQuery, kMaxImageQueryChars;
 import 'import_parser.dart';
 
 /// Pure validation for editing a note's text. Returns error messages (empty = valid).
@@ -40,5 +41,9 @@ List<String> validateNoteEdit({
   limit('memory_hook', '"Memory hook"', kMaxExtraChars);
   limit('image_alt', 'The picture description', 300);
   limit('image_credit', 'The picture credit', 300);
+  final keywords = f('image_query');
+  if (keywords.isNotEmpty && cleanImageQuery(keywords) == null) {
+    errors.add('Image keywords: a few plain words (up to $kMaxImageQueryChars characters), not a web address.');
+  }
   return errors;
 }

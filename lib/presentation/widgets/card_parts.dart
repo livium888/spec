@@ -154,9 +154,12 @@ class _RevealPanelState extends State<RevealPanel> with SingleTickerProviderStat
 /// Why it matters / Example / Memory hook. One extra is shown directly; several become small tabs,
 /// so a long answer stays tidy and the learner reads one thing at a time.
 class ExtrasTabs extends StatefulWidget {
-  const ExtrasTabs({super.key, required this.extras, required this.strong, required this.tint});
+  const ExtrasTabs({super.key, required this.extras, required this.strong, required this.tint, this.scale = 1.0});
   final List<(String, String)> extras;
   final Color strong, tint;
+
+  /// Multiplies the body text size (the learner's "Card text size").
+  final double scale;
   @override
   State<ExtrasTabs> createState() => _ExtrasTabsState();
 }
@@ -173,13 +176,14 @@ class _ExtrasTabsState extends State<ExtrasTabs> {
     final idx = _i.clamp(0, extras.length - 1);
     final reduce = _reduceMotion(context);
     final body = extras[idx].$2;
+    final bodyStyle = t.bodyLarge?.copyWith(fontSize: (t.bodyLarge?.fontSize ?? 17) * widget.scale);
     if (extras.length == 1) {
       return Padding(
         padding: const EdgeInsets.only(top: 18),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text(extras[0].$1, style: t.labelMedium?.copyWith(color: widget.strong, fontWeight: FontWeight.w700)),
           const SizedBox(height: 3),
-          SelectableText(body, style: t.bodyLarge),
+          SelectableText(body, style: bodyStyle),
         ]),
       );
     }
@@ -207,7 +211,7 @@ class _ExtrasTabsState extends State<ExtrasTabs> {
           child: Align(
             key: ValueKey(idx),
             alignment: Alignment.topLeft,
-            child: SelectableText(body, style: t.bodyLarge),
+            child: SelectableText(body, style: bodyStyle),
           ),
         ),
       ]),

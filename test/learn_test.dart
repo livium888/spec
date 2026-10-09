@@ -311,7 +311,7 @@ void main() {
       expect(g3.text, contains('PROBLEM CARDS'));
       expect(g3.text, contains('Cell membrane (basics) number'));
       final logs = await db.select(db.promptLogs).get();
-      expect(logs.last.templateVersion, 'remediate-v2');
+      expect(logs.last.templateVersion, 'remediate-v3');
       // An unimported prompt is surfaced instead of silently piling up.
       expect((await learn.view(now: d3.add(const Duration(hours: 1)))).pending?.id, g3.logId);
       // ...and stops being "pending" after a day.

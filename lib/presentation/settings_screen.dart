@@ -10,6 +10,7 @@ import '../app/providers.dart';
 import '../data/backup/backup_service.dart';
 import '../data/backup/backup_storage.dart';
 import '../data/settings_repo.dart';
+import '../domain/card_text.dart';
 import '../domain/prompt_template.dart' show kMaxProfileChars;
 import 'diagnostics_screen.dart';
 import 'guide_screen.dart';
@@ -17,6 +18,7 @@ import 'memory_model_screen.dart';
 import 'reminder_section.dart';
 import 'home_screen.dart' show pickBackupFolder;
 import 'subjects_screen.dart';
+import 'theme/app_theme.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -286,6 +288,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 if (_msg != null)
                   Padding(padding: const EdgeInsets.only(top: 12), child: SelectableText(_msg!, style: t.bodyLarge)),
                 const Divider(height: 40),
+                const _CardTextSizeSetting(),
+                const Divider(height: 40),
                 const _OnlinePicturesSwitch(),
                 const Divider(height: 40),
                 Text('Study', style: t.titleLarge),
@@ -373,4 +377,56 @@ class _OnlinePicturesSwitchState extends ConsumerState<_OnlinePicturesSwitch> {
           ref.read(settingsRepoProvider).set(SettingsRepo.onlinePictures, v ? SettingsRepo.onlinePicturesAgreed : '0');
         },
       );
+}
+
+/// "Card text size": Small, Medium or Large for the text on review cards, with a sample line.
+/// Saves immediately. The phone's own font size setting still applies on top of this.
+class _CardTextSizeSetting extends ConsumerStatefulWidget {
+  const _CardTextSizeSetting();
+  @override
+  ConsumerState<_CardTextSizeSetting> createState() => _CardTextSizeSettingState();
+}
+
+class _CardTextSizeSettingState extends ConsumerState<_CardTextSizeSetting> {
+  CardTextSize _size = CardTextSize.medium;
+
+  @override
+  void initState() {
+    super.initState();
+    ref.read(settingsRepoProvider).get(kCardTextSizeKey).then((v) {
+      if (mounted) setState(() => _size = cardTextSizeFrom(v));
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Theme.of(context).textTheme;
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text('Card text size', style: t.titleMedium),
+      const SizedBox(height: 4),
+      Text('Long questions are shown smaller automatically. Your phone\'s own font size setting still applies on top.',
+          style: t.bodyMedium),
+      const SizedBox(height: 12),
+      SizedBox(
+        width: double.infinity,
+        child: SegmentedButton<CardTextSize>(
+          showSelectedIcon: false,
+          segments: const [
+            ButtonSegment(value: CardTextSize.small, label: Text('Small')),
+            ButtonSegment(value: CardTextSize.medium, label: Text('Medium')),
+            ButtonSegment(value: CardTextSize.large, label: Text('Large')),
+          ],
+          selected: {_size},
+          onSelectionChanged: (v) {
+            setState(() => _size = v.first);
+            ref.read(settingsRepoProvider).set(kCardTextSizeKey, v.first.name);
+          },
+        ),
+      ),
+      const SizedBox(height: 12),
+      Text('Why do mitochondria have their own DNA?',
+          key: const ValueKey('card-text-sample'),
+          style: AppText.serif(questionFontSize(40, _size), weight: 600, height: 1.4)),
+    ]);
+  }
 }

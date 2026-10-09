@@ -17,6 +17,7 @@ import 'package:daily_learning/data/review_service.dart';
 import 'package:daily_learning/domain/fsrs_trainer.dart';
 import 'package:daily_learning/data/outline_service.dart';
 import 'package:daily_learning/data/settings_repo.dart';
+import 'package:daily_learning/domain/card_text.dart';
 import 'package:daily_learning/main.dart';
 import 'package:daily_learning/presentation/card_picture.dart' show CardPicture;
 import 'package:daily_learning/presentation/library_screen.dart' show LibraryScreen;
@@ -795,8 +796,7 @@ void phase3WidgetTests() {
     expect(find.byType(CardPicture), findsOneWidget);
     await t.tap(find.text('Shows on the answer'));
     await t.enterText(find.widgetWithText(TextField, 'Describe the picture (read out by screen readers)'), 'A red square');
-    await t.scrollUntilVisible(find.text('Save changes'), 300, scrollable: find.byType(Scrollable).first);
-    await t.tap(find.text('Save changes'));
+    await tapSettingsEntry(t, 'Save changes');
     await settle(t);
     final note = (await t.runAsync(() => db.select(db.notes).getSingle()))!;
     final fields = jsonDecode(note.fieldsJson) as Map<String, dynamic>;
@@ -820,6 +820,114 @@ void phase3WidgetTests() {
     await settle(t);
     await t.scrollUntilVisible(find.text('Find a picture online'), 200, scrollable: find.byType(Scrollable).first);
   }
+
+  Future<void> longQuestionCard(AppDatabase db, {String? front}) async {
+    final imp = ImportService(db);
+    await imp.commit(await imp.preview(jsonEncode({
+      'domain': 'History',
+      'syllabus_item': null,
+      'cards': [
+        {
+          'type': 'basic',
+          'front': front ??
+              "Thomas Newcomen's steam engine of 1712 worked, but burned coal so greedily that only one kind of site could afford it. Which, and why?",
+          'back': 'Coal mines, where fuel was effectively free.',
+          'source_type': 'model_memory',
+          'confidence': 'high',
+        }
+      ]
+    })));
+  }
+
+  double? questionSize(WidgetTester t, String startsWith) {
+    final w = t.widgetList<Text>(find.byType(Text)).firstWhere((x) => (x.data ?? '').startsWith(startsWith));
+    return w.style?.fontSize;
+  }
+
+  testWidgets('Review: a long question is set smaller, and folds after the reveal; a tap shows it whole again', (t) async {
+    final db = await boot(t, settings: {'guide_seen': '1'}, prepare: (db) => longQuestionCard(db));
+    await t.tap(find.text('Start review'));
+    await until(t, find.textContaining('Thomas Newcomen'));
+    await settle(t);
+    expect(questionSize(t, 'Thomas Newcomen'), lessThan(22)); // was 26 for every question before
+    await t.tap(find.text('Show answer'));
+    await settle(t);
+    expect(find.text('Show the whole question'), findsOneWidget);
+    expect(questionSize(t, 'Thomas Newcomen'), lessThan(17)); // folded: small, muted, 3 lines
+    expect(find.textContaining('Coal mines'), findsOneWidget);
+    await t.tap(find.text('Show the whole question'));
+    await settle(t);
+    expect(find.text('Fold the question'), findsOneWidget);
+    expect(questionSize(t, 'Thomas Newcomen'), greaterThan(17));
+    await done(t, db);
+  });
+
+  testWidgets('Review: a short question stays whole after the reveal (nothing to fold)', (t) async {
+    final db = await boot(t, settings: {'guide_seen': '1'}, prepare: (db) => longQuestionCard(db, front: 'What powered the first factories?'));
+    await t.tap(find.text('Start review'));
+    await until(t, find.text('What powered the first factories?'));
+    await settle(t);
+    final before = questionSize(t, 'What powered');
+    await t.tap(find.text('Show answer'));
+    await settle(t);
+    expect(find.text('Show the whole question'), findsNothing);
+    expect(questionSize(t, 'What powered'), before);
+    await done(t, db);
+  });
+
+  testWidgets('Review: the Card text size setting changes the question size', (t) async {
+    final small = await boot(t, settings: {'guide_seen': '1', 'card_text_size': 'small'}, prepare: (db) => longQuestionCard(db, front: 'What powered the first factories?'));
+    await t.tap(find.text('Start review'));
+    await until(t, find.text('What powered the first factories?'));
+    await settle(t);
+    final s = questionSize(t, 'What powered')!;
+    await done(t, small);
+    final large = await boot(t, settings: {'guide_seen': '1', 'card_text_size': 'large'}, prepare: (db) => longQuestionCard(db, front: 'What powered the first factories?'));
+    await t.tap(find.text('Start review'));
+    await until(t, find.text('What powered the first factories?'));
+    await settle(t);
+    final l = questionSize(t, 'What powered')!;
+    expect(l, greaterThan(s));
+    await done(t, large);
+  });
+
+  testWidgets('Settings: Card text size is chosen with Small / Medium / Large, saved, and shown in a sample line', (t) async {
+    final db = await boot(t, settings: {'guide_seen': '1'});
+    await t.tap(find.byTooltip('Settings and backup'));
+    await settle(t);
+    await tapSettingsEntry(t, 'Card text size');
+    await t.tap(find.text('Large'));
+    await settle(t);
+    expect(await t.runAsync(() => SettingsRepo(db).get('card_text_size')), 'large');
+    final sample = t.widget<Text>(find.byKey(const ValueKey('card-text-sample')));
+    expect(sample.style!.fontSize, closeTo(questionFontSize(40, CardTextSize.large), 0.01));
+    await done(t, db);
+  });
+
+  testWidgets('Edit card: image keywords from the AI are shown, editable, kept without a picture, and prefill Find a picture', (t) async {
+    final finder = FakeFinder(results: [candidate('File:Wave.png')]);
+    final db = await boot(t, settings: {'guide_seen': '1', 'online_pictures': SettingsRepo.onlinePicturesAgreed}, extra: [pictureFinderProvider.overrideWithValue(finder)], prepare: (db) async {
+      await _spanishCard(db, withPicture: false);
+      await db.customStatement("UPDATE note SET fields_json = json_set(fields_json, '\$.image_query', 'Spanish word extrano strange', '\$.image_side', 'back')");
+    });
+    await openEditCard(t);
+    expect(find.widgetWithText(TextField, 'Spanish word extrano strange'), findsOneWidget);
+    await t.enterText(find.widgetWithText(TextField, 'Spanish word extrano strange'), 'Spanish word extraño strange stranger');
+    await t.tap(find.text('Find a picture online'));
+    await settle(t);
+    expect(finder.searches, ['Spanish word extraño strange stranger']); // the field is the search, no guessing
+    await t.pageBack();
+    await settle(t);
+    await t.drag(find.byType(Scrollable).first, const Offset(0, -2000));
+    await t.pumpAndSettle();
+    await t.tap(find.text('Save changes'));
+    await settle(t);
+    final fields = jsonDecode((await t.runAsync(() => db.select(db.notes).getSingle()))!.fieldsJson) as Map<String, dynamic>;
+    expect(fields['image_query'], 'Spanish word extraño strange stranger'); // kept although no picture was added
+    expect(fields['image_side'], 'back'); // the AI's hint survives a save with no picture
+    expect(fields['image'], isNull);
+    await done(t, db);
+  });
 
   testWidgets('Review: a picture\'s credit (it can name the artist) appears only after the answer is shown', (t) async {
     final db = await boot(t, settings: {'guide_seen': '1'}, prepare: (db) async {
@@ -857,8 +965,7 @@ void phase3WidgetTests() {
     await until(t, find.byType(CardPicture));
     await settle(t);
     expect(find.text('Someone · CC BY-SA 4.0 · Wikimedia Commons'), findsOneWidget);
-    await t.scrollUntilVisible(find.text('Save changes'), 300, scrollable: find.byType(Scrollable).first);
-    await t.tap(find.text('Save changes'));
+    await tapSettingsEntry(t, 'Save changes');
     await settle(t);
     final note = (await t.runAsync(() => db.select(db.notes).getSingle()))!;
     final fields = jsonDecode(note.fieldsJson) as Map<String, dynamic>;

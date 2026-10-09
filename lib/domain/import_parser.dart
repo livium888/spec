@@ -31,6 +31,7 @@ class ParsedCard {
     this.example = '',
     this.memoryHook = '',
     this.imageQuery = '',
+    this.imageSide = '',
   });
 
   final int index; // 0-based position in the payload
@@ -41,6 +42,10 @@ class ParsedCard {
 
   /// Optional hint for "Find a picture": a few words to search Wikimedia Commons for. Never a URL.
   final String imageQuery;
+
+  /// Optional hint for where a picture should go: "front" only if the picture is what the question
+  /// asks about; "back" if it would give the answer away. Anything else is ignored.
+  final String imageSide;
   final List<String> tags;
   final List<String> errors;
 
@@ -219,6 +224,8 @@ ParsedCard _parseCard(int i, Object? raw) {
   final hook = extra('memory_hook');
   // Only a hint: a missing, odd or URL-like value is dropped quietly, never a reason to refuse the card.
   final imageQuery = cleanImageQuery(raw['image_query']) ?? '';
+  final sideRaw = raw['image_side'];
+  final imageSide = sideRaw == 'front' || sideRaw == 'back' ? sideRaw as String : '';
 
   final confidence = str('confidence', required: true);
   if (confidence.isNotEmpty && !_confidences.contains(confidence)) {
@@ -256,6 +263,7 @@ ParsedCard _parseCard(int i, Object? raw) {
     example: example,
     memoryHook: hook,
     imageQuery: imageQuery,
+    imageSide: imageSide,
   );
 }
 

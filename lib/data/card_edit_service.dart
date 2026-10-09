@@ -1,3 +1,4 @@
+import '../domain/commons.dart' show cleanImageQuery;
 import 'dart:convert';
 
 import 'package:drift/drift.dart';
@@ -89,10 +90,11 @@ class CardEditService {
     if (errors.isNotEmpty) return errors;
 
     final fields = Map<String, dynamic>.from(n.fields);
-    const optional = ['why_it_matters', 'example', 'memory_hook', 'image', 'image_side', 'image_alt', 'image_credit'];
+    const optional = ['why_it_matters', 'example', 'memory_hook', 'image', 'image_side', 'image_alt', 'image_credit', 'image_query'];
     final oldImage = n.fields['image'] as String?;
     for (final e in edited.entries) {
-      final v = e.value.trim();
+      // Image keywords are stored tidy (spaces collapsed), the same way the prompt's hint is.
+      final v = e.key == 'image_query' ? (cleanImageQuery(e.value) ?? '') : e.value.trim();
       if (v.isEmpty && optional.contains(e.key)) {
         fields.remove(e.key);
       } else {

@@ -5,7 +5,7 @@ import '../app/providers.dart';
 import '../data/card_edit_service.dart';
 import '../data/media_service.dart' show MediaException, MediaService;
 import '../data/settings_repo.dart';
-import '../domain/commons.dart' show cleanImageQuery;
+import '../domain/commons.dart' show cleanImageQuery, kMaxImageQueryChars;
 import 'card_picture.dart';
 import 'find_picture_screen.dart';
 
@@ -34,6 +34,7 @@ class _EditCardScreenState extends ConsumerState<EditCardScreen> {
   String? _image, _originalImage, _newImage; // SHA-256s: current, as loaded, picked in this session
   String _imageSide = 'front';
   final _alt = TextEditingController();
+  final _keywords = TextEditingController(); // words to find a picture with: the AI's image_query, editable, kept on the card
   String _credit = ''; // who made a picture found online; empty for the learner's own photos
   late final MediaService _media;
   bool _saved = false;
@@ -63,6 +64,7 @@ class _EditCardScreenState extends ConsumerState<EditCardScreen> {
       _imageSide = (n.fields['image_side'] as String?) == 'back' ? 'back' : 'front';
       _alt.text = n.fields['image_alt'] as String? ?? '';
       _credit = n.fields['image_credit'] as String? ?? '';
+      _keywords.text = n.fields['image_query'] as String? ?? '';
     }
     setState(() {
       _note = n;
@@ -87,7 +89,7 @@ class _EditCardScreenState extends ConsumerState<EditCardScreen> {
 
   /// What to search for: only the AI's `image_query` hint. A guess from the question text gave
   /// nonsense ("According to E"), so without a hint the box starts empty for the learner to fill.
-  String _suggestedQuery() => cleanImageQuery(_note?.fields['image_query']) ?? '';
+  String _suggestedQuery() => cleanImageQuery(_keywords.text) ?? '';
 
   /// The first online step in the app, so it asks once and says exactly what leaves the phone.
   Future<bool> _consentToOnline() async {
@@ -142,6 +144,7 @@ class _EditCardScreenState extends ConsumerState<EditCardScreen> {
       c.dispose();
     }
     _alt.dispose();
+    _keywords.dispose();
     final abandoned = _newImage;
     if (!_saved && abandoned != null && abandoned != _originalImage) {
       _media.deleteIfOrphan(abandoned).ignore(); // picked but never saved
@@ -154,7 +157,8 @@ class _EditCardScreenState extends ConsumerState<EditCardScreen> {
     final errors = await ref.read(cardEditServiceProvider).update(widget.noteId, {
       for (final e in _ctl.entries) e.key: e.value.text,
       'image': _image ?? '',
-      'image_side': _image == null ? '' : _imageSide,
+      'image_side': _imageSide, // kept without a picture too: it is where a picture will go
+      'image_query': _keywords.text,
       'image_alt': _image == null ? '' : _alt.text,
       'image_credit': _image == null ? '' : _credit,
     });
@@ -202,6 +206,17 @@ class _EditCardScreenState extends ConsumerState<EditCardScreen> {
     final t = Theme.of(context).textTheme;
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Text('Picture (optional)', style: t.labelLarge),
+      const SizedBox(height: 8),
+      TextField(
+        controller: _keywords,
+        maxLength: kMaxImageQueryChars,
+        decoration: const InputDecoration(
+          labelText: 'Image keywords',
+          helperText: 'Used by Find a picture. They stay on the card even if you never add a picture.',
+          helperMaxLines: 2,
+          counterText: '',
+        ),
+      ),
       const SizedBox(height: 8),
       if (_image != null) ...[
         CardPicture(sha: _image!, alt: _alt.text, credit: _credit, maxHeight: 180),
