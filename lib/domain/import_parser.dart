@@ -74,7 +74,11 @@ class ImportPreview {
     required this.cards,
     required this.fatalErrors,
     this.reading = const [],
+    this.foundationOf,
   });
+
+  /// Set when the answer is to a "build the foundations" prompt: the note the new cards prepare for.
+  final int? foundationOf;
 
   /// Further reading the AI suggested for this topic (optional; never makes an import fail).
   final List<ReadingSuggestion> reading;
@@ -163,7 +167,13 @@ ImportPreview parseImportJson(String raw) {
     cards: cards,
     fatalErrors: fatal,
     reading: parseFurtherReading(decoded['further_reading']),
+    foundationOf: _positiveInt(decoded['foundation_of']),
   );
+}
+
+int? _positiveInt(Object? v) {
+  final n = v is int ? v : (v is String ? int.tryParse(v.trim()) : null);
+  return n != null && n > 0 ? n : null;
 }
 
 ParsedCard _parseCard(int i, Object? raw) {

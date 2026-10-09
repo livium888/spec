@@ -6,6 +6,7 @@ import 'package:drift/drift.dart';
 
 import '../domain/import_parser.dart';
 import '../domain/learn_planner.dart' show LearnPlanner;
+import '../domain/prompt_template.dart' show kFoundationsTemplateVersion, kMaxFoundationCards;
 import 'db/database.dart';
 
 class ImportSummary {
@@ -108,16 +109,18 @@ class ImportService {
           await db.into(db.domains).insert(DomainsCompanion.insert(name: p.domain, createdAt: t));
 
       final sylId = await _resolveSyllabusItem(domainId, p.syllabusItem);
+      final foundationOf = await _foundationTarget(p, domainId);
 
       var notes = 0, cards = 0;
       for (final c in p.importable) {
         if (selected != null && !selected.contains(c.index)) continue;
+        if (foundationOf != null && notes >= kMaxFoundationCards) break; // one request, at most 4 cards
         final guid = guidFor(p.domain, c.dedupeText);
         // Re-check at commit time: the DB may have changed since preview.
         final dupe = await (db.select(db.notes)..where((n) => n.guid.equals(guid))).getSingleOrNull();
         if (dupe != null) continue;
 
-        final tags = {...c.tags, if (c.unverified) 'unverified'};
+        final tags = {...c.tags, if (c.unverified) 'unverified', if (foundationOf != null) 'foundation'};
         final fields = <String, String>{
           if (c.type == 'cloze') 'cloze': c.cloze else 'front': c.front,
           'back': c.back,
@@ -128,6 +131,8 @@ class ImportService {
           if (c.imageQuery.isNotEmpty) 'image_query': c.imageQuery,
           // Where a picture should go once one is added (the card has no picture yet; see EditCardScreen).
           if (c.imageSide.isNotEmpty) 'image_side': c.imageSide,
+          // Cards that prepare the learner for a hard card: shown first, outside the daily new-card limit (D41).
+          if (foundationOf != null) 'foundation_of': '$foundationOf',
         };
         final noteId = await db.into(db.notes).insert(NotesCompanion.insert(
               guid: guid,
@@ -157,6 +162,24 @@ class ImportService {
       final reading = await ReadingService(db).addAll(p.reading, domainId: domainId, syllabusItemId: sylId, now: t);
       return ImportSummary(notes: notes, cards: cards, domainId: domainId, reading: reading);
     });
+  }
+
+  /// The note these cards are foundations for: the id the answer carries, else the one in the latest
+  /// unimported foundations prompt for this subject. Null unless that note exists in this subject.
+  Future<int?> _foundationTarget(ImportPreview p, int domainId) async {
+    var id = p.foundationOf;
+    if (id == null) {
+      final row = await (db.select(db.promptLogs)
+            ..where((x) => x.domainId.equals(domainId) & x.status.equals('issued') & x.templateVersion.equals(kFoundationsTemplateVersion))
+            ..orderBy([(x) => OrderingTerm.desc(x.createdAt), (x) => OrderingTerm.desc(x.id)])
+            ..limit(1))
+          .getSingleOrNull();
+      final m = row == null ? null : RegExp(r'"foundation_of": (\d+)').firstMatch(row.promptText);
+      id = m == null ? null : int.tryParse(m.group(1)!);
+    }
+    if (id == null) return null;
+    final note = await (db.select(db.notes)..where((n) => n.id.equals(id!) & n.domainId.equals(domainId))).getSingleOrNull();
+    return note?.id;
   }
 
   /// Which syllabus topic do these cards belong to?

@@ -177,7 +177,7 @@ void main() {
       expect(g2.text, contains('Colour first question 0?'), reason: 'existing cards are excluded');
       var item = await db.select(db.syllabusItems).getSingle();
       expect((item.rounds, item.targetCards, item.status), (2, 10, 'active'));
-      expect((await db.select(db.promptLogs).get()).last.templateVersion, 'v6+deeper');
+      expect((await db.select(db.promptLogs).get()).last.templateVersion, 'v7+deeper');
       expect(((await db.select(db.engineDecisions).get()).last.chosenJson), contains('revisit'));
 
       // Until the new cards arrive it is "in progress", and a repeat press shows the pending prompt.

@@ -9,6 +9,7 @@ import '../data/backup/backup_service.dart';
 import '../data/db/database.dart';
 import '../data/engine_service.dart';
 import '../data/error_log.dart';
+import '../data/foundation_service.dart';
 import '../data/card_edit_service.dart';
 import '../data/import_service.dart';
 import '../data/keywords_service.dart';
@@ -88,6 +89,8 @@ final learnServiceProvider = Provider((ref) => LearnService(
     ref.watch(dbProvider), ref.watch(settingsRepoProvider), ref.watch(queueServiceProvider)));
 final promptServiceProvider = Provider(
     (ref) => PromptService(ref.watch(dbProvider), settings: ref.watch(settingsRepoProvider)));
+final foundationServiceProvider =
+    Provider((ref) => FoundationService(ref.watch(dbProvider), ref.watch(settingsRepoProvider)));
 final interestServiceProvider = Provider((ref) => InterestService(ref.watch(dbProvider)));
 final featuresServiceProvider = Provider(
     (ref) => EngineFeaturesService(ref.watch(dbProvider), ref.watch(settingsRepoProvider)));

@@ -9,6 +9,7 @@ import '../data/settings_repo.dart';
 import '../domain/card_memory.dart';
 import '../domain/study_card.dart';
 import 'format.dart';
+import 'prompt_result_screen.dart';
 import 'theme/tokens.dart';
 
 /// "About this card": the state in plain words, the model's three numbers for this card
@@ -22,11 +23,12 @@ Future<void> showCardInfo(BuildContext context, StudyCard card) => showModalBott
     );
 
 class _Loaded {
-  const _Loaded(this.w, this.target, this.history, this.learning, this.relearning);
+  const _Loaded(this.w, this.target, this.history, this.learning, this.relearning, this.foundations);
   final List<double> w;
   final double target;
   final CardHistory history;
   final List<int> learning, relearning;
+  final int foundations; // foundation cards already made for this card
 }
 
 class CardInfoSheet extends ConsumerStatefulWidget {
@@ -50,6 +52,7 @@ class _CardInfoSheetState extends ConsumerState<CardInfoSheet> {
       history,
       await s.getIntList(SettingsRepo.learningSteps, [1, 10]),
       await s.getIntList(SettingsRepo.relearningSteps, [10]),
+      await ref.read(foundationServiceProvider).countFor(widget.card.noteId),
     );
   }
 
@@ -105,6 +108,8 @@ class _CardInfoSheetState extends ConsumerState<CardInfoSheet> {
         Semantics(header: true, child: Text(e.title, style: t.headlineSmall)),
         const SizedBox(height: 6),
         Text(e.body, style: t.bodyLarge),
+        const SizedBox(height: 14),
+        _foundations(context, d),
         const SizedBox(height: 18),
         Semantics(header: true, child: Text('Memory statistics', style: t.titleMedium)),
         if (!m.hasModel)
@@ -172,6 +177,43 @@ class _CardInfoSheetState extends ConsumerState<CardInfoSheet> {
         ),
       ]),
     );
+  }
+
+  /// "Build the foundations": a prompt for 2 to 4 cards on the ideas this card rests on.
+  Widget _foundations(BuildContext context, _Loaded d) {
+    final t = Theme.of(context).textTheme;
+    final c = AppColors.of(context);
+    final isFoundation = widget.card.fields['foundation_of'] != null;
+    if (isFoundation) {
+      return Text('This card is a foundation: it prepares you for a harder card.', style: t.bodyMedium?.copyWith(color: c.inkSoft));
+    }
+    if (d.foundations > 0) {
+      return Row(children: [
+        Icon(Icons.check_circle_outline, color: c.good),
+        const SizedBox(width: 8),
+        Expanded(child: Text('Foundations added: ${d.foundations} ${d.foundations == 1 ? 'card' : 'cards'} that prepare you for this one.', style: t.bodyMedium)),
+      ]);
+    }
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text('Hard, but you like the idea? Get 2 to 4 short cards on the ideas it rests on, from your own AI.', style: t.bodyMedium),
+      const SizedBox(height: 8),
+      OutlinedButton.icon(
+        style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(52)),
+        icon: const Icon(Icons.layers_outlined),
+        label: const Text('Build the foundations'),
+        onPressed: () async {
+          final nav = Navigator.of(context);
+          final messenger = ScaffoldMessenger.of(context);
+          try {
+            final g = await ref.read(foundationServiceProvider).promptFor(widget.card.noteId);
+            nav.pop();
+            await nav.push(MaterialPageRoute<void>(builder: (_) => PromptResultScreen(prompt: g)));
+          } catch (e) {
+            messenger.showSnackBar(SnackBar(content: Text('Could not build the prompt: $e')));
+          }
+        },
+      ),
+    ]);
   }
 
   static String _days(double d) {

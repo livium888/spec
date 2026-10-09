@@ -112,6 +112,12 @@ class GuideScreen extends StatelessWidget {
               'or Crossref whether a work with that title and author is listed (this goes online, once you agree). Listed does not mean good: look at the author and '
               'the publisher. "Look it up" opens the catalogue page in a tab over the app; close it to go back to your list.'),
 
+          heading('A card is too hard?'),
+          para('Tap the small tag at the top of a card (New, Learning, Review). The sheet explains where the card is in your memory, with numbers and a curve. '
+              'If the card is hard but you like the idea, tap "Build the foundations": you get a prompt for 2 to 4 short cards on the ideas it rests on. '
+              'Send it to your AI, share the answer back, and those cards come first, outside your daily limit. They teach by asking you to explain and predict, not to name terms. '
+              'The hard card itself is not changed.'),
+
           heading('Daily reminder'),
           para('Settings > Daily reminder: one short, friendly nudge a day at the time you choose. If you have already done today\'s reviews, '
               'the next one is tomorrow. Some phones stop background reminders to save battery; if it does not appear, check the phone\'s battery settings for this app.'),

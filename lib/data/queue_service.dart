@@ -11,6 +11,9 @@ import 'settings_repo.dart';
 const kDefaultLearnAheadMinutes = 20;
 const kMaxLearnAheadMinutes = 60;
 
+/// Foundation cards that may be introduced in one day, on top of the daily new-card limit.
+const kMaxFoundationPerDay = 8;
+
 /// A card answered less than this long ago is not offered early again.
 const kLearnAheadMinGapMs = 60000;
 
@@ -58,10 +61,17 @@ class QueueService {
     final shrink = await settings.get(SettingsRepo.backlogShrink) == '1';
     final limit = shrink ? backlogAdjustedNewLimit(base, dueReviewCount, divisor: divisor) : (base < 0 ? 0 : base);
     final remaining = (limit - introduced).clamp(0, limit);
+    // Foundation cards (made to prepare for a hard card) come first and do not use up the daily limit.
+    final isFoundation = CustomExpression<bool>("note.fields_json LIKE '%\"foundation_of\":%'");
+    final foundationNew = await fetch(
+      db.cards.state.equals('new') & isFoundation,
+      [OrderingTerm.asc(db.notes.createdAt), OrderingTerm.asc(db.cards.id)],
+      limit: kMaxFoundationPerDay * 2,
+    );
     final newCards = remaining == 0
         ? <StudyCard>[]
         : await fetch(
-            db.cards.state.equals('new'),
+            db.cards.state.equals('new') & isFoundation.not(),
             [OrderingTerm.asc(db.notes.createdAt), OrderingTerm.asc(db.cards.id)],
             limit: remaining * 4, // headroom: sibling filtering may drop some
           );
@@ -72,7 +82,7 @@ class QueueService {
         [for (final c in xs) if (seen.add(c.noteId)) c];
     final l = dedupe(learning);
     final r = dedupe(reviews);
-    final n = dedupe(newCards).take(remaining).toList();
+    final n = [...dedupe(foundationNew).take(kMaxFoundationPerDay), ...dedupe(newCards).take(remaining)];
 
     // Learn-ahead: when nothing else is due, learning cards that are only minutes away are offered
     // now. A card answered in the last minute is not shown again at once (that is not spacing).

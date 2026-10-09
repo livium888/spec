@@ -170,6 +170,22 @@ void main() {
     await done(t, db);
   });
 
+  testWidgets('about this card: "Build the foundations" opens a prompt for that card to copy into an AI', (t) async {
+    final db = await boot(t);
+    await t.tap(find.text('Keep going'));
+    await settle(t);
+    await t.tap(find.byIcon(Icons.info_outline));
+    await settle(t);
+    expect(find.textContaining('Hard, but you like the idea?'), findsOneWidget);
+    await t.ensureVisible(find.text('Build the foundations'));
+    await t.tap(find.text('Build the foundations'));
+    await settle(t);
+    expect(find.text('Build the foundations for this card'), findsOneWidget);
+    expect(find.text('Copy prompt'), findsOneWidget);
+    expect(find.textContaining('do not use up your daily limit'), findsOneWidget);
+    await done(t, db);
+  });
+
   testWidgets('finishing a session shows a summary with the streak', (t) async {
     final db = await boot(t);
     await t.tap(find.text('Keep going'));

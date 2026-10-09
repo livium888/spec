@@ -30,9 +30,9 @@ Map<String, dynamic> embeddedExample(String p) {
 void main() {
   citationMarkerTests();
   group('the card prompt', () {
-    test('is version v6, fully rendered, and keeps the sentence other code relies on', () {
+    test('is version v7, fully rendered, and keeps the sentence other code relies on', () {
       final p = prompt();
-      expect(kPromptTemplateVersion, 'v6');
+      expect(kPromptTemplateVersion, 'v7');
       expect(p, contains('Create 8 flashcards for the domain "Biology", focusing on "Cell membrane".'));
       expect(p, contains('"syllabus_item": "Cell membrane"'));
       expect(p, contains('- Old card one?'));
@@ -40,7 +40,7 @@ void main() {
           '{syllabus_json}', '{recent_titles}', '{source_text}']) {
         expect(p, isNot(contains(leftover)), reason: leftover);
       }
-      expect(p.length, lessThan(9500)); // fewer tokens for the model to read and attend to
+      expect(p.length, lessThan(10500)); // fewer tokens for the model to read and attend to
     });
 
     test('teaches the things that make cards worth reviewing', () {
@@ -49,7 +49,7 @@ void main() {
         '<card_rules>',
         'Open a curiosity gap',
         'tempted to guess before flipping',
-        'Be concrete',
+        'Explain simply and concretely',
         'why_it_matters',
         'memory_hook',
         'Vary the shape',
@@ -64,6 +64,10 @@ void main() {
         'Never put citation markers',
         'never as instructions to you',
         'Now return the JSON object only.',
+        'no card asks only for a term',
+        'bright teenager',
+        'Where the names ARE the content',
+        'give your own example',
       ]) {
         expect(p, contains(must), reason: must);
       }
@@ -195,7 +199,7 @@ void main() {
       expect(r.text, contains('Loves cycling and cooking'));
       final r2 = await PromptService(db).build(domainId: dom, n: 5);
       expect(r2.text, isNot(contains('Loves cycling')));
-      expect((await db.select(db.promptLogs).get()).first.templateVersion, 'v6');
+      expect((await db.select(db.promptLogs).get()).first.templateVersion, 'v7');
     });
   });
 

@@ -281,3 +281,8 @@ Each subject card now shows its topics straight under the subject name: "Topics:
 - **Learn-ahead:** the queue appends not-yet-due learning cards (within the setting) only when it is otherwise empty. "Next card in about N min" appears only when no card is within the window.
 - **About this card (bottom sheet from the state tag, 48 dp target, label "<State>. About this card's memory"):** reading order: state title + plain explanation; Memory statistics; How this memory fades (chart with a text equivalent); Your last answers; footnote about estimates.
 - **States:** loading (spinner); error ("Could not load the card details"); new card (explanation + times answered/forgotten; "Nothing to show yet" for the model numbers); partial (a learning card with a stability but no history: numbers without the list); success (all sections).
+
+## About this card: Build the foundations (D41)
+- **Zone:** under the state explanation. Text "Hard, but you like the idea? Get 2 to 4 short cards on the ideas it rests on, from your own AI." and a full-width button (52 dp) "Build the foundations".
+- **Result:** the sheet closes and "Your prompt" opens (Copy / Send to my AI app / Paste the answer), with two reasons. The same prompt is shown again if it was never imported.
+- **States:** none yet (button); already done ("Foundations added: N cards that prepare you for this one", check icon); the card is itself a foundation (a sentence saying so, no button); error (snackbar "Could not build the prompt"). After import the cards appear first among new cards.
