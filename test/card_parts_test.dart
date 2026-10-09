@@ -118,27 +118,37 @@ void main() {
     });
   });
 
-  group('ExtrasTabs', () {
-    testWidgets('one extra is shown directly; several become tabs that switch the text', (t) async {
-      await t.pumpWidget(host(const ExtrasTabs(extras: [('Example', 'Only one')], strong: Colors.teal, tint: Colors.white)));
+  group('ExtrasStack', () {
+    testWidgets('every extra is shown at once, in order, each under its label; no tabs', (t) async {
+      await t.pumpWidget(host(const ExtrasStack(
+          extras: [('Why it matters', 'Because'), ('Example', 'For instance'), ('Memory hook', 'A ghost')], strong: Colors.teal)));
+      for (final x in ['Why it matters', 'Because', 'Example', 'For instance', 'Memory hook', 'A ghost']) {
+        expect(find.text(x), findsOneWidget, reason: x);
+      }
+      expect(find.byType(ChoiceChip), findsNothing);
+      // reading order: top to bottom as given
+      final ys = [for (final x in ['Why it matters', 'Example', 'Memory hook']) t.getTopLeft(find.text(x)).dy];
+      expect(ys, orderedEquals([...ys]..sort()));
+    });
+
+    testWidgets('one extra shows directly with its label', (t) async {
+      await t.pumpWidget(host(const ExtrasStack(extras: [('Example', 'Only one')], strong: Colors.teal)));
       expect(find.text('Example'), findsOneWidget);
       expect(find.text('Only one'), findsOneWidget);
-      expect(find.byType(ChoiceChip), findsNothing);
+    });
 
-      await t.pumpWidget(host(const ExtrasTabs(
-          extras: [('Why it matters', 'Because'), ('Example', 'For instance'), ('Memory hook', 'A ghost')], strong: Colors.teal, tint: Colors.white)));
-      expect(find.byType(ChoiceChip), findsNWidgets(3));
-      expect(find.text('Because'), findsOneWidget);
-      expect(find.text('For instance'), findsNothing);
-      await t.tap(find.text('Example'));
-      await t.pumpAndSettle();
-      expect(find.text('For instance'), findsOneWidget);
-      expect(find.text('Because'), findsNothing);
-      expect(t.widget<ChoiceChip>(find.widgetWithText(ChoiceChip, 'Example')).selected, isTrue);
+    testWidgets('the label is a heading for screen readers and the text follows the size scale', (t) async {
+      final h = t.ensureSemantics();
+      await t.pumpWidget(host(const ExtrasStack(extras: [('Example', 'Body')], strong: Colors.teal, scale: 2.0)));
+      expect(t.getSemantics(find.text('Example')).flagsCollection.isHeader, isTrue);
+      final small = t.widget<SelectableText>(find.byType(SelectableText)).style!.fontSize!;
+      await t.pumpWidget(host(const ExtrasStack(extras: [('Example', 'Body')], strong: Colors.teal, scale: 1.0)));
+      expect(t.widget<SelectableText>(find.byType(SelectableText)).style!.fontSize!, lessThan(small));
+      h.dispose();
     });
 
     testWidgets('nothing at all when the card has no extras', (t) async {
-      await t.pumpWidget(host(const ExtrasTabs(extras: [], strong: Colors.teal, tint: Colors.white)));
+      await t.pumpWidget(host(const ExtrasStack(extras: [], strong: Colors.teal)));
       expect(find.byType(Text), findsNothing);
     });
   });

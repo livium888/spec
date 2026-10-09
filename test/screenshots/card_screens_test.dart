@@ -81,11 +81,6 @@ void main() {
         await t.tapAt(const Offset(200, 380)); // tap the card: reveal
         await settle(t);
         await shot(t, key, 'b_${name}_${tag}_2back');
-        if (find.text('Example').evaluate().isNotEmpty) {
-          await t.tap(find.text('Example'));
-          await settle(t);
-          await shot(t, key, 'b_${name}_${tag}_3example');
-        }
         await t.tap(find.text('Good').first);
         await settle(t);
       }

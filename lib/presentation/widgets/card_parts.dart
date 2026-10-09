@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../../domain/study_card.dart';
-import '../theme/app_theme.dart';
 import '../theme/tokens.dart';
 
 bool _reduceMotion(BuildContext context) => MediaQuery.maybeDisableAnimationsOf(context) ?? false;
@@ -151,69 +150,34 @@ class _RevealPanelState extends State<RevealPanel> with SingleTickerProviderStat
   }
 }
 
-/// Why it matters / Example / Memory hook. One extra is shown directly; several become small tabs,
-/// so a long answer stays tidy and the learner reads one thing at a time.
-class ExtrasTabs extends StatefulWidget {
-  const ExtrasTabs({super.key, required this.extras, required this.strong, required this.tint, this.scale = 1.0});
+/// Why it matters / Example / Memory hook, all shown one under the other, each with its label.
+/// Nothing is hidden behind a tap or a swipe: learners forgot to open tabs, and horizontal swipes
+/// clash with the phone's back gesture and need a second way to operate (WCAG 2.5.1).
+class ExtrasStack extends StatelessWidget {
+  const ExtrasStack({super.key, required this.extras, required this.strong, this.scale = 1.0});
   final List<(String, String)> extras;
-  final Color strong, tint;
+  final Color strong;
 
   /// Multiplies the body text size (the learner's "Card text size").
   final double scale;
-  @override
-  State<ExtrasTabs> createState() => _ExtrasTabsState();
-}
-
-class _ExtrasTabsState extends State<ExtrasTabs> {
-  int _i = 0;
 
   @override
   Widget build(BuildContext context) {
-    final t = Theme.of(context).textTheme;
-    final c = AppColors.of(context);
-    final extras = widget.extras;
     if (extras.isEmpty) return const SizedBox.shrink();
-    final idx = _i.clamp(0, extras.length - 1);
-    final reduce = _reduceMotion(context);
-    final body = extras[idx].$2;
-    final bodyStyle = t.bodyLarge?.copyWith(fontSize: (t.bodyLarge?.fontSize ?? 17) * widget.scale);
-    if (extras.length == 1) {
-      return Padding(
-        padding: const EdgeInsets.only(top: 18),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(extras[0].$1, style: t.labelMedium?.copyWith(color: widget.strong, fontWeight: FontWeight.w700)),
-          const SizedBox(height: 3),
-          SelectableText(body, style: bodyStyle),
-        ]),
-      );
-    }
+    final t = Theme.of(context).textTheme;
+    final bodyStyle = t.bodyLarge?.copyWith(fontSize: (t.bodyLarge?.fontSize ?? 17) * scale);
     return Padding(
-      padding: const EdgeInsets.only(top: 18),
+      padding: const EdgeInsets.only(top: 22),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Wrap(spacing: 8, runSpacing: 4, children: [
-          for (final (k, e) in extras.indexed)
-            ChoiceChip(
-              label: Text(e.$1),
-              selected: k == idx,
-              showCheckmark: false,
-              selectedColor: widget.tint,
-              backgroundColor: c.surfaceDim,
-              side: BorderSide(color: k == idx ? widget.strong : Colors.transparent, width: 1.5),
-              labelStyle: AppText.sans(13, weight: k == idx ? 700 : 550, color: k == idx ? widget.strong : c.inkSoft),
-              labelPadding: const EdgeInsets.symmetric(horizontal: 4),
-              onSelected: (_) => setState(() => _i = k),
-            ),
-        ]),
-        const SizedBox(height: 10),
-        AnimatedSwitcher(
-          duration: reduce ? Duration.zero : const Duration(milliseconds: 200),
-          layoutBuilder: (current, previous) => Stack(alignment: Alignment.topLeft, children: [...previous, ?current]),
-          child: Align(
-            key: ValueKey(idx),
-            alignment: Alignment.topLeft,
-            child: SelectableText(body, style: bodyStyle),
+        for (final (i, e) in extras.indexed) ...[
+          if (i > 0) const SizedBox(height: 18),
+          Semantics(
+            header: true,
+            child: Text(e.$1, style: t.labelMedium?.copyWith(color: strong, fontWeight: FontWeight.w700)),
           ),
-        ),
+          const SizedBox(height: 4),
+          SelectableText(e.$2, style: bodyStyle),
+        ],
       ]),
     );
   }

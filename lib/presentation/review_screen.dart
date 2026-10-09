@@ -505,7 +505,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
         const SizedBox(height: 16),
       ],
       if (back.isNotEmpty) SelectableText(back, style: AppText.sans(answerFontSize(_textSize), weight: 650, height: 1.4, color: c.ink)),
-      ExtrasTabs(extras: card.extras, strong: style.strong, tint: style.tint, scale: extrasScale(_textSize)),
+      ExtrasStack(extras: card.extras, strong: style.strong, scale: extrasScale(_textSize)),
       if (source.isNotEmpty)
         Padding(
           padding: const EdgeInsets.only(top: 18),
