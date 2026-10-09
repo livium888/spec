@@ -254,6 +254,30 @@ class LearnService {
       (db.update(db.domains)..where((d) => d.id.equals(domainId)))
           .write(DomainsCompanion(revisit: Value(on)));
 
+  /// A prompt to make cards for one topic chosen by hand (the map and the topic list use it).
+  Future<GeneratedPrompt> promptForTopic(int itemId, {DateTime? now}) async {
+    final it = await (db.select(db.syllabusItems)..where((x) => x.id.equals(itemId))).getSingle();
+    final dom = await (db.select(db.domains)..where((d) => d.id.equals(it.domainId))).getSingle();
+    final cards = (await db.customSelect(
+            'SELECT COUNT(*) AS n FROM card c JOIN note n ON n.id = c.note_id WHERE n.syllabus_item_id = ?',
+            variables: [Variable.withInt(itemId)])
+        .getSingle())
+        .read<int>('n');
+    final stats = ItemStats(
+      id: it.id, domainId: it.domainId, domainName: dom.name, title: it.title,
+      position: it.position, status: it.status, targetCards: it.targetCards, cardCount: cards, rounds: it.rounds,
+    );
+    final deeper = it.status == 'done' && cards > 0;
+    final opt = LearnOption(
+      action: deeper ? LearnAction.revisit : (cards == 0 ? LearnAction.newItem : LearnAction.deepen),
+      item: stats,
+      score: 0,
+      reasons: const ['Chosen by you.'],
+      count: deeper ? const LearnPlanner().revisitStep(it.targetCards) : (cards == 0 ? it.targetCards.clamp(1, 10) : (it.targetCards - cards).clamp(1, 10)),
+    );
+    return choose(opt, await view(), manual: true, now: now);
+  }
+
   /// What a topic is practised with: '' (the AI decides), 'concepts', 'problems' or 'both' (D43).
   Future<void> setTopicPractice(int itemId, String practice) =>
       (db.update(db.syllabusItems)..where((x) => x.id.equals(itemId)))

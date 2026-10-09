@@ -244,6 +244,62 @@ void main() {
   }
 
   for (final dark in [false, true]) {
+    testWidgets('knowledge map (${dark ? 'dark' : 'light'})', (t) async {
+      Directory(_dir!).createSync(recursive: true);
+      final db = AppDatabase(NativeDatabase.memory());
+      final out = OutlineService(db);
+      await out.commit(await out.preview(jsonEncode({
+        'domain': 'Physics',
+        'items': [
+          {'title': 'Kinematics', 'target_cards': 6, 'practice': 'problems'},
+          {'title': 'Vectors', 'target_cards': 6},
+          {'title': 'Forces and Newton\'s laws', 'target_cards': 6, 'prerequisites': ['Kinematics', 'Vectors'], 'practice': 'both'},
+          {'title': 'Energy and work', 'target_cards': 6, 'prerequisites': ['Forces and Newton\'s laws']},
+          {'title': 'Momentum', 'target_cards': 6, 'prerequisites': ['Forces and Newton\'s laws']},
+          {'title': 'Waves', 'target_cards': 6},
+          {'title': 'Optics', 'target_cards': 6, 'prerequisites': ['Waves']},
+          {'title': 'Thermodynamics', 'target_cards': 6, 'prerequisites': ['Energy and work']},
+        ],
+      })));
+      final imp = ImportService(db);
+      Map<String, dynamic> c(String q) => {'type': 'basic', 'front': q, 'back': 'A', 'source_type': 'model_memory', 'confidence': 'high'};
+      Future<void> topic(String name, int n) async => imp.commit(await imp.preview(
+          jsonEncode({'domain': 'Physics', 'syllabus_item': name, 'cards': [for (var i = 0; i < n; i++) c('$name $i?')]})));
+      await topic('Kinematics', 6);
+      await topic('Vectors', 6);
+      await topic('Forces and Newton\'s laws', 2);
+      await topic('Waves', 5);
+      await topic('Optics', 6);
+      final nowMs = DateTime.now().toUtc().millisecondsSinceEpoch;
+      Future<void> set(String like, String set) => db.customStatement(
+          "UPDATE card SET $set WHERE note_id IN (SELECT id FROM note WHERE fields_json LIKE '%$like%')");
+      await set('Kinematics', "state='review', stability=80, last_review=${nowMs - 86400000}, reps=6");
+      await set('Vectors', "state='review', stability=2, last_review=${nowMs - 40 * 86400000}, reps=5");
+      await set('Forces', "state='learning', stability=1, last_review=${nowMs - 3600000}, reps=1");
+      await set('Waves', "state='review', stability=30, last_review=${nowMs - 3 * 86400000}, reps=4");
+      await set('Optics', "state='review', stability=5, last_review=${nowMs - 20 * 86400000}, reps=4");
+      final key = GlobalKey();
+      await boot(t, db, key, dark: dark);
+      final tag = dark ? 'dark' : 'light';
+      await t.tap(find.text('Library'));
+      await settle(t);
+      await t.tap(find.text('Physics').last);
+      await settle(t);
+      await t.tap(find.byTooltip('Knowledge map'));
+      await settle(t);
+      await shot(t, key, 'g_map_${tag}_1map');
+      await t.tap(find.text('List'));
+      await settle(t);
+      await shot(t, key, 'g_map_${tag}_2list');
+      await t.tap(find.text('Energy and work').first);
+      await settle(t);
+      await shot(t, key, 'g_map_${tag}_3sheet');
+      await t.pumpWidget(const SizedBox());
+      await t.runAsync(db.close);
+    }, skip: skip);
+  }
+
+  for (final dark in [false, true]) {
     testWidgets('find a picture screen (${dark ? 'dark' : 'light'})', (t) async {
       Directory(_dir!).createSync(recursive: true);
       final path = Platform.environment['ART_IMAGE'];

@@ -300,3 +300,11 @@ Each subject card now shows its topics straight under the subject name: "Topics:
 - **Settings:** "New problems per day".
 - **Import preview:** a problem family shows "Problem with N steps in 4 levels, plus 2 more to practise" and whether the arithmetic was checked; a failed check is listed as an error and the family cannot be imported.
 - **Edit card:** a problem has the problem, steps (one per line), answer and why it matters.
+
+## Knowledge map (D44)
+- **Entry:** Library > a subject (Topics) > the map icon ("Knowledge map").
+- **Zones, top to bottom:** Map / List switch; "Next up" with a chip per ready topic (or "Nothing is ready yet" with a hint, or "Everything here is solid"); legend (icon and word per state); the map or the list.
+- **Map:** topic tiles in layers (prerequisites above), curved lines with arrowheads, pan and pinch-zoom (0.4x to 2.2x); the tile has a progress ring with the state icon, the title, the state word and percent, and small icons for problems, foundation cards and "held back". The line from a weak prerequisite is thick and in the warning colour.
+- **List:** "Start here", then "Builds on the topics above"; each topic: state icon, title, state, percent known, what it needs, what holds it back.
+- **Topic sheet:** state and meaning; Known now, Cards, Recall of what you have learned, hard cards, foundation cards, "practised with"; "Held back by ..."; "Builds on" with states; "Make cards for this topic" / "Add more cards"; "Practise with" chips (AI decides, Concepts, Problems, Both); skip or offer again.
+- **States:** loading; error; subject without topics ("No topics yet..."); topics but no cards (all Not started, next up lists the ones with no prerequisites); all solid.

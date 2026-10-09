@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../app/providers.dart';
 import '../data/db/database.dart';
 import '../domain/learn_planner.dart';
+import 'knowledge_map_screen.dart';
 import 'prompt_result_screen.dart';
 
 class _Row {
@@ -149,7 +150,19 @@ class _TopicsScreenState extends ConsumerState<TopicsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(widget.pickMode ? 'Choose a topic' : 'Topics')),
+      appBar: AppBar(
+        title: Text(widget.pickMode ? 'Choose a topic' : 'Topics'),
+        actions: [
+          if (!widget.pickMode && widget.domainId != null)
+            IconButton(
+              tooltip: 'Knowledge map',
+              icon: const Icon(Icons.account_tree_outlined),
+              onPressed: () => Navigator.of(context)
+                  .push(MaterialPageRoute<void>(builder: (_) => KnowledgeMapScreen(domainId: widget.domainId!)))
+                  .then((_) => _load()),
+            ),
+        ],
+      ),
       body: SafeArea(
         child: _error != null
             ? Center(child: Padding(padding: const EdgeInsets.all(16), child: Text('Could not load: $_error')))

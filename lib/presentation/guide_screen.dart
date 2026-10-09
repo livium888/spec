@@ -124,6 +124,11 @@ class GuideScreen extends StatelessWidget {
               'refuses a problem whose numbers do not add up. It cannot tell whether the method is right, so read the steps. In Library > Subjects and topics you can set '
               'each topic to concepts, problems or both. Settings > New problems per day sets how many new problems appear a day.'),
 
+          heading('The knowledge map'),
+          para('Library > a subject > the map icon shows the subject\'s topics as a map, with what each one needs above it. Each topic says how well you know it right now: '
+              'Not started, Learning, Solid, Fading (slipping) or Needs attention. "Next up" lists topics whose earlier topics are solid. A topic with a lock icon is held back by a '
+              'weaker earlier topic; tap it to see which. The numbers come from the same memory estimates as "about this card", so they are estimates. The List view shows the same facts as text.'),
+
           heading('A card is too hard?'),
           para('Tap the small tag at the top of a card (New, Learning, Review). The sheet explains where the card is in your memory, with numbers and a curve. '
               'If the card is hard but you like the idea, tap "Build the foundations": you get a prompt for 2 to 4 short cards on the ideas it rests on. '

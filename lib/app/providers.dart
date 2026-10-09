@@ -13,6 +13,7 @@ import '../data/foundation_service.dart';
 import '../data/card_edit_service.dart';
 import '../data/import_service.dart';
 import '../data/keywords_service.dart';
+import '../data/knowledge_service.dart';
 import '../data/learn_service.dart';
 import '../data/media_service.dart';
 import '../data/optimizer_service.dart';
@@ -89,6 +90,7 @@ final learnServiceProvider = Provider((ref) => LearnService(
     ref.watch(dbProvider), ref.watch(settingsRepoProvider), ref.watch(queueServiceProvider)));
 final promptServiceProvider = Provider(
     (ref) => PromptService(ref.watch(dbProvider), settings: ref.watch(settingsRepoProvider)));
+final knowledgeServiceProvider = Provider((ref) => KnowledgeService(ref.watch(dbProvider), ref.watch(paramsRepoProvider)));
 final foundationServiceProvider =
     Provider((ref) => FoundationService(ref.watch(dbProvider), ref.watch(settingsRepoProvider)));
 final interestServiceProvider = Provider((ref) => InterestService(ref.watch(dbProvider)));

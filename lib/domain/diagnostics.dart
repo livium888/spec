@@ -51,6 +51,8 @@ const kPhoneCheck = <PhoneCheckItem>[
       'Learn something new in a maths, physics or chemistry subject. In the review the formulas are drawn (not dollar signs and backslashes) and bold or bullets look right. Edit a card: the preview shows the same. Note any formula that shows as code.'),
   PhoneCheckItem('problems', 'Problem cards',
       'In a maths or physics subject choose Learn something new, or set a topic to Problems (Subjects and topics, the menu on the topic). Import: the preview says Arithmetic checked. Review: the worked example comes first; levels 2 to 4 come on later days with steps hidden. Try Show next step and Show solution.'),
+  PhoneCheckItem('map', 'Knowledge map',
+      'Library > a subject > the map icon at the top. Topics appear as tiles with their prerequisites above; Next up lists what is ready; tap a topic: the sheet shows the state in words. Switch to List: same facts. Pinch to zoom the map.'),
   PhoneCheckItem('speech', 'Read aloud',
       'Subjects and topics > Read cards aloud: pick a language. In a review tap the speaker. If there is no voice, the message says how to install one.'),
   PhoneCheckItem('reminder', 'Daily reminder', 'Turn it on, set a time two minutes ahead, wait for it, tap it.'),
