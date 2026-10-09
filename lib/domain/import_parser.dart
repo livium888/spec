@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'commons.dart' show cleanImageQuery;
+
 /// Strict, pure validation of LLM-produced JSON. UNTRUSTED input: every field
 /// is type-checked and length-capped; nothing is ever evaluated or rendered as
 /// markup.
@@ -28,6 +30,7 @@ class ParsedCard {
     this.whyItMatters = '',
     this.example = '',
     this.memoryHook = '',
+    this.imageQuery = '',
   });
 
   final int index; // 0-based position in the payload
@@ -35,6 +38,9 @@ class ParsedCard {
 
   /// Optional answer-side extras: the story / reason, a concrete example, a memory hook.
   final String whyItMatters, example, memoryHook;
+
+  /// Optional hint for "Find a picture": a few words to search Wikimedia Commons for. Never a URL.
+  final String imageQuery;
   final List<String> tags;
   final List<String> errors;
 
@@ -211,6 +217,8 @@ ParsedCard _parseCard(int i, Object? raw) {
   final why = extra('why_it_matters');
   final example = extra('example');
   final hook = extra('memory_hook');
+  // Only a hint: a missing, odd or URL-like value is dropped quietly, never a reason to refuse the card.
+  final imageQuery = cleanImageQuery(raw['image_query']) ?? '';
 
   final confidence = str('confidence', required: true);
   if (confidence.isNotEmpty && !_confidences.contains(confidence)) {
@@ -247,6 +255,7 @@ ParsedCard _parseCard(int i, Object? raw) {
     whyItMatters: why,
     example: example,
     memoryHook: hook,
+    imageQuery: imageQuery,
   );
 }
 

@@ -2,6 +2,8 @@
     <!-- Daily reminder: show a notification (Android 13+ asks the user), and re-arm it after a reboot. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+    <!-- Only for "Find a picture" (D32): the app asks Wikimedia Commons when the learner taps it, never in the background. -->
+    <uses-permission android:name="android.permission.INTERNET"/>
     <application
         android:allowBackup="false"
         android:fullBackupContent="false"

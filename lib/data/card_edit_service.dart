@@ -89,7 +89,7 @@ class CardEditService {
     if (errors.isNotEmpty) return errors;
 
     final fields = Map<String, dynamic>.from(n.fields);
-    const optional = ['why_it_matters', 'example', 'memory_hook', 'image', 'image_side', 'image_alt'];
+    const optional = ['why_it_matters', 'example', 'memory_hook', 'image', 'image_side', 'image_alt', 'image_credit'];
     final oldImage = n.fields['image'] as String?;
     for (final e in edited.entries) {
       final v = e.value.trim();

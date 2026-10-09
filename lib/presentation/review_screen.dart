@@ -408,7 +408,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
             constraints: const BoxConstraints(minHeight: 300),
             child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
               // Picture first: artwork gets the top of the card, edge to edge, never cropped.
-              if (frontPicture) CardPicture(sha: card.imageSha!, alt: card.imageAlt, maxHeight: 320, flush: true),
+              if (frontPicture) CardPicture(sha: card.imageSha!, alt: card.imageAlt, credit: _revealed ? card.imageCredit : '', maxHeight: 320, flush: true),
               Padding(
                 padding: const EdgeInsets.fromLTRB(22, 20, 22, 24),
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -466,7 +466,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
     final source = card.fields['supporting_quote'] as String? ?? '';
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       if (card.imageSha != null && !card.imageOnFront) ...[
-        CardPicture(sha: card.imageSha!, alt: card.imageAlt),
+        CardPicture(sha: card.imageSha!, alt: card.imageAlt, credit: card.imageCredit),
         const SizedBox(height: 16),
       ],
       if (back.isNotEmpty) SelectableText(back, style: AppText.sans(20, weight: 650, height: 1.4, color: c.ink)),

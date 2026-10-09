@@ -14,6 +14,7 @@ Order that finds the most problems fastest:
 5. Edit and delete a card; Memory model (note how long a fit takes).
 6. Turn on the daily reminder two minutes ahead.
 7. Dark mode and the largest text size.
+8. Edit a card > Find a picture online (the only feature that uses the internet): allow it, search, pick, check the credit shows after you reveal the answer; then try it in airplane mode.
 
 The build number in the report matches the title of the release the APK came from. If it is
 older than the newest build, download again before testing.

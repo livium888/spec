@@ -123,6 +123,7 @@ class ImportService {
           if (c.whyItMatters.isNotEmpty) 'why_it_matters': c.whyItMatters,
           if (c.example.isNotEmpty) 'example': c.example,
           if (c.memoryHook.isNotEmpty) 'memory_hook': c.memoryHook,
+          if (c.imageQuery.isNotEmpty) 'image_query': c.imageQuery,
         };
         final noteId = await db.into(db.notes).insert(NotesCompanion.insert(
               guid: guid,

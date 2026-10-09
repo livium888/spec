@@ -4,9 +4,15 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:daily_learning/app/providers.dart';
 import 'package:daily_learning/data/db/database.dart';
 import 'package:daily_learning/data/import_service.dart';
 import 'package:daily_learning/data/media_service.dart';
+import 'package:daily_learning/data/picture_finder.dart';
+import 'package:daily_learning/domain/commons.dart';
+import 'package:daily_learning/presentation/find_picture_screen.dart';
+import 'package:daily_learning/presentation/theme/app_theme.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -51,7 +57,7 @@ Future<AppDatabase> seedCards() async {
   final bytes = path != null && File(path).existsSync() ? File(path).readAsBytesSync() : Uint8List(0);
   if (bytes.isNotEmpty) {
     final sha = await MediaService(db).save(bytes);
-    await db.customStatement("UPDATE note SET fields_json = json_set(fields_json, '\$.image', '$sha', '\$.image_alt', 'A sunrise over a harbour, painted in loose brushstrokes', '\$.image_side', 'front') "
+    await db.customStatement("UPDATE note SET fields_json = json_set(fields_json, '\$.image', '$sha', '\$.image_alt', 'A sunrise over a harbour, painted in loose brushstrokes', '\$.image_side', 'front', '\$.image_credit', 'Claude Monet · Public domain · Wikimedia Commons') "
         "WHERE fields_json LIKE '%Who painted this%'");
   }
   return db;
@@ -93,4 +99,49 @@ void main() {
       await t.runAsync(db.close);
     }, skip: skip);
   }
+
+  for (final dark in [false, true]) {
+    testWidgets('find a picture screen (${dark ? 'dark' : 'light'})', (t) async {
+      Directory(_dir!).createSync(recursive: true);
+      final path = Platform.environment['ART_IMAGE'];
+      final art = path != null && File(path).existsSync() ? File(path).readAsBytesSync() : Uint8List(0);
+      t.view.physicalSize = const Size(411, 900);
+      t.view.devicePixelRatio = 1.0;
+      addTearDown(t.view.reset);
+      final key = GlobalKey();
+      PictureCandidate c(String n) => PictureCandidate(
+          title: 'File:$n.jpg', pageUrl: 'x', thumbUrl: 'https://upload.wikimedia.org/$n', mime: 'image/jpeg',
+          width: 250, height: 190, credit: 'Claude Monet · Public domain · Wikimedia Commons',
+          description: 'A sunrise over a harbour, painted in loose brushstrokes');
+      final finder = _ArtFinder([c('Impression, Sunrise'), c('Impression Sunrise (detail)'), c('Monet - Harbour at Le Havre'), c('Le Havre sunrise study')], art);
+      await t.pumpWidget(RepaintBoundary(
+        key: key,
+        child: ProviderScope(
+          overrides: [pictureFinderProvider.overrideWithValue(finder)],
+          child: MaterialApp(
+            theme: dark ? AppTheme.dark() : AppTheme.light(),
+            home: const FindPictureScreen(initialQuery: 'Monet Impression Sunrise'),
+          ),
+        ),
+      ));
+      await settle(t);
+      final tag = dark ? 'dark' : 'light';
+      await shot(t, key, 'c_find_${tag}_1results');
+      await t.tap(find.text('Impression, Sunrise'));
+      await settle(t);
+      await shot(t, key, 'c_find_${tag}_2preview');
+    }, skip: skip);
+  }
+}
+
+class _ArtFinder implements PictureFinder {
+  _ArtFinder(this.results, this.bytes);
+  final List<PictureCandidate> results;
+  final Uint8List bytes;
+  @override
+  Future<List<PictureCandidate>> search(String query) async => results;
+  @override
+  Future<PictureCandidate?> forCard(String title) async => results.firstWhere((r) => r.title == title);
+  @override
+  Future<Uint8List> download(String url, {required int maxBytes}) async => bytes;
 }

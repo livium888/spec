@@ -210,7 +210,23 @@ Years selector (1, 2, 3), qualifying count with the honest saving, "Retire N car
 Per subject "Target recall": same as everything else, 80, 85, 90 or 95%, with the hint "Lower means fewer reviews, but you forget a little more."
 
 ## Pictures (Edit card, Review)
-Edit card: "Picture (optional)" section: thumbnail (max 180 px high, tap for full screen), "Shows on the question / answer", a description field (300 characters, for screen readers), "Add a picture" or "Change the picture", "Remove the picture". Errors (too large, not a picture) appear in the live region above Save. A picture picked and then abandoned is deleted when the screen closes. Review: the picture sits under the tags (question side) or above the answer (answer side), max 260 px high; missing picture shows "The picture is missing".
+Edit card: "Picture (optional)" section: thumbnail (max 180 px high, tap for full screen), "Shows on the question / answer", a description field (300 characters, for screen readers), "Add a picture" or "Change the picture", "Remove the picture". Errors (too large, not a picture) appear in the live region above Save. A picture picked and then abandoned is deleted when the screen closes. Review: the picture sits at the top of the card (question side) or above the answer (answer side); missing picture shows "The picture is missing". A picture found online shows its credit line ("Author · Licence · Wikimedia Commons") under it, but only after the answer is revealed (a credit can name the artist, which would answer "who painted this?").
+
+## Find a picture (Edit card > "Find a picture online")
+The one screen that uses the internet (D32). Edit card first asks once ("Look for a picture online?": what is sent, Allow / Not now; also the Settings switch "Find pictures online"). Then: search box prefilled from the card's AI-written `image_query`, else the start of the question; results as a 2-column grid of thumbnails with names; tap one to get a larger preview with its credit, description and licence, "Use this picture" or "Back to results". Nothing is saved until "Use this picture"; the description field is never prefilled (a file name usually names the work).
+
+| State | Shows |
+|---|---|
+| Start, no usable query | search box, hint "Type what the picture should show, then search." |
+| Searching / getting the picture | spinner and "Searching Wikimedia Commons…" (live region) |
+| Results | grid of up to 8 |
+| No results | "No pictures found. Try fewer or more general words, or the name of the work or place." |
+| Error (offline, slow, rate limited, too large, not a picture) | the reason in plain words and "Try again" |
+| Web address typed as the search | refused without going online ("Type a few words ... not a web address") |
+| Preview | picture, name, credit, description, "Is this the right picture for your card?" |
+| Not allowed (consent declined or switch off) | the screen does not open; nothing is sent |
+
+Accessibility: tiles are 48 dp or larger and named "Picture: <name>"; busy and error states are live regions; the search field is labelled and submits from the keyboard.
 
 ## Read aloud (Subjects and topics, Review)
 Per subject: language menu (Off + 19 languages) and, when on, "Which side is written in that language?" (Question / Answer). Top of the screen: "Read aloud automatically". Review: a speaker icon next to the tags (greyed and inert while the language side is the hidden answer); tapping speaks that side with the phone's voice; failures show a snackbar with the reason and how to fix it.

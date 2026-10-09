@@ -29,9 +29,9 @@ Map<String, dynamic> embeddedExample(String p) {
 
 void main() {
   group('the card prompt', () {
-    test('is version v2, fully rendered, and keeps the sentence other code relies on', () {
+    test('is version v3, fully rendered, and keeps the sentence other code relies on', () {
       final p = prompt();
-      expect(kPromptTemplateVersion, 'v2');
+      expect(kPromptTemplateVersion, 'v3');
       expect(p, contains('Create 8 flashcards for the domain "Biology", focusing on "Cell membrane".'));
       expect(p, contains('"syllabus_item": "Cell membrane"'));
       expect(p, contains('- Old card one?'));
@@ -189,7 +189,7 @@ void main() {
       expect(r.text, contains('Loves cycling and cooking'));
       final r2 = await PromptService(db).build(domainId: dom, n: 5);
       expect(r2.text, isNot(contains('Loves cycling')));
-      expect((await db.select(db.promptLogs).get()).first.templateVersion, 'v2');
+      expect((await db.select(db.promptLogs).get()).first.templateVersion, 'v3');
     });
   });
 

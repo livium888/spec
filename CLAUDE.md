@@ -18,7 +18,9 @@ tables go in `docs/SCREENS.md`. Update them in the same commit as the code they 
 - Scheduling must be pure + deterministic (replay == live). Fuzz is seeded, never `Random()`.
 - All time = UTC epoch ms; day rolls over at 04:00 local (configurable).
 - Do NOT copy Anki source (AGPL). Reimplement behaviour only.
-- Offline only. No network calls from the app.
+- Offline only. No network calls from the app, with ONE exception: "Find a picture online" (D32), which
+  asks Wikimedia Commons only when the learner taps it, only after they agreed, and only through
+  `SafeFetcher` (allowed hosts, https, no redirects, size cap). Any other network use needs its own decision record.
 
 ## Tooling
 Flutter SDK may be at /opt/sdk/flutter (not preinstalled). Tests: `flutter test`.

@@ -37,6 +37,8 @@ const kPhoneCheck = <PhoneCheckItem>[
       'Library > Retire mastered cards. If some qualify, retire them, then bring one back.'),
   PhoneCheckItem('picture', 'Picture on a card',
       'Edit a card > Add a picture. It shows on the question or answer in a review; tap it for full screen. Back up and restore: it is still there.'),
+  PhoneCheckItem('find_picture', 'Find a picture online',
+      'Edit a card > Find a picture online. Allow it, search (try "Mona Lisa"), open a result, use it. The credit shows under the picture in a review. Then switch airplane mode on and search again: a clear "could not reach" message, no crash.'),
   PhoneCheckItem('speech', 'Read aloud',
       'Subjects and topics > Read cards aloud: pick a language. In a review tap the speaker. If there is no voice, the message says how to install one.'),
   PhoneCheckItem('reminder', 'Daily reminder', 'Turn it on, set a time two minutes ahead, wait for it, tap it.'),

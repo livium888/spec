@@ -28,6 +28,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 
+import 'find_picture_test.dart' show FakeFinder, candidate;
+
 import 'dir_asset_bundle.dart';
 
 Future<void> settle(WidgetTester t, {int rounds = 8}) async {
@@ -665,7 +667,14 @@ void manualControlWidgetTests() {
     await settle(t);
     await t.scrollUntilVisible(find.text('New cards per day'), 300, scrollable: find.byType(Scrollable).first);
     await t.enterText(find.widgetWithText(TextField, 'New cards per day'), '10000');
-    await t.scrollUntilVisible(find.text('Save settings'), 300, scrollable: find.byType(Scrollable).first);
+    // The page is a long lazy list whose length estimate corrects itself as it builds, so scroll in
+    // settled steps until the Save button exists, then bring it fully on screen.
+    for (var i = 0; i < 30 && find.text('Save settings').evaluate().isEmpty; i++) {
+      await t.drag(find.byType(Scrollable).first, const Offset(0, -300));
+      await t.pumpAndSettle();
+    }
+    await t.ensureVisible(find.text('Save settings'));
+    await t.pumpAndSettle();
     await t.tap(find.text('Save settings'));
     await settle(t);
     expect(find.textContaining('any whole number'), findsNothing); // no error
@@ -785,6 +794,78 @@ void phase3WidgetTests() {
     expect(fields['image_side'], 'back');
     expect(fields['image_alt'], 'A red square');
     expect((await t.runAsync(() => MediaService(db).usage()))!.count, 1);
+    await done(t, db);
+  });
+
+  Future<void> openEditCard(WidgetTester t) async {
+    await t.tap(find.text('Library'));
+    await settle(t);
+    await t.scrollUntilVisible(find.text('Browse, edit or delete cards'), 200, scrollable: find.descendant(of: find.byType(LibraryScreen), matching: find.byType(Scrollable)).first);
+    await t.pump();
+    await t.tap(find.text('Browse, edit or delete cards'));
+    await until(t, find.text('extraño'));
+    await settle(t);
+    await t.tap(find.text('extraño'));
+    await until(t, find.text('Find a picture online'));
+    await settle(t);
+    await t.scrollUntilVisible(find.text('Find a picture online'), 200, scrollable: find.byType(Scrollable).first);
+  }
+
+  testWidgets('Review: a picture\'s credit (it can name the artist) appears only after the answer is shown', (t) async {
+    final db = await boot(t, settings: {'guide_seen': '1'}, prepare: (db) async {
+      await _spanishCard(db);
+      await db.customStatement("UPDATE note SET fields_json = json_set(fields_json, '\$.image_credit', 'Claude Monet · Public domain · Wikimedia Commons')");
+    });
+    await t.tap(find.text('Start review'));
+    await until(t, find.byType(CardPicture));
+    await settle(t);
+    expect(find.textContaining('Claude Monet'), findsNothing);
+    await t.tap(find.text('Show answer'));
+    await settle(t);
+    expect(find.textContaining('Claude Monet'), findsOneWidget);
+    await done(t, db);
+  });
+
+  testWidgets('Edit card: Find a picture asks once, then searches, and the credit is saved with the picture', (t) async {
+    final finder = FakeFinder(results: [candidate('File:Wave.png')]);
+    final db = await boot(t, settings: {'guide_seen': '1'}, extra: [pictureFinderProvider.overrideWithValue(finder)], prepare: (db) => _spanishCard(db, withPicture: false));
+    await openEditCard(t);
+    expect(finder.searches, isEmpty); // nothing goes online until asked
+    await t.tap(find.text('Find a picture online'));
+    await settle(t);
+    expect(find.text('Look for a picture online?'), findsOneWidget);
+    await t.tap(find.text('Allow'));
+    await settle(t);
+    expect(finder.searches, hasLength(1));
+    await t.tap(find.text('Wave'));
+    await settle(t);
+    await t.tap(find.text('Use this picture'));
+    await until(t, find.byType(CardPicture));
+    await settle(t);
+    expect(find.text('Someone · CC BY-SA 4.0 · Wikimedia Commons'), findsOneWidget);
+    await t.scrollUntilVisible(find.text('Save changes'), 300, scrollable: find.byType(Scrollable).first);
+    await t.tap(find.text('Save changes'));
+    await settle(t);
+    final note = (await t.runAsync(() => db.select(db.notes).getSingle()))!;
+    final fields = jsonDecode(note.fieldsJson) as Map<String, dynamic>;
+    expect(fields['image'], hasLength(64));
+    expect(fields['image_credit'], 'Someone · CC BY-SA 4.0 · Wikimedia Commons');
+    expect(fields['image_alt'], isNull); // never prefilled from the file name: it would name the answer
+    expect(await t.runAsync(() => SettingsRepo(db).get(SettingsRepo.onlinePictures)), '1');
+    await done(t, db);
+  });
+
+  testWidgets('Edit card: saying "Not now" keeps the app offline and asks again next time', (t) async {
+    final finder = FakeFinder(results: [candidate('File:Wave.png')]);
+    final db = await boot(t, settings: {'guide_seen': '1'}, extra: [pictureFinderProvider.overrideWithValue(finder)], prepare: (db) => _spanishCard(db, withPicture: false));
+    await openEditCard(t);
+    await t.tap(find.text('Find a picture online'));
+    await settle(t);
+    await t.tap(find.text('Not now'));
+    await settle(t);
+    expect(finder.searches, isEmpty);
+    expect(find.byType(CardPicture), findsNothing);
+    expect(await t.runAsync(() => SettingsRepo(db).get(SettingsRepo.onlinePictures)), isNull);
     await done(t, db);
   });
 

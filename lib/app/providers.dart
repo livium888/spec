@@ -16,6 +16,7 @@ import '../data/media_service.dart';
 import '../data/optimizer_service.dart';
 import '../data/outline_service.dart';
 import '../data/params_repo.dart';
+import '../data/picture_finder.dart';
 import '../data/queue_service.dart';
 import '../data/reminder_service.dart';
 import '../data/plan_service.dart';
@@ -46,6 +47,7 @@ final errorLogProvider = Provider((ref) =>
 final promptSharerProvider = Provider<PromptSharer>((_) => const SharePlusPromptSharer());
 final shareInboxProvider = Provider<ShareInbox>((_) => const ChannelShareInbox());
 final reminderBackendProvider = Provider<ReminderBackend>((_) => LocalNotificationsBackend());
+final pictureFinderProvider = Provider<PictureFinder>((_) => CommonsPictureFinder());
 final imagePickerProvider = Provider<ImagePickerService>((_) => const GalleryImagePicker());
 final speakerProvider = Provider<Speaker>((ref) {
   final s = PhoneSpeaker();

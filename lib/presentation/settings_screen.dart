@@ -286,6 +286,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 if (_msg != null)
                   Padding(padding: const EdgeInsets.only(top: 12), child: SelectableText(_msg!, style: t.bodyLarge)),
                 const Divider(height: 40),
+                const _OnlinePicturesSwitch(),
+                const Divider(height: 40),
                 Text('Study', style: t.titleLarge),
                 const SizedBox(height: 12),
                 OutlinedButton.icon(
@@ -337,4 +339,38 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       ),
     );
   }
+}
+
+/// The one switch for going online: "Find a picture" asks Wikimedia Commons only while this is on
+/// (it is switched on the first time the learner agrees on the edit screen). Saves immediately.
+class _OnlinePicturesSwitch extends ConsumerStatefulWidget {
+  const _OnlinePicturesSwitch();
+  @override
+  ConsumerState<_OnlinePicturesSwitch> createState() => _OnlinePicturesSwitchState();
+}
+
+class _OnlinePicturesSwitchState extends ConsumerState<_OnlinePicturesSwitch> {
+  bool _on = false;
+
+  @override
+  void initState() {
+    super.initState();
+    ref.read(settingsRepoProvider).get(SettingsRepo.onlinePictures).then((v) {
+      if (mounted) setState(() => _on = v == '1');
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) => SwitchListTile(
+        contentPadding: EdgeInsets.zero,
+        title: const Text('Find pictures online'),
+        subtitle: const Text(
+            'Lets "Find a picture" search Wikimedia Commons when you tap it. Only your search words go online. '
+            'Off means the app never connects to the internet.'),
+        value: _on,
+        onChanged: (v) {
+          setState(() => _on = v);
+          ref.read(settingsRepoProvider).set(SettingsRepo.onlinePictures, v ? '1' : '0');
+        },
+      );
 }

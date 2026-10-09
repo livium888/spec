@@ -4,7 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../app/providers.dart';
 import '../data/card_edit_service.dart';
 import '../data/media_service.dart' show MediaException, MediaService;
+import '../data/settings_repo.dart';
+import '../domain/commons.dart' show cleanImageQuery;
 import 'card_picture.dart';
+import 'find_picture_screen.dart';
 
 /// What happened on the edit screen, so callers can reload.
 enum EditOutcome { saved, deleted }
@@ -31,6 +34,7 @@ class _EditCardScreenState extends ConsumerState<EditCardScreen> {
   String? _image, _originalImage, _newImage; // SHA-256s: current, as loaded, picked in this session
   String _imageSide = 'front';
   final _alt = TextEditingController();
+  String _credit = ''; // who made a picture found online; empty for the learner's own photos
   late final MediaService _media;
   bool _saved = false;
   bool _loading = true, _saving = false;
@@ -58,6 +62,7 @@ class _EditCardScreenState extends ConsumerState<EditCardScreen> {
       _image = _originalImage = n.fields['image'] as String?;
       _imageSide = (n.fields['image_side'] as String?) == 'back' ? 'back' : 'front';
       _alt.text = n.fields['image_alt'] as String? ?? '';
+      _credit = n.fields['image_credit'] as String? ?? '';
     }
     setState(() {
       _note = n;
@@ -72,11 +77,65 @@ class _EditCardScreenState extends ConsumerState<EditCardScreen> {
       final sha = await _media.save(picked.bytes);
       // A picture picked now and then abandoned is cleaned up when the screen closes.
       if (_newImage != null && _newImage != sha && _newImage != _originalImage) await _media.deleteIfOrphan(_newImage);
-      if (mounted) setState(() { _image = sha; _newImage = sha; _errors = const []; });
+      if (mounted) setState(() { _image = sha; _newImage = sha; _credit = ''; _errors = const []; });
     } on MediaException catch (e) {
       if (mounted) setState(() => _errors = [e.message]);
     } catch (e) {
       if (mounted) setState(() => _errors = ['Could not open the picture: $e']);
+    }
+  }
+
+  /// What to search for: the AI's hint if the card has one, else the start of the question.
+  String _suggestedQuery() {
+    final hint = cleanImageQuery(_note?.fields['image_query']);
+    if (hint != null) return hint;
+    final text = (_ctl['front'] ?? _ctl['cloze'])?.text ?? '';
+    return cleanImageQuery(text.replaceAll(RegExp(r'\{\{c\d+::([^}]*?)(::[^}]*)?\}\}'), r'$1').split(RegExp(r'[.?!]')).first) ?? '';
+  }
+
+  /// The first online step in the app, so it asks once and says exactly what leaves the phone.
+  Future<bool> _consentToOnline() async {
+    final settings = ref.read(settingsRepoProvider);
+    if (await settings.get(SettingsRepo.onlinePictures) == '1') return true;
+    if (!mounted) return false;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Look for a picture online?'),
+        content: const Text(
+          'This is the one place the app goes online, and only when you tap Find a picture. '
+          'It sends your search words (and your phone\'s internet address, as any website visit does) to '
+          'Wikimedia Commons, a free picture library. Nothing else leaves your phone: no cards, no history. '
+          'The picture you pick is saved on your phone with its credit. You can turn this off in Settings.',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Not now')),
+          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Allow')),
+        ],
+      ),
+    );
+    if (ok != true) return false;
+    await settings.set(SettingsRepo.onlinePictures, '1');
+    return true;
+  }
+
+  Future<void> _findPicture() async {
+    if (!await _consentToOnline() || !mounted) return;
+    final found = await Navigator.of(context).push<FoundPicture>(
+        MaterialPageRoute(builder: (_) => FindPictureScreen(initialQuery: _suggestedQuery())));
+    if (found == null || !mounted) return;
+    try {
+      final sha = await _media.save(found.bytes);
+      if (_newImage != null && _newImage != sha && _newImage != _originalImage) await _media.deleteIfOrphan(_newImage);
+      if (!mounted) return;
+      setState(() {
+        _image = sha;
+        _newImage = sha;
+        _credit = found.credit;
+        _errors = const [];
+      });
+    } on MediaException catch (e) {
+      if (mounted) setState(() => _errors = [e.message]);
     }
   }
 
@@ -100,6 +159,7 @@ class _EditCardScreenState extends ConsumerState<EditCardScreen> {
       'image': _image ?? '',
       'image_side': _image == null ? '' : _imageSide,
       'image_alt': _image == null ? '' : _alt.text,
+      'image_credit': _image == null ? '' : _credit,
     });
     if (!mounted) return;
     setState(() {
@@ -147,7 +207,7 @@ class _EditCardScreenState extends ConsumerState<EditCardScreen> {
       Text('Picture (optional)', style: t.labelLarge),
       const SizedBox(height: 8),
       if (_image != null) ...[
-        CardPicture(sha: _image!, alt: _alt.text, maxHeight: 180),
+        CardPicture(sha: _image!, alt: _alt.text, credit: _credit, maxHeight: 180),
         const SizedBox(height: 8),
         SegmentedButton<String>(
           showSelectedIcon: false,
@@ -171,8 +231,18 @@ class _EditCardScreenState extends ConsumerState<EditCardScreen> {
           label: Text(_image == null ? 'Add a picture' : 'Change the picture'),
           onPressed: _pickImage,
         ),
+        OutlinedButton.icon(
+          icon: const Icon(Icons.travel_explore),
+          label: const Text('Find a picture online'),
+          onPressed: _findPicture,
+        ),
         if (_image != null)
-          TextButton(onPressed: () => setState(() => _image = null), child: const Text('Remove the picture')),
+          TextButton(
+              onPressed: () => setState(() {
+                    _image = null;
+                    _credit = '';
+                  }),
+              child: const Text('Remove the picture')),
       ]),
     ]);
   }

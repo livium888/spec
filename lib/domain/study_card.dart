@@ -47,6 +47,8 @@ class StudyCard {
   }
 
   bool get imageOnFront => (fields['image_side'] as String?) != 'back';
+  /// Who made the picture and under which licence (shown under it when it came from Wikimedia Commons).
+  String get imageCredit => (fields['image_credit'] as String? ?? '').trim();
   String get imageAlt => (fields['image_alt'] as String? ?? '').trim();
   bool get leech => tags.contains('leech');
 

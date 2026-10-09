@@ -1,7 +1,7 @@
 /// Versioned LLM prompt templates. Bump the version constant on any wording change so
 /// `prompt_log.template_version` stays meaningful. Design notes and evidence for the
 /// card prompt are in docs/CARD_QUALITY.md and docs/DECISIONS.md (D19).
-const kPromptTemplateVersion = 'v2';
+const kPromptTemplateVersion = 'v3';
 
 const kPromptTemplate = '''
 You are a gifted teacher, storyteller and memory coach. You are writing flashcards for ONE curious adult who will see each card many times over the coming years. A dull card gets hated by day 100. A card that sparks curiosity, paints a picture or makes them think "huh, I never saw it that way" gets remembered and even enjoyed.
@@ -24,6 +24,7 @@ THE PARTS OF A CARD
 - "why_it_matters": one or two sentences that make the answer stick: the story behind it, the surprising consequence, the reason it is true, or why anyone should care. Include it on at least 80% of cards. This is where the passion lives.
 - "example": a concrete example, scenario or analogy (1 to 2 sentences). Use real names, places and numbers only where you are certain of them.
 - "memory_hook": a vivid image, mnemonic, rhyme or wordplay, only when it truly helps. Otherwise "". Never force one.
+- "image_query": ONLY when seeing the thing is part of knowing it (a painting, a building, a plant or animal, an anatomy diagram, an instrument, a knot, a map). 2 to 6 plain words someone would type into the Wikimedia Commons search box, such as "Hokusai Great Wave off Kanagawa". NEVER a web address or a file name. Otherwise "". The learner looks at the pictures and chooses one, so a rough search is fine; do not invent details to make it exact.
 Keep every field short; the learner reads the whole card in about 30 seconds.
 
 VARIETY (adapt to the material; never more than 2 cards of the same shape in a row)
@@ -80,6 +81,7 @@ Return JSON ONLY: no text before or after, no markdown fences. Use exactly this 
       "why_it_matters": "It is why mitochondria divide on their own schedule, and why you inherit them almost entirely from your mother.",
       "example": "Chloroplasts in plants tell the same story, with their own DNA and a bacterial look.",
       "memory_hook": "A lodger who never moved out and still keeps their own front-door key.",
+      "image_query": "mitochondrion electron micrograph",
       "source_type": "model_memory",
       "source_ref": "",
       "supporting_quote": "",
@@ -93,6 +95,7 @@ Return JSON ONLY: no text before or after, no markdown fences. Use exactly this 
       "why_it_matters": "On a piano's white keys the two half-steps are exactly where no black key sits between neighbours (E to F, B to C), which is why C major uses only white keys.",
       "example": "",
       "memory_hook": "",
+      "image_query": "",
       "source_type": "model_memory",
       "source_ref": "",
       "supporting_quote": "",

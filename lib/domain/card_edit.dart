@@ -39,5 +39,6 @@ List<String> validateNoteEdit({
   limit('example', '"Example"', kMaxExtraChars);
   limit('memory_hook', '"Memory hook"', kMaxExtraChars);
   limit('image_alt', 'The picture description', 300);
+  limit('image_credit', 'The picture credit', 300);
   return errors;
 }
