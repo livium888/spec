@@ -794,14 +794,14 @@ void phase3WidgetTests() {
     await until(t, find.byType(CardPicture));
     await settle(t);
     expect(find.byType(CardPicture), findsOneWidget);
-    await t.tap(find.text('Shows on the answer'));
+    await t.tap(find.text('Shows on the question')); // the default is the answer side
     await t.enterText(find.widgetWithText(TextField, 'Describe the picture (read out by screen readers)'), 'A red square');
     await tapSettingsEntry(t, 'Save changes');
     await settle(t);
     final note = (await t.runAsync(() => db.select(db.notes).getSingle()))!;
     final fields = jsonDecode(note.fieldsJson) as Map<String, dynamic>;
     expect(fields['image'], hasLength(64));
-    expect(fields['image_side'], 'back');
+    expect(fields['image_side'], 'front');
     expect(fields['image_alt'], 'A red square');
     expect((await t.runAsync(() => MediaService(db).usage()))!.count, 1);
     await done(t, db);
@@ -971,6 +971,7 @@ void phase3WidgetTests() {
     final fields = jsonDecode(note.fieldsJson) as Map<String, dynamic>;
     expect(fields['image'], hasLength(64));
     expect(fields['image_credit'], 'Someone · CC BY-SA 4.0 · Wikimedia Commons');
+    expect(fields['image_side'], 'back'); // a new picture goes on the answer side unless told otherwise
     expect(fields['image_alt'], isNull); // never prefilled from the file name: it would name the answer
     expect(await t.runAsync(() => SettingsRepo(db).get(SettingsRepo.onlinePictures)), SettingsRepo.onlinePicturesAgreed);
     await done(t, db);

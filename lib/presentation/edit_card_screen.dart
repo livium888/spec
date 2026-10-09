@@ -61,7 +61,9 @@ class _EditCardScreenState extends ConsumerState<EditCardScreen> {
     }
     if (n != null) {
       _image = _originalImage = n.fields['image'] as String?;
-      _imageSide = (n.fields['image_side'] as String?) == 'back' ? 'back' : 'front';
+      // A picture shown with the question can give the answer away, so the answer side is the default;
+      // the AI's hint (or the learner) can still put it on the question.
+      _imageSide = (n.fields['image_side'] as String?) == 'front' ? 'front' : 'back';
       _alt.text = n.fields['image_alt'] as String? ?? '';
       _credit = n.fields['image_credit'] as String? ?? '';
       _keywords.text = n.fields['image_query'] as String? ?? '';
