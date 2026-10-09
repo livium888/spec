@@ -56,7 +56,7 @@ class LibraryScreen extends ConsumerWidget {
       child: ListView(padding: const EdgeInsets.fromLTRB(20, 12, 20, 24), children: [
         Text('Library', style: t.headlineMedium),
         const SizedBox(height: 4),
-        Text('Your subjects, and every way to add to them.', style: t.bodySmall),
+        Text('Tap a subject to see its topics and choose what to learn. Below: every way to add to your library.', style: t.bodySmall),
         const SectionTitle('Subjects'),
         data.when(
           loading: () => const Padding(padding: EdgeInsets.all(24), child: Center(child: CircularProgressIndicator())),

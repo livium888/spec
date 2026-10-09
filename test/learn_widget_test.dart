@@ -918,6 +918,39 @@ void phase3WidgetTests() {
     await done(t, db);
   });
 
+  testWidgets('Adding a subject from an outline: a button leads straight to its topics, where each can be chosen, skipped or made into cards', (t) async {
+    const outline = '{"domain":"Astronomy","items":[{"title":"The Solar System","target_cards":8},{"title":"Stars and their lives","target_cards":8}]}';
+    final db = await boot(t, settings: {'guide_seen': '1'});
+    t.binding.defaultBinaryMessenger.setMockMethodCallHandler(SystemChannels.platform, (call) async {
+      if (call.method == 'Clipboard.getData') return <String, dynamic>{'text': outline};
+      return null;
+    });
+    addTearDown(() => t.binding.defaultBinaryMessenger.setMockMethodCallHandler(SystemChannels.platform, null));
+    await t.tap(find.descendant(of: find.byType(NavigationBar), matching: find.text('Library')));
+    await settle(t);
+    expect(find.textContaining('Tap a subject to see its topics'), findsOneWidget);
+    await t.scrollUntilVisible(find.text('Paste an answer'), 200, scrollable: find.descendant(of: find.byType(LibraryScreen), matching: find.byType(Scrollable)).first);
+    await t.pump();
+    await t.tap(find.text('Paste an answer'));
+    await settle(t);
+    await t.tap(find.text('Paste from clipboard'));
+    await settle(t);
+    await t.tap(find.text('Add 2 topics'));
+    await settle(t);
+    expect(find.textContaining('Added 2 topics'), findsOneWidget);
+    await t.tap(find.text('See the topics and choose what to learn'));
+    await settle(t);
+    expect(find.text('Topics'), findsOneWidget);
+    expect(find.textContaining('Tap a topic to make cards for it'), findsOneWidget);
+    expect(find.text('The Solar System'), findsOneWidget);
+    expect(find.text('Stars and their lives'), findsOneWidget);
+    await t.tap(find.text('The Solar System'));
+    await settle(t);
+    expect(find.text('Make cards for this topic'), findsOneWidget);
+    expect(find.text('Skip this topic (never offer it)'), findsOneWidget);
+    await done(t, db);
+  });
+
   testWidgets('Review: a long question is set smaller, and folds after the reveal; a tap shows it whole again', (t) async {
     final db = await boot(t, settings: {'guide_seen': '1'}, prepare: (db) => longQuestionCard(db));
     await t.tap(find.text('Start review'));

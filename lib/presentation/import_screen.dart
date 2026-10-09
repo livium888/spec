@@ -8,6 +8,7 @@ import '../domain/import_parser.dart';
 import '../domain/outline_parser.dart';
 import '../domain/plan_parser.dart';
 import 'keywords_screen.dart';
+import 'topics_screen.dart';
 
 class ImportScreen extends ConsumerStatefulWidget {
   const ImportScreen({super.key, this.initialText});
@@ -27,6 +28,10 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
   bool _busy = false;
   String? _message;
 
+  /// After an import: the subject whose topics the learner can open next (a button under the message).
+  int? _openTopicsOf;
+  bool _backToLibrary = false;
+
   @override
   void initState() {
     super.initState();
@@ -38,7 +43,7 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
 
   /// Clipboard is read ONLY on this explicit tap (never automatically).
   Future<void> _paste() async {
-    setState(() { _busy = true; _message = null; });
+    setState(() { _busy = true; _message = null; _openTopicsOf = null; _backToLibrary = false; });
     try {
       final data = await Clipboard.getData(Clipboard.kTextPlain);
       final text = data?.text ?? '';
@@ -116,6 +121,7 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
       if (!mounted) return;
       setState(() {
         _preview = null;
+        _openTopicsOf = s.domainId;
         _message = 'Imported ${s.notes} notes (${s.cards} cards).'
             '${s.reading > 0 ? ' Added ${s.reading} reading suggestion${s.reading == 1 ? '' : 's'} (Library > Go deeper).' : ''}';
       });
@@ -135,6 +141,7 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
       if (!mounted) return;
       setState(() {
         _outline = null;
+        _openTopicsOf = s.domainId;
         _message = 'Added ${s.items} topic${s.items == 1 ? '' : 's'} with ${s.edges} prerequisite link${s.edges == 1 ? '' : 's'}'
             '${s.droppedEdges > 0 ? ' (${s.droppedEdges} ignored: unknown topic)' : ''}. '
             'Tap "Learn something new" to start.';
@@ -157,6 +164,7 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
       if (!mounted) return;
       setState(() {
         _plan = null;
+        _backToLibrary = true;
         _message = 'Added ${r.subjects} subject${r.subjects == 1 ? '' : 's'} with ${r.topics} topic${r.topics == 1 ? '' : 's'}. '
             'Tap "Learn something new" to start.';
       });
@@ -264,6 +272,26 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
                 Padding(
                   padding: const EdgeInsets.only(top: 12),
                   child: Text(_message!, style: Theme.of(context).textTheme.bodyLarge),
+                ),
+              if (_message != null && _openTopicsOf != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 12),
+                  child: FilledButton.icon(
+                    style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(52)),
+                    icon: const Icon(Icons.list_alt),
+                    label: const Text('See the topics and choose what to learn'),
+                    onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => TopicsScreen(domainId: _openTopicsOf))),
+                  ),
+                ),
+              if (_message != null && _backToLibrary)
+                Padding(
+                  padding: const EdgeInsets.only(top: 12),
+                  child: FilledButton.icon(
+                    style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(52)),
+                    icon: const Icon(Icons.library_books_outlined),
+                    label: const Text('Back to the Library to see them'),
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
                 ),
               if (p == null && o == null && _plan == null && _message == null)
                 const Padding(

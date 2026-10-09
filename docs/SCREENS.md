@@ -263,3 +263,6 @@ Header note (AI suggestions; "found" means listed, not good), "Check all that ha
 | Cannot be checked (course, other) | "Cannot be checked automatically" at once |
 | Check failed (offline, rate limit) | message naming the entry and the reason (live region); the entry stays unchecked; Check all stops at the first failure |
 | Consent declined | nothing is sent; asked again next time |
+
+## After adding a subject or topics (Import)
+Under the "Added N topics" / "Imported N notes" message a button "See the topics and choose what to learn" opens that subject's Topics screen (after a several-subjects paste: "Back to the Library to see them"). Topics screen: a one-line hint, then each topic with its status; tap one for "Make cards for this topic", "Skip this topic (never offer it)" or "Mark as done". Library: "Tap a subject to see its topics and choose what to learn." Reported on the phone: a new subject's topics could not be found; they were always under the subject's tile in Library, but nothing said so.

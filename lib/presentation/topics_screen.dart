@@ -163,6 +163,12 @@ class _TopicsScreenState extends ConsumerState<TopicsScreen> {
                         ),
                       )
                     : ListView(children: [
+                        if (!widget.pickMode)
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                            child: Text('Tap a topic to make cards for it, skip it so it is never offered, or mark it done.',
+                                style: Theme.of(context).textTheme.bodyMedium),
+                          ),
                         for (final e in _data!.entries) ...[
                           Padding(
                             padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
