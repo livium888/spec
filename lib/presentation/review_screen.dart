@@ -9,6 +9,7 @@ import '../app/providers.dart';
 import '../data/stats_service.dart';
 import '../domain/card_markup.dart' show plainFromMarkup;
 import '../domain/card_text.dart';
+import '../domain/memory_summary.dart';
 import '../domain/models.dart';
 import '../domain/review_timing.dart';
 import '../domain/study_advisor.dart';
@@ -42,6 +43,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
   DailyQueue? _queue;
   StudyCard? _current;
   Map<int, Duration> _preview = {};
+  MemoryBucket? _stage; // where the current card stands (needs the subject's own weights)
   bool _revealed = false;
   bool _loading = true;
   bool _busy = false;
@@ -91,10 +93,20 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
       final next = _quotaDone ? null : (force ?? q.next);
       _publishDue(q);
       Map<int, Duration> pv = {};
+      MemoryBucket? stage;
       if (next != null) {
         final params = ref.read(paramsRepoProvider);
         final sched = await params.schedulerForDomain(next.domainId);
         pv = sched.preview(next.snapshot, DateTime.now().toUtc());
+        final w = (await params.configFor(await params.idForDomain(next.domainId))).weights;
+        stage = bucketOf(
+            MemoryFact(
+                state: next.snapshot.state.dbValue,
+                stability: next.snapshot.stability,
+                lastReviewMs: next.snapshot.lastReview,
+                suspended: next.suspended),
+            w,
+            DateTime.now().millisecondsSinceEpoch);
       }
       if (!mounted) return;
       final adv = next == null ? await ref.read(learnServiceProvider).advice() : null;
@@ -115,6 +127,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
         _queue = q;
         _current = next;
         _preview = pv;
+        _stage = stage;
         _hints = 0;
         // A worked example (level 1 of a problem) is shown whole from the start.
         _revealed = next != null && next.isProblem && next.problemSteps.isNotEmpty && next.stepsGiven >= next.problemSteps.length;
@@ -172,7 +185,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
       _showUndoBar(rating);
       if (res.becameLeech && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('This card is a leech: suspended and tagged.')));
+            const SnackBar(content: Text('This card keeps being forgotten, so it is paused and marked. Rewriting it, or building its foundations, usually helps.')));
       }
       await _load();
     } catch (e) {
@@ -247,12 +260,24 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(now ? 'Marked. Find it under Library > Browse cards > Marked only.' : 'Mark removed.')));
   }
 
-  Future<void> _suspend() async {
+  /// "Paused" is the word Progress uses (D52). It can be undone from the message, as from a mis-tap.
+  Future<void> _pause() async {
     final c = _current;
     if (c == null) return;
     await ref.read(reviewServiceProvider).setSuspended(c.id, true);
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Card suspended.')));
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(
+          content: const Text('Card paused. Bring it back under Library > Browse cards > Paused only.'),
+          action: SnackBarAction(
+            label: 'Undo',
+            onPressed: () async {
+              await ref.read(reviewServiceProvider).setSuspended(c.id, false);
+              if (mounted) await _load(force: c);
+            },
+          ),
+        ));
     }
     await _load();
   }
@@ -379,15 +404,49 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                 ),
               ),
               IconButton(tooltip: 'Undo last answer', icon: const Icon(Icons.undo), onPressed: _busy ? null : _undo),
+              // Undo is the one action used while answering; the rest live in one menu, with "Pause" apart from "Edit"
+              // so a tap meant for one cannot land on the other (D52).
               if (_current != null)
-                IconButton(
-                    tooltip: _isMarked(_current!) ? 'Remove the mark from this card' : 'Mark this card to look at later',
-                    icon: Icon(_isMarked(_current!) ? Icons.bookmark : Icons.bookmark_outline),
-                    onPressed: _toggleMark),
-              if (_current != null)
-                IconButton(tooltip: 'Edit or delete this card', icon: const Icon(Icons.edit_outlined), onPressed: _edit),
-              if (_current != null)
-                IconButton(tooltip: 'Suspend this card', icon: const Icon(Icons.pause_circle_outline), onPressed: _suspend),
+                PopupMenuButton<String>(
+                  tooltip: 'More actions for this card',
+                  icon: const Icon(Icons.more_vert),
+                  onSelected: (v) {
+                    switch (v) {
+                      case 'mark':
+                        _toggleMark();
+                      case 'edit':
+                        _edit();
+                      case 'info':
+                        showCardInfo(context, _current!);
+                      case 'pause':
+                        _pause();
+                    }
+                  },
+                  itemBuilder: (_) => [
+                    PopupMenuItem(
+                      value: 'mark',
+                      child: ListTile(
+                        dense: true,
+                        contentPadding: EdgeInsets.zero,
+                        leading: Icon(_isMarked(_current!) ? Icons.bookmark : Icons.bookmark_outline),
+                        title: Text(_isMarked(_current!) ? 'Remove the mark' : 'Mark to look at later'),
+                      ),
+                    ),
+                    const PopupMenuItem(
+                      value: 'edit',
+                      child: ListTile(dense: true, contentPadding: EdgeInsets.zero, leading: Icon(Icons.edit_outlined), title: Text('Edit or delete')),
+                    ),
+                    const PopupMenuItem(
+                      value: 'info',
+                      child: ListTile(dense: true, contentPadding: EdgeInsets.zero, leading: Icon(Icons.info_outline), title: Text('About this card')),
+                    ),
+                    const PopupMenuDivider(),
+                    const PopupMenuItem(
+                      value: 'pause',
+                      child: ListTile(dense: true, contentPadding: EdgeInsets.zero, leading: Icon(Icons.pause_circle_outline), title: Text('Pause this card')),
+                    ),
+                  ],
+                ),
             ]),
           ),
           if (!_loading && _error == null && _current != null) _progressCaption(context, left),
@@ -495,11 +554,16 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
     );
   }
 
-  String _stateLabel(StudyCard c) => switch (c.snapshot.state) {
-        CardState.newCard => 'New',
-        CardState.learning => 'Learning',
-        CardState.review => 'Review',
-        CardState.relearning => 'Forgotten',
+  /// The same words as Progress (D52): New, Learning, Growing, Long-term, Fading ("Learning again" after a lapse).
+  String _stateLabel(StudyCard c) {
+    if (c.snapshot.state == CardState.relearning) return 'Learning again';
+    return (_stage ?? _fallbackStage(c)).label;
+  }
+
+  MemoryBucket _fallbackStage(StudyCard c) => switch (c.snapshot.state) {
+        CardState.newCard => MemoryBucket.fresh,
+        CardState.learning || CardState.relearning => MemoryBucket.learning,
+        CardState.review => MemoryBucket.growing,
       };
 
   Widget _cardView(BuildContext context, StudyCard card, bool reduce) {
@@ -533,6 +597,8 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                   Wrap(spacing: 8, runSpacing: 6, crossAxisAlignment: WrapCrossAlignment.center, children: [
                     if (name.isNotEmpty) _Tag(icon: style.icon, text: name, fg: style.strong, bg: style.tint),
                     if (card.isProblem) _Tag(icon: Icons.calculate_outlined, text: _problemLabel(card), fg: style.strong, bg: style.tint),
+                    // The mark lives in the menu now, so the card itself shows that it is marked.
+                    if (_isMarked(card)) _Tag(icon: Icons.bookmark, text: 'Marked', fg: c.accent, bg: c.accentTint),
                     _Tag(
                         text: _stateLabel(card),
                         fg: c.inkSoft,

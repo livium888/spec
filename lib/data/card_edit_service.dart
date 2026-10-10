@@ -20,11 +20,15 @@ class NoteRow {
     required this.domainName,
     required this.domainId,
     this.marked = false,
+    this.paused = false,
   });
   final int noteId, cardCount, reviewCount, domainId;
 
   /// The learner marked it to look at later.
   final bool marked;
+
+  /// A card of this note is paused (put aside by the learner; retired cards are not "paused").
+  final bool paused;
   final String type, domainName;
   final Map<String, dynamic> fields;
   String get title => (type == 'cloze' ? fields['cloze'] : fields['front']) as String? ?? '';
@@ -46,7 +50,7 @@ class CardEditService {
   }
 
   /// Newest first. [query] matches question/answer text; [domainId] narrows to a subject.
-  Future<List<NoteRow>> search({String query = '', int? domainId, bool markedOnly = false, int limit = 50, int offset = 0}) {
+  Future<List<NoteRow>> search({String query = '', int? domainId, bool markedOnly = false, bool pausedOnly = false, int limit = 50, int offset = 0}) {
     final where = <String>[];
     final args = <Variable>[];
     final q = query.trim();
@@ -55,6 +59,7 @@ class CardEditService {
       args.add(Variable.withString('%${q.replaceAll(r'\', r'\\').replaceAll('%', r'\%').replaceAll('_', r'\_')}%'));
     }
     if (markedOnly) where.add("(' ' || n.tags || ' ') LIKE '% marked %'");
+    if (pausedOnly) where.add(_pausedSql);
     if (domainId != null) {
       where.add('n.domain_id = ?');
       args.add(Variable.withInt(domainId));
@@ -62,10 +67,20 @@ class CardEditService {
     return _query(where: where.isEmpty ? '1=1' : where.join(' AND '), args: args, limit: limit, offset: offset);
   }
 
+  static const _pausedSql = 'EXISTS (SELECT 1 FROM card pc WHERE pc.note_id = n.id AND pc.suspended = 1 AND pc.retired_at IS NULL)';
+
+  /// Bring a paused note's cards back (retired cards stay retired: they have their own screen).
+  Future<void> bringBack(int noteId) => db.customUpdate(
+        'UPDATE card SET suspended = 0 WHERE note_id = ? AND suspended = 1 AND retired_at IS NULL',
+        variables: [Variable.withInt(noteId)],
+        updates: {db.cards},
+      );
+
   Future<List<NoteRow>> _query(
       {required String where, required List<Variable> args, required int limit, int offset = 0}) async {
     final rows = await db.customSelect('''
       SELECT n.id, n.type, n.fields_json, n.domain_id, n.tags, d.name AS dname,
+             $_pausedSql AS paused,
              (SELECT COUNT(*) FROM card c WHERE c.note_id = n.id) AS cards,
              (SELECT COUNT(*) FROM review_log l JOIN card c ON c.id = l.card_id
                 WHERE c.note_id = n.id) AS reviews
@@ -83,6 +98,7 @@ class CardEditService {
           domainName: r.read<String>('dname'),
           domainId: r.read<int>('domain_id'),
           marked: ' ${r.read<String>('tags')} '.contains(' marked '),
+          paused: r.read<int>('paused') == 1,
         )
     ];
   }

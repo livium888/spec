@@ -247,6 +247,6 @@ String stateMeaning(TopicState s) => switch (s) {
       TopicState.learning => 'You are still building this topic. Keep reviewing and adding cards.',
       TopicState.solid => 'You know this topic well right now.',
       TopicState.fading => 'You knew this, and it is slipping. Reviews will bring it back.',
-      TopicState.attention => 'You are forgetting cards here, or some are leeches. Fix the hard cards or build the foundations.',
+      TopicState.attention => 'You are forgetting cards here, or some are stuck. Fix the stuck cards or build the foundations.',
       TopicState.skipped => 'You chose not to be offered this topic.',
     };

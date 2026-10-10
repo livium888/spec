@@ -69,7 +69,7 @@ class _PlanAheadScreenState extends ConsumerState<PlanAheadScreen> {
                   ]))
                 : ListView(padding: const EdgeInsets.all(16), children: [
                     Text('How much review time your library will need, if you keep adding cards at the pace below. It is an estimate: '
-                        'it simulates your cards with the same memory model the app schedules with.',
+                        'it simulates your cards the way the app schedules them.',
                         style: t.bodyMedium),
                     const SizedBox(height: Sp.m),
                     SoftCard(

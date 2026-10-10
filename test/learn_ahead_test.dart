@@ -85,7 +85,7 @@ void main() {
       final l = explainState(CardState.learning, learningSteps: const [1, 10]);
       expect(l.title, 'Learning');
       expect(l.body, contains('1 min, then 10 min'));
-      expect(explainState(CardState.relearning).title, 'Forgotten');
+      expect(explainState(CardState.relearning).title, 'Learning again');
       expect(explainState(CardState.newCard).body, contains('not seen'));
       expect(explainState(CardState.review).body, contains('just before you would probably forget'));
     });

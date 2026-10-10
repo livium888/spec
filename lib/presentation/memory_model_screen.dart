@@ -92,7 +92,7 @@ class _MemoryModelScreenState extends ConsumerState<MemoryModelScreen> {
     final c = AppColors.of(context);
     final s = _status;
     return Scaffold(
-      appBar: AppBar(title: const Text('Memory model')),
+      appBar: AppBar(title: const Text('Tune my scheduling')),
       body: SafeArea(
         child: _error != null
             ? Center(child: Padding(padding: const EdgeInsets.all(16), child: Text('Could not load: $_error')))

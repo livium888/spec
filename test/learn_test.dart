@@ -132,7 +132,7 @@ void main() {
       );
       expect(plan.options.first.action, LearnAction.remediate);
       expect(plan.options.first.problemCount, 3);
-      expect(plan.options.first.reasons.join(), contains('3 leech'));
+      expect(plan.options.first.reasons.join(), contains('3 stuck'));
     });
 
     test('high lapse rate on enough reviews also triggers remediation; too few reviews does not', () {

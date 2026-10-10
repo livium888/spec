@@ -4,13 +4,15 @@
 library;
 
 import 'fsrs_model.dart' show retrievability;
+import 'memory_summary.dart' show MemoryBucket, MemoryBucketWords;
 import 'models.dart';
 
 const _dayMs = 86400000;
 
 /// A short title and a plain explanation of a card state. [learningSteps] and [relearningSteps]
 /// are the learner's own step lengths in minutes.
-({String title, String body}) explainState(CardState s, {List<int> learningSteps = const [1, 10], List<int> relearningSteps = const [10]}) {
+({String title, String body}) explainState(CardState s,
+    {List<int> learningSteps = const [1, 10], List<int> relearningSteps = const [10], MemoryBucket? stage}) {
   String steps(List<int> m) => m.isEmpty ? 'a few minutes' : m.map((x) => x >= 60 && x % 60 == 0 ? '${x ~/ 60} h' : '$x min').join(', then ');
   return switch (s) {
     CardState.newCard => (
@@ -20,15 +22,18 @@ const _dayMs = 86400000;
     CardState.learning => (
         title: 'Learning',
         body: 'You are still learning this card, so it comes back after minutes, not days: ${steps(learningSteps)}. '
-            'Answer "Good" at each step and it graduates to Review, where the gaps grow to days, then weeks, then months.',
+            'Answer "Good" at each step and it starts growing: the gaps stretch to days, then weeks, then months.',
       ),
     CardState.review => (
-        title: 'Review',
-        body: 'You know this card. It comes back just before you would probably forget it, and every success makes the next gap longer.',
+        // The stage (Growing, Long-term or Fading) when the caller knows it; the words are the ones Progress uses.
+        title: stage != null && stage != MemoryBucket.fresh && stage != MemoryBucket.learning ? stage.label : 'Growing',
+        body: 'You know this card. It comes back just before you would probably forget it, and every success makes the next gap longer.'
+            '${stage == MemoryBucket.longTerm ? ' It is long-term: stable for three weeks or more, and still likely to be recalled.' : ''}'
+            '${stage == MemoryBucket.fading ? ' It is fading: it was stable, but it is overdue, so your chance of recalling it is dropping. Answering it now brings it back.' : ''}',
       ),
     CardState.relearning => (
-        title: 'Forgotten',
-        body: 'You knew this card, then forgot it. It is back on short steps (${steps(relearningSteps)}). Once you remember it, it returns to Review with a shorter gap than before.',
+        title: 'Learning again',
+        body: 'You knew this card, then forgot it. It is back on short steps (${steps(relearningSteps)}). Once you remember it, it grows again, with a shorter gap than before.',
       ),
   };
 }

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../app/providers.dart';
 import '../data/stats_service.dart';
+import '../domain/memory_summary.dart';
 import '../domain/milestones.dart';
 import 'plan_ahead_screen.dart';
 import 'theme/app_theme.dart';
@@ -166,13 +167,13 @@ class _MemoryBar extends StatelessWidget {
     final c = AppColors.of(context);
     final t = Theme.of(context).textTheme;
     final parts = [
-      ('New', s.newCards, c.line),
-      ('Learning', s.learningCards, c.warn),
-      ('Growing', s.youngCards, c.info),
-      ('Fading', s.fadingCards, c.danger),
-      ('Long-term', s.matureCards, c.good),
-      ('Retired', s.retiredCards, c.accent),
-      ('Paused', s.suspendedCards, c.inkSoft),
+      (MemoryBucket.fresh.label, s.newCards, c.line),
+      (MemoryBucket.learning.label, s.learningCards, c.warn),
+      (MemoryBucket.growing.label, s.youngCards, c.info),
+      (MemoryBucket.fading.label, s.fadingCards, c.danger),
+      (MemoryBucket.longTerm.label, s.matureCards, c.good),
+      (MemoryBucket.retired.label, s.retiredCards, c.accent),
+      (MemoryBucket.paused.label, s.suspendedCards, c.inkSoft),
     ];
     final total = parts.fold<int>(0, (a, p) => a + p.$2);
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -194,7 +195,7 @@ class _MemoryBar extends StatelessWidget {
       Wrap(spacing: Sp.l, runSpacing: Sp.xs, children: [
         for (final p in parts)
           // Fading, Retired and Paused appear only when there is something in them; the first four always do.
-          if (p.$2 > 0 || const {'New', 'Learning', 'Growing', 'Long-term'}.contains(p.$1))
+          if (p.$2 > 0 || {MemoryBucket.fresh, MemoryBucket.learning, MemoryBucket.growing, MemoryBucket.longTerm}.any((b) => b.label == p.$1))
           Row(mainAxisSize: MainAxisSize.min, children: [
             Container(width: 10, height: 10, decoration: BoxDecoration(color: p.$3, shape: BoxShape.circle)),
             const SizedBox(width: 6),
@@ -203,8 +204,8 @@ class _MemoryBar extends StatelessWidget {
       ]),
       const SizedBox(height: Sp.m),
       Text(
-        'Long-term means stable for three weeks or more and still at least 90% likely to be recalled now; '
-        'fading means it was, and is now overdue.',
+        '${MemoryBucket.longTerm.label}: ${MemoryBucket.longTerm.meaning} '
+        '${MemoryBucket.fading.label}: ${MemoryBucket.fading.meaning}',
         style: t.bodySmall?.copyWith(color: c.inkSoft),
       ),
       if (s.estimatedRecall != null) ...[
@@ -312,8 +313,8 @@ class _RetentionTable extends StatelessWidget {
         Expanded(flex: 2, child: Text('1 year', textAlign: TextAlign.end, style: t.labelSmall)),
       ]),
       row('All cards', 'not "Again"', r.all30, r.all365),
-      row('Young', 'stable under 3 weeks', r.young30, r.young365),
-      row('Mature', 'stable 3 weeks or more', r.mature30, r.mature365),
+      row(MemoryBucket.growing.label, 'stable under 3 weeks', r.young30, r.young365),
+      row(MemoryBucket.longTerm.label, 'stable 3 weeks or more', r.mature30, r.mature365),
       const SizedBox(height: 4),
       Text('A dash means fewer than 10 answers. Around your target (90% unless you changed it) is healthy; much lower, review less new material.',
           style: t.bodySmall?.copyWith(color: c.inkSoft)),

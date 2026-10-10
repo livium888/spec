@@ -48,3 +48,27 @@ MemoryBucket bucketOf(MemoryFact c, List<double> weights, int nowMs, {double? re
       return (recall ?? recallNow(c, weights, nowMs)) >= kLongTermRecall ? MemoryBucket.longTerm : MemoryBucket.fading;
   }
 }
+
+/// The words for where a card stands: ONE set, used by every screen (D52).
+extension MemoryBucketWords on MemoryBucket {
+  String get label => switch (this) {
+        MemoryBucket.fresh => 'New',
+        MemoryBucket.learning => 'Learning',
+        MemoryBucket.growing => 'Growing',
+        MemoryBucket.fading => 'Fading',
+        MemoryBucket.longTerm => 'Long-term',
+        MemoryBucket.retired => 'Retired',
+        MemoryBucket.paused => 'Paused',
+      };
+
+  /// One sentence, in the same words everywhere.
+  String get meaning => switch (this) {
+        MemoryBucket.fresh => 'Not answered yet.',
+        MemoryBucket.learning => 'In its first short steps, or back on them after you forgot it.',
+        MemoryBucket.growing => 'You know it, and the gaps between reviews are getting longer (stable for under three weeks).',
+        MemoryBucket.fading => 'It was long-term, but it is overdue and your chance of recalling it is dropping.',
+        MemoryBucket.longTerm => 'Stable for three weeks or more, and still at least 90% likely to be recalled now.',
+        MemoryBucket.retired => 'Mastered and put away by you. It stays counted as long-term.',
+        MemoryBucket.paused => 'Put aside by you. It will not appear until you bring it back.',
+      };
+}

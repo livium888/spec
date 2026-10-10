@@ -107,7 +107,7 @@ class _RetireScreenState extends ConsumerState<RetireScreen> {
                       },
                     ),
                     const SizedBox(height: Sp.s),
-                    Text('…away, after at least $kRetireMinReviews reviews and at most $kRetireMaxLapses lapse.', style: t.bodySmall),
+                    Text('…away, after at least $kRetireMinReviews reviews and at most $kRetireMaxLapses time forgotten.', style: t.bodySmall),
                     const SizedBox(height: Sp.m),
                     SoftCard(
                       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [

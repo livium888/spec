@@ -23,7 +23,7 @@ class _BrowseCardsScreenState extends ConsumerState<BrowseCardsScreen> {
   final _q = TextEditingController();
   Timer? _debounce;
   List<NoteRow> _rows = [];
-  bool _loading = true, _more = false, _markedOnly = false;
+  bool _loading = true, _more = false, _markedOnly = false, _pausedOnly = false;
   String? _error;
 
   @override
@@ -43,7 +43,7 @@ class _BrowseCardsScreenState extends ConsumerState<BrowseCardsScreen> {
     try {
       final rows = await ref
           .read(cardEditServiceProvider)
-          .search(query: _q.text, markedOnly: _markedOnly, limit: _page, offset: append ? _rows.length : 0);
+          .search(query: _q.text, markedOnly: _markedOnly, pausedOnly: _pausedOnly, limit: _page, offset: append ? _rows.length : 0);
       if (!mounted) return;
       setState(() {
         _rows = append ? [..._rows, ...rows] : rows;
@@ -79,15 +79,26 @@ class _BrowseCardsScreenState extends ConsumerState<BrowseCardsScreen> {
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
             child: Align(
               alignment: Alignment.centerLeft,
-              child: FilterChip(
-                avatar: const Icon(Icons.bookmark_outline, size: 18),
-                label: const Text('Marked only'),
-                selected: _markedOnly,
-                onSelected: (v) {
-                  setState(() => _markedOnly = v);
-                  _run();
-                },
-              ),
+              child: Wrap(spacing: 8, children: [
+                FilterChip(
+                  avatar: const Icon(Icons.bookmark_outline, size: 18),
+                  label: const Text('Marked only'),
+                  selected: _markedOnly,
+                  onSelected: (v) {
+                    setState(() => _markedOnly = v);
+                    _run();
+                  },
+                ),
+                FilterChip(
+                  avatar: const Icon(Icons.pause_circle_outline, size: 18),
+                  label: const Text('Paused only'),
+                  selected: _pausedOnly,
+                  onSelected: (v) {
+                    setState(() => _pausedOnly = v);
+                    _run();
+                  },
+                ),
+              ]),
             ),
           ),
           Expanded(
@@ -96,7 +107,7 @@ class _BrowseCardsScreenState extends ConsumerState<BrowseCardsScreen> {
                 : _error != null
                     ? Center(child: Text('Could not load: $_error'))
                     : _rows.isEmpty
-                        ? Center(child: Text(_markedOnly && _q.text.isEmpty ? 'No marked cards. Mark one while reviewing.' : (_q.text.isEmpty ? 'No cards yet.' : 'No card matches that.')))
+                        ? Center(child: Text(_pausedOnly && _q.text.isEmpty ? 'No paused cards.' : (_markedOnly && _q.text.isEmpty ? 'No marked cards. Mark one while reviewing.' : (_q.text.isEmpty ? 'No cards yet.' : 'No card matches that.'))))
                         : ListView.builder(
                             padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
                             itemCount: _rows.length + (_more ? 1 : 0),
@@ -123,8 +134,21 @@ class _BrowseCardsScreenState extends ConsumerState<BrowseCardsScreen> {
                                       Expanded(child: Text(plainFromMarkup(r.title), maxLines: 2, overflow: TextOverflow.ellipsis, style: t.titleSmall)),
                                     ]),
                                     const SizedBox(height: 2),
-                                    Text('${r.domainName} · ${r.type == 'cloze' ? 'fill in the gap' : 'question and answer'}',
-                                        style: t.bodySmall),
+                                    Row(children: [
+                                      Expanded(
+                                        child: Text('${r.domainName} · ${r.type == 'cloze' ? 'fill in the gap' : 'question and answer'}${r.paused ? ' · Paused' : ''}',
+                                            style: t.bodySmall),
+                                      ),
+                                      if (r.paused)
+                                        TextButton(
+                                          style: TextButton.styleFrom(minimumSize: const Size(48, 48)),
+                                          onPressed: () async {
+                                            await ref.read(cardEditServiceProvider).bringBack(r.noteId);
+                                            _run();
+                                          },
+                                          child: const Text('Bring back'),
+                                        ),
+                                    ]),
                                   ]),
                                 ),
                               );

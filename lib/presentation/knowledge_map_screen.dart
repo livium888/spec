@@ -430,7 +430,7 @@ class _TopicSheet extends StatelessWidget {
           row('Known now', n.cards == 0 ? 'no cards' : '${(n.knowledge * 100).round()}%'),
           row('Cards', '${n.cards} of about ${n.targetCards > n.cards ? n.targetCards : n.cards}'),
           if (n.recall != null) row('Recall of what you have learned', '${(n.recall! * 100).round()}%'),
-          if (n.leeches > 0) row('Hard cards (leeches)', '${n.leeches}'),
+          if (n.leeches > 0) row('Stuck cards', '${n.leeches}'),
           if (n.foundations > 0) row('Foundation cards', '${n.foundations}'),
           if (n.problems) row('Practised with', 'problems'),
           if (blocker != null) ...[

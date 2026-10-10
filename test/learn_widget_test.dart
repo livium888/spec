@@ -333,12 +333,12 @@ void guideWidgetTests() {
 }
 
 void memoryModelWidgetTests() {
-  testWidgets('Settings -> Memory model: a new learner sees when to fit and why, and cannot fit yet', (t) async {
+  testWidgets('Settings -> Tune my scheduling: a new learner sees when to fit and why, and cannot fit yet', (t) async {
     final db = await boot(t, settings: {'guide_seen': '1'});
     await t.tap(find.byTooltip('Settings and backup'));
     await settle(t);
     await tapSettingsEntry(t, 'Advanced');
-    await tapSettingsEntry(t, 'Memory model: fit to my reviews');
+    await tapSettingsEntry(t, 'Tune my scheduling');
     await until(t, find.text('Using: the built-in settings'));
     await settle(t);
     expect(find.textContaining('Not yet'), findsOneWidget);
@@ -386,8 +386,8 @@ void memoryModelWidgetTests() {
           )),
     ]);
     // Today shows the nudge with the reason, below the day's work (D48), so scroll down to it.
-    await t.dragUntilVisible(find.text('Your memory model can be personalised'), find.byType(ListView).first, const Offset(0, -300));
-    expect(find.text('Your memory model can be personalised'), findsOneWidget);
+    await t.dragUntilVisible(find.text('Your scheduling can be tuned to you'), find.byType(ListView).first, const Offset(0, -300));
+    expect(find.text('Your scheduling can be tuned to you'), findsOneWidget);
     await t.ensureVisible(find.text('See details'));
     await t.tap(find.text('See details'));
     await until(t, find.text('Fit to my memory'));

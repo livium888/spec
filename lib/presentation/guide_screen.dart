@@ -93,7 +93,7 @@ class GuideScreen extends StatelessWidget {
           heading('Fixing and removing cards'),
           para('While reviewing, tap the pencil to edit or delete the card on screen. Or open Library > Browse, edit or delete cards '
               'to search for any card. Editing changes only the words, never when the card is due. Deleting is permanent and also removes that card\'s review history. '
-              'To rest a card without losing it, tap the pause icon (suspend).'),
+              'To rest a card without losing it, open the three-dot menu on the card and choose Pause this card (you can bring it back under Library > Browse cards > Paused only).'),
 
           heading('Pictures and reading aloud'),
           para('For art, crafts or anything visual: edit a card (the pencil in a review, or Library > Browse) and tap "Add a picture". It shows on the '
@@ -158,7 +158,7 @@ class GuideScreen extends StatelessWidget {
 
           heading('Fitting the app to your memory'),
           para('Out of the box the app schedules reviews using averages from many learners. After about a thousand reviews it can fit its '
-              'memory model to YOU, so cards come back when you personally are about to forget. Open Settings > Advanced > Memory model: it tells you '
+              'scheduling to YOU, so cards come back when you personally are about to forget. Open Settings > Advanced > Tune my scheduling: it tells you '
               'when to do it and why ("in 12 days", or "after 400 more reviews"), shows how well the new fit would have predicted cards it never saw, '
               'and only offers it if it is clearly better. You can go back at any time. It runs on your phone and never changes your history.'),
 

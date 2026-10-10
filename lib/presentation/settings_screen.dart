@@ -342,11 +342,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ExpansionTile(
                   tilePadding: EdgeInsets.zero,
                   title: Text('Advanced', style: t.titleLarge),
-                  subtitle: const Text('Memory model and phone check'),
+                  subtitle: const Text('Scheduling and phone check'),
                   children: [
                                 OutlinedButton.icon(
                   icon: const Icon(Icons.psychology_outlined),
-                  label: const Text('Memory model: fit to my reviews'),
+                  label: const Text('Tune my scheduling'),
                   onPressed: () => Navigator.of(context)
                       .push(MaterialPageRoute<void>(builder: (_) => const MemoryModelScreen())),
                 ),

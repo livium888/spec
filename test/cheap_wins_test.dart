@@ -137,7 +137,7 @@ void main() {
     });
   });
 
-  testWidgets('Today shows the New / Learning / To review counts, and a card can be marked in the review', (t) async {
+  testWidgets('Today shows the New / Learning / Due counts, and a card can be marked in the review', (t) async {
     final d = AppDatabase(NativeDatabase.memory());
     addTearDown(() async => t.runAsync(d.close));
     await t.runAsync(() async {
@@ -148,18 +148,22 @@ void main() {
     await boot(t, d, key);
     expect(find.text('New 5'), findsOneWidget);
     expect(find.text('Learning 0'), findsOneWidget);
-    expect(find.text('To review 0'), findsOneWidget);
+    expect(find.text('Due 0'), findsOneWidget);
 
     await t.tap(find.text('Start review'));
     await settle(t);
-    await t.tap(find.byTooltip('Mark this card to look at later'));
+    await t.tap(find.byTooltip('More actions for this card'));
+    await settle(t, rounds: 2);
+    await t.tap(find.text('Mark to look at later'));
     await settle(t, rounds: 3);
-    expect(find.byTooltip('Remove the mark from this card'), findsOneWidget);
+    expect(find.text('Marked'), findsOneWidget, reason: 'the card itself shows that it is marked');
     final tags = await t.runAsync(() async => [for (final n in await d.select(d.notes).get()) n.tags]);
     expect(tags!.where((x) => x.contains('marked')).length, 1);
-    await t.tap(find.byTooltip('Remove the mark from this card'));
+    await t.tap(find.byTooltip('More actions for this card'));
+    await settle(t, rounds: 2);
+    await t.tap(find.text('Remove the mark'));
     await settle(t, rounds: 3);
-    expect(find.byTooltip('Mark this card to look at later'), findsOneWidget);
+    expect(find.text('Marked'), findsNothing);
     await t.pumpWidget(const SizedBox());
   });
 }

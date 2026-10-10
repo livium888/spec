@@ -343,7 +343,7 @@ class LearnPlanner {
           item: it,
           score: (0.9 + severity) * wf + jitter(it, 3),
           reasons: [
-            if (it.leechCount >= 2) '${it.leechCount} leech cards in ${it.title}.',
+            if (it.leechCount >= 2) '${it.leechCount} stuck cards in ${it.title}.',
             if (lapsey) 'You forget ${(it.lapseRate * 100).round()}% of ${it.title} reviews.',
           ],
           count: problems.clamp(1, 10),

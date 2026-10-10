@@ -7,6 +7,7 @@ import '../app/providers.dart';
 import '../data/review_service.dart';
 import '../data/settings_repo.dart';
 import '../domain/card_memory.dart';
+import '../domain/memory_summary.dart';
 import '../domain/study_card.dart';
 import 'format.dart';
 import 'prompt_result_screen.dart';
@@ -79,8 +80,12 @@ class _CardInfoSheetState extends ConsumerState<CardInfoSheet> {
     final c = AppColors.of(context);
     final card = widget.card;
     final now = DateTime.now().millisecondsSinceEpoch;
-    final e = explainState(card.snapshot.state, learningSteps: d.learning, relearningSteps: d.relearning);
     final m = memoryStats(card.snapshot, d.w, now);
+    final stage = bucketOf(
+        MemoryFact(state: card.snapshot.state.dbValue, stability: card.snapshot.stability, lastReviewMs: card.snapshot.lastReview, suspended: card.suspended),
+        d.w,
+        now);
+    final e = explainState(card.snapshot.state, learningSteps: d.learning, relearningSteps: d.relearning, stage: stage);
 
     Widget stat(String label, String value, {String? hint}) => Padding(
           padding: const EdgeInsets.symmetric(vertical: 6),

@@ -8,6 +8,7 @@ import '../data/backup/backup_service.dart';
 import '../data/backup/backup_storage.dart';
 import '../data/settings_repo.dart';
 import '../data/stats_service.dart';
+import '../domain/memory_summary.dart';
 import '../domain/study_advisor.dart';
 import '../domain/study_card.dart';
 import 'advice_card.dart';
@@ -28,7 +29,7 @@ class HomeData {
       {this.guideSeen = true, this.modelNudge});
   final bool guideSeen;
 
-  /// "Fit the memory model" is worth doing now (null: no nudge).
+  /// "Tune my scheduling" is worth doing now (null: no nudge).
   final String? modelNudge;
   final DailyQueue queue;
   final int lastBackupMs; // 0 = never
@@ -228,7 +229,7 @@ class _ModelNudge extends StatelessWidget {
     final t = Theme.of(context).textTheme;
     return SoftCard(
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text('Your memory model can be personalised', style: t.titleSmall),
+        Text('Your scheduling can be tuned to you', style: t.titleSmall),
         const SizedBox(height: 4),
         Text(why, style: t.bodyMedium),
         const SizedBox(height: 8),
@@ -394,12 +395,12 @@ class _QueueSplit extends StatelessWidget {
     final c = AppColors.of(context);
     final t = Theme.of(context).textTheme;
     final parts = [
-      ('New', q.newCards.length, c.info),
-      ('Learning', q.learning.length + q.learnAhead.length, c.warn),
-      ('To review', q.reviews.length, c.good),
+      (MemoryBucket.fresh.label, q.newCards.length, c.info),
+      (MemoryBucket.learning.label, q.learning.length + q.learnAhead.length, c.warn),
+      ('Due', q.reviews.length, c.good),
     ];
     return Semantics(
-      label: '${parts[0].$2} new, ${parts[1].$2} learning, ${parts[2].$2} to review',
+      label: '${parts[0].$2} new, ${parts[1].$2} learning, ${parts[2].$2} due',
       child: ExcludeSemantics(
         child: Wrap(spacing: Sp.l, runSpacing: 4, children: [
           for (final p in parts)

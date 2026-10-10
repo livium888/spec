@@ -363,3 +363,14 @@ Steps: choose a file -> plan (what was found, subjects to tick and rename) -> im
 | app never opened / new day not started | "Tap to see today's cards" / "Tap to start" |
 | cards waiting | the count, about minutes, Quick 5 button (widget) |
 | nothing due | "All done" |
+
+## Vocabulary and the review top bar (D52)
+**Stage words** (everywhere): New, Learning (Learning again), Growing, Long-term, Fading, Retired, Paused. Card tag in the review and "About this card" use them, so a card reads "Long-term" in the review and in Progress. Today's counts are New, Learning, Due.
+**Review top bar:** Close, progress bar, Undo, "More actions for this card" (three dots). Menu: Mark to look at later / Remove the mark; Edit or delete; About this card; divider; Pause this card. After pausing: message "Card paused. Bring it back under Library > Browse cards > Paused only." with Undo. A marked card shows a "Marked" tag beside the subject.
+**Browse:** two filter chips, Marked only and Paused only; paused rows say "Paused" and have "Bring back".
+| State | Shows |
+|---|---|
+| no card on screen (done, loading) | no menu button |
+| card paused, then Undo | the card is back and shown again |
+| Paused only, nothing paused | "No paused cards." |
+
