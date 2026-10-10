@@ -532,8 +532,8 @@ class LearnService {
         [Variable.withInt(dayEnd), Variable.withInt(dayEnd + 7 * _day)]);
     final since = nowMs - 30 * _day;
     final r = await one('''
-      SELECT SUM(CASE WHEN state_before IN ('review','relearning') THEN 1 ELSE 0 END) AS answers,
-             SUM(CASE WHEN state_before IN ('review','relearning') AND rating > 1 THEN 1 ELSE 0 END) AS passed,
+      SELECT SUM(CASE WHEN state_before = 'review' THEN 1 ELSE 0 END) AS answers,
+             SUM(CASE WHEN state_before = 'review' AND rating > 1 THEN 1 ELSE 0 END) AS passed,
              SUM(CASE WHEN state_before = 'review' THEN 1 ELSE 0 END) AS revonly,
              SUM(CASE WHEN state_before = 'review' AND rating = 1 THEN 1 ELSE 0 END) AS lapsed,
              MAX(reviewed_at) AS last_at

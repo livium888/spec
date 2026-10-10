@@ -23,7 +23,7 @@ class _BrowseCardsScreenState extends ConsumerState<BrowseCardsScreen> {
   final _q = TextEditingController();
   Timer? _debounce;
   List<NoteRow> _rows = [];
-  bool _loading = true, _more = false;
+  bool _loading = true, _more = false, _markedOnly = false;
   String? _error;
 
   @override
@@ -43,7 +43,7 @@ class _BrowseCardsScreenState extends ConsumerState<BrowseCardsScreen> {
     try {
       final rows = await ref
           .read(cardEditServiceProvider)
-          .search(query: _q.text, limit: _page, offset: append ? _rows.length : 0);
+          .search(query: _q.text, markedOnly: _markedOnly, limit: _page, offset: append ? _rows.length : 0);
       if (!mounted) return;
       setState(() {
         _rows = append ? [..._rows, ...rows] : rows;
@@ -75,13 +75,28 @@ class _BrowseCardsScreenState extends ConsumerState<BrowseCardsScreen> {
               },
             ),
           ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: FilterChip(
+                avatar: const Icon(Icons.bookmark_outline, size: 18),
+                label: const Text('Marked only'),
+                selected: _markedOnly,
+                onSelected: (v) {
+                  setState(() => _markedOnly = v);
+                  _run();
+                },
+              ),
+            ),
+          ),
           Expanded(
             child: _loading
                 ? const Center(child: CircularProgressIndicator())
                 : _error != null
                     ? Center(child: Text('Could not load: $_error'))
                     : _rows.isEmpty
-                        ? Center(child: Text(_q.text.isEmpty ? 'No cards yet.' : 'No card matches that.'))
+                        ? Center(child: Text(_markedOnly && _q.text.isEmpty ? 'No marked cards. Mark one while reviewing.' : (_q.text.isEmpty ? 'No cards yet.' : 'No card matches that.')))
                         : ListView.builder(
                             padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
                             itemCount: _rows.length + (_more ? 1 : 0),
@@ -100,7 +115,13 @@ class _BrowseCardsScreenState extends ConsumerState<BrowseCardsScreen> {
                                     if (o != null) _run();
                                   },
                                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                                    Text(plainFromMarkup(r.title), maxLines: 2, overflow: TextOverflow.ellipsis, style: t.titleSmall),
+                                    Row(children: [
+                                      if (r.marked) ...[
+                                        Icon(Icons.bookmark, size: 18, color: AppColors.of(context).accent, semanticLabel: 'Marked'),
+                                        const SizedBox(width: 6),
+                                      ],
+                                      Expanded(child: Text(plainFromMarkup(r.title), maxLines: 2, overflow: TextOverflow.ellipsis, style: t.titleSmall)),
+                                    ]),
                                     const SizedBox(height: 2),
                                     Text('${r.domainName} · ${r.type == 'cloze' ? 'fill in the gap' : 'question and answer'}',
                                         style: t.bodySmall),

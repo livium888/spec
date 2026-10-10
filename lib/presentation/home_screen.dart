@@ -339,6 +339,8 @@ class _TodayCard extends StatelessWidget {
           ]),
         ],
         if (remaining > 0) ...[
+          const SizedBox(height: 12),
+          _QueueSplit(d.queue),
           const SizedBox(height: 16),
           FilledButton(
             style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(56)),
@@ -355,6 +357,36 @@ class _TodayCard extends StatelessWidget {
           ),
         ],
       ]),
+    );
+  }
+}
+
+/// New, learning and due counts, as in the study overview of the standard flashcard tools (D49).
+class _QueueSplit extends StatelessWidget {
+  const _QueueSplit(this.q);
+  final DailyQueue q;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = AppColors.of(context);
+    final t = Theme.of(context).textTheme;
+    final parts = [
+      ('New', q.newCards.length, c.info),
+      ('Learning', q.learning.length + q.learnAhead.length, c.warn),
+      ('To review', q.reviews.length, c.good),
+    ];
+    return Semantics(
+      label: '${parts[0].$2} new, ${parts[1].$2} learning, ${parts[2].$2} to review',
+      child: ExcludeSemantics(
+        child: Wrap(spacing: Sp.l, runSpacing: 4, children: [
+          for (final p in parts)
+            Row(mainAxisSize: MainAxisSize.min, children: [
+              Container(width: 10, height: 10, decoration: BoxDecoration(color: p.$3, shape: BoxShape.circle)),
+              const SizedBox(width: 6),
+              Text('${p.$1} ${p.$2}', style: t.bodyMedium),
+            ]),
+        ]),
+      ),
     );
   }
 }

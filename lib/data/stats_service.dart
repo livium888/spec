@@ -10,6 +10,31 @@ import 'settings_repo.dart';
 
 const _day = 86400000;
 
+/// Answers on cards in normal review and how many were not "Again" (D49). A card is "mature" when its
+/// stability before the answer was [kLongTermStability] days or more (Anki says the same about its interval).
+class RetentionCell {
+  const RetentionCell(this.answers, this.passed);
+  final int answers, passed;
+
+  /// Null with fewer than 10 answers: too few to mean anything.
+  double? get rate => answers < 10 ? null : passed / answers;
+}
+
+class RetentionTable {
+  const RetentionTable({
+    required this.all30,
+    required this.young30,
+    required this.mature30,
+    required this.all365,
+    required this.young365,
+    required this.mature365,
+  });
+  final RetentionCell all30, young30, mature30, all365, young365, mature365;
+  static const empty = RetentionTable(
+      all30: RetentionCell(0, 0), young30: RetentionCell(0, 0), mature30: RetentionCell(0, 0),
+      all365: RetentionCell(0, 0), young365: RetentionCell(0, 0), mature365: RetentionCell(0, 0));
+}
+
 class SubjectStat {
   const SubjectStat(this.domainId, this.name, this.cards, this.mature, this.dueNow);
   final int domainId;
@@ -39,6 +64,8 @@ class ProgressStats {
     required this.secondsPerCard,
     required this.todayWeekday,
     required this.activitySpanDays,
+    required this.retention,
+    required this.recallBins,
     this.estimatedRecall,
     required this.forecast,
     required this.totalReviews,
@@ -73,6 +100,12 @@ class ProgressStats {
 
   /// Days the activity heatmap really covers (since the first study day, at most the heatmap length).
   final int activitySpanDays;
+
+  /// True retention by card age and period (D49).
+  final RetentionTable retention;
+
+  /// How many learned cards sit in each 10-point band of recall right now: [0] is 0-10%, [9] is 90-100%.
+  final List<int> recallBins;
 
   /// Average chance of recalling the cards you have learned, right now (a model estimate); null with too few.
   final double? estimatedRecall;
@@ -134,11 +167,32 @@ class StatsService {
         'WHERE revoked_at IS NULL AND reviewed_at >= ?',
         [Variable.withInt(dayStart)]);
 
-    final r30 = await one('''
-      SELECT SUM(CASE WHEN state_before = 'review' THEN 1 ELSE 0 END) AS answers,
-             SUM(CASE WHEN state_before = 'review' AND rating > 1 THEN 1 ELSE 0 END) AS passed
-      FROM review_log WHERE revoked_at IS NULL AND reviewed_at >= ?''',
-        [Variable.withInt(nowMs - 30 * _day)]);
+    final yearAgo = nowMs - 365 * _day, monthAgo = nowMs - 30 * _day;
+    final rt = await one('''
+      SELECT
+        SUM(CASE WHEN reviewed_at >= ? THEN 1 ELSE 0 END) AS a30,
+        SUM(CASE WHEN reviewed_at >= ? AND rating > 1 THEN 1 ELSE 0 END) AS p30,
+        SUM(CASE WHEN reviewed_at >= ? AND COALESCE(stability_before, 0) < ? THEN 1 ELSE 0 END) AS ay30,
+        SUM(CASE WHEN reviewed_at >= ? AND COALESCE(stability_before, 0) < ? AND rating > 1 THEN 1 ELSE 0 END) AS py30,
+        COUNT(*) AS a365,
+        SUM(CASE WHEN rating > 1 THEN 1 ELSE 0 END) AS p365,
+        SUM(CASE WHEN COALESCE(stability_before, 0) < ? THEN 1 ELSE 0 END) AS ay365,
+        SUM(CASE WHEN COALESCE(stability_before, 0) < ? AND rating > 1 THEN 1 ELSE 0 END) AS py365
+      FROM review_log WHERE revoked_at IS NULL AND state_before = 'review' AND reviewed_at >= ?''', [
+      Variable.withInt(monthAgo), Variable.withInt(monthAgo),
+      Variable.withInt(monthAgo), Variable.withReal(kLongTermStability),
+      Variable.withInt(monthAgo), Variable.withReal(kLongTermStability),
+      Variable.withReal(kLongTermStability), Variable.withReal(kLongTermStability),
+      Variable.withInt(yearAgo),
+    ]);
+    final retention = RetentionTable(
+      all30: RetentionCell(i(rt['a30']), i(rt['p30'])),
+      young30: RetentionCell(i(rt['ay30']), i(rt['py30'])),
+      mature30: RetentionCell(i(rt['a30']) - i(rt['ay30']), i(rt['p30']) - i(rt['py30'])),
+      all365: RetentionCell(i(rt['a365']), i(rt['p365'])),
+      young365: RetentionCell(i(rt['ay365']), i(rt['py365'])),
+      mature365: RetentionCell(i(rt['a365']) - i(rt['ay365']), i(rt['p365']) - i(rt['py365'])),
+    );
 
     // Where every card stands (D48). New, paused and retired cards are counted in SQL; the cards that have a
     // memory trace are read one by one, because "still >= 90% likely to be recalled" depends on the clock.
@@ -155,6 +209,7 @@ class StatsService {
     final weightsFor = <int, List<double>>{};
     var learningN = 0, growingN = 0, fadingN = 0, longTermN = 0;
     var recallSum = 0.0, recallN = 0;
+    final bins = List<int>.filled(10, 0);
     final longByDomain = <int, int>{}, inPlayByDomain = <int, int>{};
     for (final r in traced) {
       final d = r.data;
@@ -183,6 +238,7 @@ class StatsService {
       if (rec > 0) {
         recallSum += rec;
         recallN++;
+        bins[(rec * 10).floor().clamp(0, 9)]++;
       }
     }
 
@@ -229,15 +285,16 @@ class StatsService {
     final totalReviews = await cache.total();
     final revisited = await one('SELECT COUNT(*) AS n FROM syllabus_item WHERE rounds >= 2');
     final retiredN = i(counts['retired']);
-    final answers = i(r30['answers']);
 
     return ProgressStats(
       streak: streak,
       activity: activity,
       todayAnswered: i(spent['n']),
       todayMinutes: i(spent['ms']) / 60000,
-      retention30d: answers < 10 ? null : i(r30['passed']) / answers,
-      answers30d: answers,
+      retention30d: retention.all30.rate,
+      answers30d: retention.all30.answers,
+      retention: retention,
+      recallBins: bins,
       newCards: i(counts['fresh']),
       learningCards: learningN,
       youngCards: growingN,

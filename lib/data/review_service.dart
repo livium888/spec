@@ -196,6 +196,9 @@ class ReviewService {
       (db.update(db.cards)..where((c) => c.id.equals(cardId)))
           .write(CardsCompanion(suspended: Value(suspended)));
 
+  /// Mark a card's note to look at later (or take the mark off). Only the note's tags change.
+  Future<void> setMarked(int noteId, bool marked) => marked ? _addTag(noteId, 'marked') : _removeTag(noteId, 'marked');
+
   // ---- RebuildCardsFromLog ------------------------------------------------
 
   /// Replay non-revoked logs for one card from its pristine state and write the

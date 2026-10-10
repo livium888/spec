@@ -409,3 +409,15 @@ New pushes cancel older builds (`concurrency`), and the rolling `latest-apk` rel
 - **Cost:** the stats now read every learned card once to compute recall (about 10,000 rows at the test size): stats 62 -> about 100 to 150 ms in the sandbox, still far under the ceiling in `test/perf_test.dart`. A de-duplicating query was dropped for a plain one because DISTINCT made SQLite walk the whole card index (about 60 ms). Revisit if a real phone shows the Today screen above about 1 s.
 - **Revisit if:** the learner wants the threshold to follow each subject's own target retention (it is 90% for all today); "Growing" should split into "young and due" and "young and fine"; recall estimates are shown per subject on the tiles.
 - **Limits:** the recall figures come from the FSRS model (verify against current docs for the exact forgetting curve in use) and are estimates, not tests of your memory. The 30-day recall is about answers you gave, and is skewed by how often cards are shown.
+
+## D49 — Cheap wins from the standard flashcard tools (Anki manual, read through search summaries)
+- **Source and limits:** the Anki manual pages on statistics, studying, deck options, filtered decks, browsing and searching, read through search summaries because the manual's site is blocked from the build sandbox (some summaries were older cached copies: verify against current docs). No Anki source code was read (AGPL); only documented behaviour is reimplemented.
+- **Chosen:**
+  - Today shows New / Learning / To review counts under the headline (Anki's study overview). Learn-ahead cards count as Learning.
+  - Progress: "Recalled when due" table, All / Young / Mature by 30 days and 1 year (Anki's true retention). Young/mature is stability before the answer, under or over 21 days (Anki uses interval; same idea, D48). A dash under 10 answers.
+  - Progress: "How sure your memory is": ten bands of predicted recall now over the learned cards (Anki's retrievability graph), with the count below 70% in words.
+  - Mark for later: a bookmark button in the review (tag `marked`, no schema change, reserved so an AI answer cannot set it); Browse has a "Marked only" filter and shows the bookmark.
+  - The advice card measured recall the old way (relearning counted as success): `engine_service.dart` and `learn_service.dart` now count review answers only, so Today's advice and Progress quote one number.
+- **Rejected:** Anki's search language (chips instead, later); flags in several colours (one mark is enough until someone needs two); a bookmark column in the database (a tag does the job and survives backup/restore for free).
+- **Revisit if:** the learner needs more than one kind of mark; the retention table should also split by subject.
+

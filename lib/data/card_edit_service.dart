@@ -19,8 +19,12 @@ class NoteRow {
     required this.fields,
     required this.domainName,
     required this.domainId,
+    this.marked = false,
   });
   final int noteId, cardCount, reviewCount, domainId;
+
+  /// The learner marked it to look at later.
+  final bool marked;
   final String type, domainName;
   final Map<String, dynamic> fields;
   String get title => (type == 'cloze' ? fields['cloze'] : fields['front']) as String? ?? '';
@@ -42,7 +46,7 @@ class CardEditService {
   }
 
   /// Newest first. [query] matches question/answer text; [domainId] narrows to a subject.
-  Future<List<NoteRow>> search({String query = '', int? domainId, int limit = 50, int offset = 0}) {
+  Future<List<NoteRow>> search({String query = '', int? domainId, bool markedOnly = false, int limit = 50, int offset = 0}) {
     final where = <String>[];
     final args = <Variable>[];
     final q = query.trim();
@@ -50,6 +54,7 @@ class CardEditService {
       where.add("n.fields_json LIKE ? ESCAPE '\\'");
       args.add(Variable.withString('%${q.replaceAll(r'\', r'\\').replaceAll('%', r'\%').replaceAll('_', r'\_')}%'));
     }
+    if (markedOnly) where.add("(' ' || n.tags || ' ') LIKE '% marked %'");
     if (domainId != null) {
       where.add('n.domain_id = ?');
       args.add(Variable.withInt(domainId));
@@ -60,7 +65,7 @@ class CardEditService {
   Future<List<NoteRow>> _query(
       {required String where, required List<Variable> args, required int limit, int offset = 0}) async {
     final rows = await db.customSelect('''
-      SELECT n.id, n.type, n.fields_json, n.domain_id, d.name AS dname,
+      SELECT n.id, n.type, n.fields_json, n.domain_id, n.tags, d.name AS dname,
              (SELECT COUNT(*) FROM card c WHERE c.note_id = n.id) AS cards,
              (SELECT COUNT(*) FROM review_log l JOIN card c ON c.id = l.card_id
                 WHERE c.note_id = n.id) AS reviews
@@ -77,6 +82,7 @@ class CardEditService {
           fields: jsonDecode(r.read<String>('fields_json')) as Map<String, dynamic>,
           domainName: r.read<String>('dname'),
           domainId: r.read<int>('domain_id'),
+          marked: ' ${r.read<String>('tags')} '.contains(' marked '),
         )
     ];
   }

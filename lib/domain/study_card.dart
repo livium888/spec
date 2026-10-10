@@ -102,6 +102,9 @@ class StudyCard {
   String get imageAlt => (fields['image_alt'] as String? ?? '').trim();
   bool get leech => tags.contains('leech');
 
+  /// The learner marked this card to look at later (D49). A tag, so no schema change.
+  bool get marked => tags.contains('marked');
+
   /// Answer-side extras in reading order, as (label, text). Empty ones are left out.
   List<(String, String)> get extras => [
         for (final (label, key) in const [

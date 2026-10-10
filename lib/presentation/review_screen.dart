@@ -210,6 +210,20 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
     await _load();
   }
 
+  /// Note ids whose mark was flipped on this screen (the queue's own copy of the tags is older).
+  final _markFlips = <int>{};
+  bool _isMarked(StudyCard c) => c.marked != _markFlips.contains(c.noteId);
+
+  Future<void> _toggleMark() async {
+    final c = _current;
+    if (c == null) return;
+    final now = !_isMarked(c);
+    await ref.read(reviewServiceProvider).setMarked(c.noteId, now);
+    if (!mounted) return;
+    setState(() => _markFlips.contains(c.noteId) ? _markFlips.remove(c.noteId) : _markFlips.add(c.noteId));
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(now ? 'Marked. Find it under Library > Browse cards > Marked only.' : 'Mark removed.')));
+  }
+
   Future<void> _suspend() async {
     final c = _current;
     if (c == null) return;
@@ -341,6 +355,11 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                 ),
               ),
               IconButton(tooltip: 'Undo last answer', icon: const Icon(Icons.undo), onPressed: _busy ? null : _undo),
+              if (_current != null)
+                IconButton(
+                    tooltip: _isMarked(_current!) ? 'Remove the mark from this card' : 'Mark this card to look at later',
+                    icon: Icon(_isMarked(_current!) ? Icons.bookmark : Icons.bookmark_outline),
+                    onPressed: _toggleMark),
               if (_current != null)
                 IconButton(tooltip: 'Edit or delete this card', icon: const Icon(Icons.edit_outlined), onPressed: _edit),
               if (_current != null)

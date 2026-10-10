@@ -93,6 +93,7 @@ void main() {
     expect(find.text('day streak'), findsOneWidget);
     expect(find.text('in long-term memory'), findsOneWidget);
     expect(find.text('Activity'), findsOneWidget);
+    await t.dragUntilVisible(find.text('Coming up'), find.byType(ListView).last, const Offset(0, -300));
     expect(find.text('Coming up'), findsOneWidget);
     await t.drag(find.byType(ListView).last, const Offset(0, -900));
     await settle(t, rounds: 3);

@@ -101,6 +101,10 @@ class ProgressBody extends StatelessWidget {
       ]),
       const SizedBox(height: Sp.m),
       SoftCard(child: _MemoryBar(s)),
+      const SectionTitle('How sure your memory is'),
+      SoftCard(child: _RecallBands(s.recallBins)),
+      const SizedBox(height: Sp.m),
+      SoftCard(child: _RetentionTable(s.retention)),
       const SectionTitle('Coming up'),
       SoftCard(child: _Forecast(s.forecast, s.todayWeekday)),
       const SizedBox(height: Sp.s),
@@ -208,6 +212,111 @@ class _MemoryBar extends StatelessWidget {
         Text('Estimated recall right now, across the cards you have learned: ${(s.estimatedRecall! * 100).round()}% (a model estimate).',
             style: t.bodySmall),
       ],
+    ]);
+  }
+}
+
+/// The chance of recalling each learned card right now, in ten bands (D49).
+class _RecallBands extends StatelessWidget {
+  const _RecallBands(this.bins);
+  final List<int> bins;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = AppColors.of(context);
+    final t = Theme.of(context).textTheme;
+    final total = bins.fold<int>(0, (a, b) => a + b);
+    if (total == 0) {
+      return Text('Once you have learned some cards, this shows how likely you are to recall each one right now.', style: t.bodySmall);
+    }
+    final maxV = bins.fold<int>(1, (m, v) => v > m ? v : m);
+    final shaky = bins.take(7).fold<int>(0, (a, b) => a + b); // below 70%
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text(
+        shaky == 0 ? 'Every learned card is at least 70% likely to be recalled.' : '$shaky of $total learned cards are below 70% likely to be recalled.',
+        style: t.titleSmall,
+      ),
+      const SizedBox(height: Sp.m),
+      SizedBox(
+        height: 96,
+        child: Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
+          for (var i = 0; i < bins.length; i++)
+            Expanded(
+              child: Semantics(
+                label: '${i * 10} to ${i * 10 + 10} percent: ${bins[i]} cards',
+                child: ExcludeSemantics(
+                  child: Column(mainAxisAlignment: MainAxisAlignment.end, children: [
+                    Text('${bins[i]}', style: t.labelSmall),
+                    const SizedBox(height: 2),
+                    Container(
+                      height: 4 + 60.0 * bins[i] / maxV,
+                      margin: const EdgeInsets.symmetric(horizontal: 2),
+                      decoration: BoxDecoration(
+                        color: i >= 9 ? c.good : (i >= 7 ? c.info : (i >= 5 ? c.warn : c.danger)),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ),
+                  ]),
+                ),
+              ),
+            ),
+        ]),
+      ),
+      const SizedBox(height: 4),
+      Row(children: [
+        Text('0%', style: t.labelSmall),
+        const Spacer(),
+        Text('chance of recall now', style: t.labelSmall),
+        const Spacer(),
+        Text('100%', style: t.labelSmall),
+      ]),
+    ]);
+  }
+}
+
+/// True retention (answers on cards in normal review that were not "Again"), by how well the card was known.
+class _RetentionTable extends StatelessWidget {
+  const _RetentionTable(this.r);
+  final RetentionTable r;
+
+  String _cell(RetentionCell x) => x.rate == null ? '–' : '${(x.rate! * 100).round()}%';
+  String _say(RetentionCell x) => x.rate == null ? 'not enough answers yet' : '${(x.rate! * 100).round()} percent of ${x.answers} answers';
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Theme.of(context).textTheme;
+    final c = AppColors.of(context);
+    Widget row(String label, String hint, RetentionCell m, RetentionCell y) => Semantics(
+          label: '$label, $hint. Last 30 days: ${_say(m)}. Last year: ${_say(y)}.',
+          child: ExcludeSemantics(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 6),
+              child: Row(children: [
+                Expanded(
+                  flex: 5,
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text(label, style: t.titleSmall),
+                    Text(hint, style: t.labelSmall?.copyWith(color: c.inkSoft)),
+                  ]),
+                ),
+                Expanded(flex: 2, child: Text(_cell(m), textAlign: TextAlign.end, style: t.titleSmall)),
+                Expanded(flex: 2, child: Text(_cell(y), textAlign: TextAlign.end, style: t.titleSmall)),
+              ]),
+            ),
+          ),
+        );
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Row(children: [
+        Expanded(flex: 5, child: Text('Recalled when due', style: t.titleSmall)),
+        Expanded(flex: 2, child: Text('30 days', textAlign: TextAlign.end, style: t.labelSmall)),
+        Expanded(flex: 2, child: Text('1 year', textAlign: TextAlign.end, style: t.labelSmall)),
+      ]),
+      row('All cards', 'not "Again"', r.all30, r.all365),
+      row('Young', 'stable under 3 weeks', r.young30, r.young365),
+      row('Mature', 'stable 3 weeks or more', r.mature30, r.mature365),
+      const SizedBox(height: 4),
+      Text('A dash means fewer than 10 answers. Around your target (90% unless you changed it) is healthy; much lower, review less new material.',
+          style: t.bodySmall?.copyWith(color: c.inkSoft)),
     ]);
   }
 }

@@ -32,8 +32,8 @@ class EngineFeaturesService {
       final logs = await one('''
         SELECT MAX(l.reviewed_at) AS last_at,
                SUM(CASE WHEN l.reviewed_at >= ? THEN 1 ELSE 0 END) AS n30,
-               SUM(CASE WHEN l.reviewed_at >= ? AND l.state_before IN ('review','relearning') THEN 1 ELSE 0 END) AS rev30,
-               SUM(CASE WHEN l.reviewed_at >= ? AND l.state_before IN ('review','relearning') AND l.rating > 1 THEN 1 ELSE 0 END) AS pass30,
+               SUM(CASE WHEN l.reviewed_at >= ? AND l.state_before = 'review' THEN 1 ELSE 0 END) AS rev30,
+               SUM(CASE WHEN l.reviewed_at >= ? AND l.state_before = 'review' AND l.rating > 1 THEN 1 ELSE 0 END) AS pass30,
                SUM(CASE WHEN l.reviewed_at >= ? AND l.state_before = 'review' THEN 1 ELSE 0 END) AS revonly30,
                SUM(CASE WHEN l.reviewed_at >= ? AND l.state_before = 'review' AND l.rating = 1 THEN 1 ELSE 0 END) AS lapse30
         FROM review_log l JOIN card c ON c.id = l.card_id JOIN note n ON n.id = c.note_id

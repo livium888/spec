@@ -325,3 +325,15 @@ Each subject card now shows its topics straight under the subject name: "Topics:
 | overdue stable cards | counted under Fading, not Long-term |
 | retired cards | stay counted in "in long-term memory" and appear as Retired |
 
+## Cheap wins: Today counts, retention table, recall bands, mark (D49)
+**Today.** Under the headline, when cards wait: three counts, each with its name (never colour alone): "New n", "Learning n" (learn-ahead included), "To review n". Announced as one sentence.
+**Progress, "How sure your memory is".** Ten bars (0-10% ... 90-100% chance of recall now) with counts; heading says how many learned cards are below 70%. No learned cards: one sentence explaining what will appear. Bars carry a spoken label ("40 to 50 percent: 3 cards").
+**Progress, "Recalled when due".** Rows All / Young (stable under 3 weeks) / Mature (3 weeks or more), columns 30 days and 1 year; a dash under 10 answers; one spoken sentence per row.
+**Review.** Bookmark button between Undo and Edit: "Mark this card to look at later" / "Remove the mark from this card"; a snackbar says where marked cards are found. **Browse.** "Marked only" filter chip; marked rows show a bookmark with the label "Marked"; empty marked list says how to mark.
+| State | Shows |
+|---|---|
+| nothing waiting | no counts (the headline already says so) |
+| no learned cards | recall bands: explanatory sentence, no bars |
+| fewer than 10 answers in a cell | "–" |
+| marked filter, nothing marked | "No marked cards. Mark one while reviewing." |
+
