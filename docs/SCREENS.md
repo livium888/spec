@@ -337,3 +337,17 @@ Each subject card now shows its topics straight under the subject name: "Topics:
 | fewer than 10 answers in a cell | "–" |
 | marked filter, nothing marked | "No marked cards. Mark one while reviewing." |
 
+## Import from Anki (Library > Add, D50)
+Steps: choose a file -> plan (what was found, subjects to tick and rename) -> importing (progress) -> done. The file picker is the system's (no storage permission); the app copies the file into its private folder and deletes the copy afterwards, also when the screen is left.
+| State | Shows |
+|---|---|
+| start | what to export from Anki (both kinds of file), what to expect (cards arrive new, history is not brought over), "Choose a file" |
+| reading | spinner, "Reading the file..." |
+| file not readable | message in words (newest Anki format: how to export again; damaged zip; empty; too large; too many notes), back at start with "Choose a file" |
+| nothing importable | "No importable cards in that file (3 empty question or answer, ...)" |
+| plan | "N notes found", how many can be imported and what was left out and why; audio dropped; pictures kept or "not in this file"; one row per subject: checkbox, editable name, card count; "Import N cards" (disabled at 0); "Choose another file" |
+| name empty on a ticked subject | message "Give every ticked subject a name." |
+| importing | progress bar and "Adding cards: x of N", announced politely; "Please keep the app open" |
+| import stopped midway | message; cards already added are kept; importing the same file again skips them |
+| done | "N notes added" (or "Nothing new to add"), cards and subjects, duplicates skipped, pictures kept or left out, "They are new cards", "Open <subject>", "Done" |
+

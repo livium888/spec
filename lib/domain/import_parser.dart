@@ -44,7 +44,12 @@ class ParsedCard {
     this.steps = const [],
     this.variants = const [],
     this.arithmetic = '',
+    this.image = '',
   });
+
+  /// A picture already stored for this card (SHA-256 in the media table), set by the Anki import (D50). An
+  /// AI answer never sets it: the JSON parser does not read it. The picture goes on [imageSide].
+  final String image;
 
   /// Problem families (type 'problem'): the worked steps (one per line), further problems of the same
   /// kind with other numbers, and what the arithmetic check said: '' (nothing to check), 'checked'.
@@ -96,7 +101,11 @@ class ImportPreview {
     required this.fatalErrors,
     this.reading = const [],
     this.foundationOf,
+    this.trackPrompt = true,
   });
+
+  /// False for cards that do not answer a prompt the app wrote (the Anki import): the prompt log is left alone.
+  final bool trackPrompt;
 
   /// Set when the answer is to a "build the foundations" prompt: the note the new cards prepare for.
   final int? foundationOf;

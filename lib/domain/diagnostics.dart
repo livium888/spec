@@ -55,6 +55,8 @@ const kPhoneCheck = <PhoneCheckItem>[
       'Library > a subject > the map icon at the top. Topics appear as tiles with their prerequisites above; Next up lists what is ready; tap a topic: the sheet shows the state in words. Switch to List: same facts. Pinch to zoom the map.'),
   PhoneCheckItem('numbers', 'Today and Progress numbers',
       'Progress > Your memory: add the legend counts (New, Learning, Growing, Fading, Long-term, Retired, Paused): they equal the card count above the bar. Retire some cards (Library > Retire): "in long-term memory" does not drop. Today: answer a new card three times: the ring counts it once. After midnight but before 4 am the weekday letters and the forecast still show the day before.'),
+  PhoneCheckItem('anki', 'Import from Anki',
+      'In Anki: File > Export > Anki Deck Package, tick "Support older Anki versions". Library > Import from Anki > Choose a file. The plan lists your top-level decks with counts; rename or untick one, import. Open the subject: cards, pictures, bold and formulas look right; Today shows them as new, a few a day. Import the same file again: nothing is added. Also try a .txt export (Notes in Plain Text) and a deck exported WITHOUT the older-versions tick: the message says how to export again.'),
   PhoneCheckItem('speech', 'Read aloud',
       'Subjects and topics > Read cards aloud: pick a language. In a review tap the speaker. If there is no voice, the message says how to install one.'),
   PhoneCheckItem('reminder', 'Daily reminder', 'Turn it on, set a time two minutes ahead, wait for it, tap it.'),

@@ -32,13 +32,20 @@ class ImportService {
   Future<ImportPreview> preview(String raw) async {
     final p = parseImportJson(raw);
     if (p.hasFatal) return p;
+    return checkPreview(p);
+  }
+
+  /// The subject check and the duplicate check, for a preview made by [parseImportJson] or built directly
+  /// (the Anki import builds its cards itself and has no AI answer to parse).
+  Future<ImportPreview> checkPreview(ImportPreview p, {bool matchPromptSubject = true}) async {
+    if (p.hasFatal) return p;
 
     var dom = await _findDomain(p.domain);
     if (dom == null) {
       // AIs sometimes rename the subject ("Psychology & Influence" for "Psychology and Influence").
       // Importing that as a brand-new subject would leave the requested topic untouched, so the
       // app would offer the same topic again and again. Match it to the prompt that was copied.
-      final asked = await _askedSubject(p);
+      final asked = matchPromptSubject ? await _askedSubject(p) : null;
       if (asked != null) {
         p.renamedFrom = p.domain;
         p.domain = asked.name;
@@ -139,6 +146,8 @@ class ImportService {
           if (c.imageQuery.isNotEmpty) 'image_query': c.imageQuery,
           // Where a picture should go once one is added (the card has no picture yet; see EditCardScreen).
           if (c.imageSide.isNotEmpty) 'image_side': c.imageSide,
+          // A picture that came with the card (Anki import): already stored, named by its SHA-256.
+          if (c.image.isNotEmpty) 'image': c.image,
           // Cards that prepare the learner for a hard card: shown first, outside the daily new-card limit (D41).
           if (foundationOf != null) 'foundation_of': '$foundationOf',
         };
@@ -194,7 +203,7 @@ class ImportService {
         }
       }
 
-      if (notes > 0) {
+      if (notes > 0 && p.trackPrompt) {
         await _updatePromptLog(domainId, sylId, notes);
         if (sylId != null) await _refreshItemStatus(sylId);
       }

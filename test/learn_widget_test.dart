@@ -576,9 +576,12 @@ void phase2WidgetTests() {
     await settle(t);
     final libScroll = find.descendant(of: find.byType(LibraryScreen), matching: find.byType(Scrollable)).first;
     await t.scrollUntilVisible(find.text('Advanced'), 200, scrollable: libScroll);
+    await t.drag(libScroll, const Offset(0, -150)); // clear of the bottom bar
+    await settle(t, rounds: 2);
     await t.tap(find.text('Advanced'));
     await settle(t);
     await t.scrollUntilVisible(find.text('Looking ahead'), 200, scrollable: libScroll);
+    await t.drag(libScroll, const Offset(0, -150));
     await t.pump();
     await t.tap(find.text('Looking ahead'));
     await until(t, find.text('in 5 years'));
@@ -608,9 +611,12 @@ void phase2WidgetTests() {
     await settle(t);
     final libScroll = find.descendant(of: find.byType(LibraryScreen), matching: find.byType(Scrollable)).first;
     await t.scrollUntilVisible(find.text('Advanced'), 200, scrollable: libScroll);
+    await t.drag(libScroll, const Offset(0, -150)); // clear of the bottom bar
+    await settle(t, rounds: 2);
     await t.tap(find.text('Advanced'));
     await settle(t);
     await t.scrollUntilVisible(find.text('Retire mastered cards'), 200, scrollable: libScroll);
+    await t.drag(libScroll, const Offset(0, -150));
     await t.pump();
     await t.tap(find.text('Retire mastered cards'));
     await until(t, find.textContaining('3 cards qualify'));
