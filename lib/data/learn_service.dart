@@ -11,6 +11,7 @@ import '../domain/study_advisor.dart';
 import 'db/database.dart';
 import 'engine_service.dart';
 import 'outline_service.dart';
+import 'pace.dart';
 import 'queue_service.dart';
 import 'starter_library.dart';
 import 'settings_repo.dart';
@@ -493,14 +494,9 @@ class LearnService {
     ];
   }
 
-  /// Mean seconds per review over 30 days (12 s until 20 reviews exist).
+  /// Typical (median) seconds per ordinary review over 30 days (12 s until 20 reviews exist), as on Today (D55).
   Future<double> _avgSeconds(DateTime t) async {
-    final avg = await db.customSelect(
-        'SELECT AVG(duration_ms) AS a, COUNT(*) AS n FROM review_log '
-        'WHERE revoked_at IS NULL AND duration_ms BETWEEN 500 AND 120000 AND reviewed_at >= ?',
-        variables: [Variable.withInt(t.millisecondsSinceEpoch - 30 * _day)]).getSingle();
-    final n = avg.read<int>('n');
-    return n >= 20 ? ((avg.data['a'] as num).toDouble() / 1000).clamp(4.0, 60.0) : 12.0;
+    return ordinarySeconds(db, sinceMs: t.millisecondsSinceEpoch - 30 * _day, fallback: 12, min: 4, max: 60);
   }
 
   Future<Capacity> _capacity(DateTime t) async {

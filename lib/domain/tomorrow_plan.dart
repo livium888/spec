@@ -13,7 +13,17 @@ class TomorrowPlan {
     required this.answersPerNew,
     required this.secondsPerAnswer,
     required this.budgetMinutes,
+    this.problemReviews = 0,
+    this.newProblems = 0,
+    this.secondsPerProblem = 240,
   });
+
+  /// Of [dueReviews], the problem cards: a problem is worked out on paper, so it is timed on its own pace.
+  final int problemReviews;
+
+  /// Problem cards tomorrow may start (up to the daily problem limit, never more than are waiting).
+  final int newProblems;
+  final double secondsPerProblem;
 
   /// Reviews scheduled for tomorrow (the app's day, which turns over at 04:00).
   final int dueReviews;
@@ -31,17 +41,15 @@ class TomorrowPlan {
   final double secondsPerAnswer;
   final int budgetMinutes;
 
-  int get cards => dueReviews + newCards;
+  int get cards => dueReviews + newCards + newProblems;
 
-  /// Answers tomorrow: each review once, each new card once per learning step.
-  int get answers => dueReviews + newCards * answersPerNew;
-  double get minutes => answers * secondsPerAnswer / 60;
+  /// Answers tomorrow, ordinary cards only: each review once, each new card once per learning step.
+  int get ordinaryAnswers => (dueReviews - problemReviews) + newCards * answersPerNew;
+  int get answers => ordinaryAnswers + problemReviews + newProblems;
 
-  /// How many MORE new cards a day would still fit in the study-time budget; negative when tomorrow is already
-  /// over it (by that many new cards).
-  int get roomForNew {
-    if (secondsPerAnswer <= 0 || answersPerNew <= 0) return 0;
-    final fitNew = ((budgetMinutes * 60 - dueReviews * secondsPerAnswer) / (answersPerNew * secondsPerAnswer)).floor();
-    return fitNew - newCards;
-  }
+  /// Minutes: ordinary answers at the ordinary pace, problems at the problem pace.
+  double get minutes => (ordinaryAnswers * secondsPerAnswer + (problemReviews + newProblems) * secondsPerProblem) / 60;
+
+  /// Minutes of the study-time budget left tomorrow (negative: over it).
+  double get minutesLeft => budgetMinutes - minutes;
 }

@@ -4,9 +4,11 @@ import '../domain/memory_summary.dart';
 import '../domain/milestones.dart';
 import '../domain/streak.dart';
 import '../domain/study_card.dart' show backlogAdjustedNewLimit;
+import 'queue_service.dart' show kDefaultProblemsPerDay, kMaxProblemsPerDay;
 import '../domain/tomorrow_plan.dart';
 import 'activity_cache.dart';
 import 'db/database.dart';
+import 'pace.dart';
 import 'params_repo.dart';
 import 'settings_repo.dart';
 
@@ -251,14 +253,16 @@ class StatsService {
     // Forecast: reviews still due today, then each of the next 6 days. Cards in their first
     // learning steps (or relearning after a lapse) come back within the day, so they count as today.
     final due = await db.customSelect(
-        "SELECT due FROM card WHERE suspended = 0 AND ((state = 'review' AND due < ?) "
-        "OR (state IN ('learning', 'relearning') AND due < ?))",
+        "SELECT c.due AS due, n.type AS type FROM card c JOIN note n ON n.id = c.note_id WHERE c.suspended = 0 AND ((c.state = 'review' AND c.due < ?) "
+        "OR (c.state IN ('learning', 'relearning') AND c.due < ?))",
         variables: [Variable.withInt(dayEnd + 6 * _day), Variable.withInt(dayEnd)]).get();
     final forecast = List<int>.filled(7, 0);
+    var problemTomorrow = 0; // of tomorrow's reviews, the problem cards (they take minutes, not seconds)
     for (final r in due) {
       final d = r.read<int>('due');
       final idx = d < dayEnd ? 0 : ((d - dayEnd) ~/ _day) + 1;
       if (idx >= 0 && idx < 7) forecast[idx]++;
+      if (idx == 1 && r.read<String>('type') == 'problem') problemTomorrow++;
     }
 
     final subjects = <SubjectStat>[];
@@ -284,9 +288,9 @@ class StatsService {
         // No DISTINCT: it makes SQLite walk the whole card index (about 60 ms at 120,000 answers); today's few rows are de-duplicated below.
         'SELECT card_id FROM review_log WHERE revoked_at IS NULL AND reviewed_at >= ?',
         variables: [Variable.withInt(dayStart)]).get();
-    final pace = await one(
-        'SELECT AVG(duration_ms) AS ms, COUNT(*) AS n FROM '
-        '(SELECT duration_ms FROM review_log WHERE revoked_at IS NULL AND duration_ms > 0 ORDER BY id DESC LIMIT 200)');
+    // The median of recent answers, ordinary and problem cards apart (D55): a mean was set by a few slow answers.
+    final ordinaryPace = await ordinarySeconds(db);
+    final problemPace = await problemSeconds(db);
 
     // Tomorrow (D54): reviews are scheduled; new cards come from the daily limit (as the queue applies it).
     final baseNew = await settings.getInt(SettingsRepo.newPerDay, 10);
@@ -298,6 +302,11 @@ class StatsService {
         "WHERE c.state = 'new' AND c.suspended = 0 AND n.type != 'problem'");
     final newWaiting = i(waiting['n']);
     final steps = await settings.getIntList(SettingsRepo.learningSteps, [1, 10]);
+    final problemLimit = (await settings.getInt(SettingsRepo.problemsPerDay, kDefaultProblemsPerDay)).clamp(0, kMaxProblemsPerDay);
+    final problemsWaiting = i((await one(
+            "SELECT COUNT(DISTINCT c.note_id) AS n FROM card c JOIN note n ON n.id = c.note_id "
+            "WHERE c.state = 'new' AND c.suspended = 0 AND n.type = 'problem'"))['n']);
+    final newProblems = problemsWaiting < problemLimit ? problemsWaiting : problemLimit;
     final tomorrow = TomorrowPlan(
       dueReviews: forecast[1],
       stillDueToday: forecast[0],
@@ -305,7 +314,10 @@ class StatsService {
       newWaiting: newWaiting,
       newLimit: newLimit,
       answersPerNew: steps.isEmpty ? 1 : steps.length,
-      secondsPerAnswer: i(pace['n']) < 20 ? 10.0 : (((pace['ms'] as num?)?.toDouble() ?? 10000) / 1000).clamp(3.0, 120.0),
+      secondsPerAnswer: ordinaryPace,
+      secondsPerProblem: problemPace,
+      problemReviews: problemTomorrow,
+      newProblems: newProblems,
       budgetMinutes: await settings.getInt(SettingsRepo.dailyMinutes, 20),
     );
 
@@ -331,7 +343,7 @@ class StatsService {
       retiredCards: retiredN,
       suspendedCards: i(counts['paused']),
       todayCardIds: {for (final r in answeredIds) r.read<int>('card_id')},
-      secondsPerCard: i(pace['n']) < 20 ? 10.0 : (((pace['ms'] as num?)?.toDouble() ?? 10000) / 1000).clamp(3.0, 120.0),
+      secondsPerCard: ordinaryPace,
       todayWeekday: DateTime.fromMillisecondsSinceEpoch(dayStart).weekday,
       activitySpanDays: activeDays.isEmpty ? 0 : today - [activeDays.reduce((a, b) => a < b ? a : b), today - heatmapDays + 1].reduce((a, b) => a > b ? a : b) + 1,
       estimatedRecall: recallN < kMinCardsForEstimate ? null : recallSum / recallN,

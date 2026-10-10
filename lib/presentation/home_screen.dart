@@ -50,7 +50,10 @@ final homeDataProvider = FutureProvider.autoDispose<HomeData>((ref) async {
       .read(dueBridgeProvider)
       .publish(
           due: queue.ordered.length,
-          minutes: (queue.ordered.length * stats.secondsPerCard / 60).ceil(),
+          minutes: (((queue.ordered.length - queue.ordered.where((c) => c.isProblem).length) * stats.secondsPerCard +
+                      queue.ordered.where((c) => c.isProblem).length * stats.tomorrow.secondsPerProblem) /
+                  60)
+              .ceil(),
           dayEndMs: clock.dayEndMs(DateTime.now().toUtc()))
       .ignore();
   final doneToday = queue.learning.isEmpty && queue.reviews.isEmpty && stats.todayAnswered > 0;
@@ -286,7 +289,9 @@ class _TodayCard extends StatelessWidget {
     final total = done + remaining;
     final noCards = s.totalCards == 0;
     final caughtUp = remaining == 0 && !noCards;
-    final mins = (remaining * s.secondsPerCard / 60).ceil().clamp(1, 999);
+    // Problems take minutes, ordinary cards seconds: each at its own pace (D55).
+    final problemsLeft = d.queue.ordered.where((c) => c.isProblem).length;
+    final mins = (((remaining - problemsLeft) * s.secondsPerCard + problemsLeft * s.tomorrow.secondsPerProblem) / 60).ceil().clamp(1, 999);
     final tomorrow = s.forecast.length > 1 ? s.forecast[1] : 0;
 
     final String headline;

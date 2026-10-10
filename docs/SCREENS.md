@@ -382,3 +382,6 @@ Above the 7-day chart. Content in order: "Tomorrow"; "N cards, about M min"; rev
 | tomorrow over the budget | verdict in words and colour: start fewer new cards for now |
 | reviews left today | the "+N still due today" line |
 
+## Tomorrow card, corrected (D55; replaces the verdict in D54)
+Lines: reviews due (ordinary); problem reviews due (they take longer), only if any; new cards (daily limit, waiting); new problems (up to the daily problem limit), only if any; "+N left to do today (some may come back later tonight)", only if any. Verdict: "That is about M min of your B minutes: about X min to spare." or "...over your B minutes by about X min. Start fewer new cards for now." (red text and words). A note: the pace (middle of recent answers; ordinary seconds, problem minutes), how many times a new card is answered, and that only this app's cards are counted. Button: "How many new cards a day can I keep up? (Looking ahead)". Today's "About N min" uses the same pace, problems priced at the problem pace.
+

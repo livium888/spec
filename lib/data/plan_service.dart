@@ -4,6 +4,7 @@ import 'package:drift/drift.dart';
 
 import '../domain/workload.dart';
 import 'db/database.dart';
+import 'pace.dart';
 import 'params_repo.dart';
 import 'settings_repo.dart';
 
@@ -94,11 +95,8 @@ class PlanService {
 
   Future<double> secondsPerReview({DateTime? now}) async {
     final t = (now ?? DateTime.now()).toUtc().millisecondsSinceEpoch;
-    final r = await db.customSelect(
-        'SELECT AVG(duration_ms) AS a, COUNT(*) AS n FROM review_log '
-        'WHERE revoked_at IS NULL AND duration_ms BETWEEN 500 AND 120000 AND reviewed_at >= ?',
-        variables: [Variable.withInt(t - 30 * _day)]).getSingle();
-    return r.read<int>('n') >= 20 ? ((r.data['a'] as num).toDouble() / 1000).clamp(4.0, 60.0) : 12.0;
+    // The same pace as Today and Progress (D55): the middle of recent ordinary answers, not a mean.
+    return ordinarySeconds(db, sinceMs: t - 30 * _day, fallback: 12, min: 4, max: 60);
   }
 
   Future<WorkloadInput> baseInput({required double newPerDay, int horizonDays = 3650, DateTime? now}) async {

@@ -108,7 +108,9 @@ class ProgressBody extends StatelessWidget {
       const SizedBox(height: Sp.m),
       SoftCard(child: _RetentionTable(s.retention)),
       const SectionTitle('Coming up'),
-      SoftCard(child: _TomorrowCard(s.tomorrow)),
+      SoftCard(
+          child: _TomorrowCard(s.tomorrow,
+              onLookAhead: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const PlanAheadScreen())))),
       const SizedBox(height: Sp.m),
       SoftCard(child: _Forecast(s.forecast, s.todayWeekday)),
       const SizedBox(height: Sp.s),
@@ -220,22 +222,22 @@ class _MemoryBar extends StatelessWidget {
   }
 }
 
-/// Tomorrow in full: reviews due, new cards, minutes, and how many more new cards would fit (D54).
+/// Tomorrow in full: reviews due, new cards, problems, minutes against the budget (D54, D55).
 class _TomorrowCard extends StatelessWidget {
-  const _TomorrowCard(this.p);
+  const _TomorrowCard(this.p, {required this.onLookAhead});
   final TomorrowPlan p;
+  final VoidCallback onLookAhead;
+
+  static String _min(double m) => m < 1 ? 'under a minute' : 'about ${m.round()} min';
 
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
     final c = AppColors.of(context);
-    final mins = p.minutes < 1 ? 'under a minute' : 'about ${p.minutes.round()} min';
-    final room = p.roomForNew;
-    final verdict = room > 0
-        ? 'Room for about $room more new card${room == 1 ? '' : 's'} a day within your ${p.budgetMinutes} minutes.'
-        : room == 0
-            ? 'Right at your ${p.budgetMinutes} minutes: adding more new cards would go over.'
-            : 'Over your ${p.budgetMinutes} minutes: start fewer new cards for now, or the reviews will pile up.';
+    final left = p.minutesLeft;
+    final verdict = left >= 0
+        ? 'That is ${_min(p.minutes)} of your ${p.budgetMinutes} minutes: ${_min(left)} to spare.'
+        : 'That is ${_min(p.minutes)}, over your ${p.budgetMinutes} minutes by ${_min(-left)}. Start fewer new cards for now.';
     Widget line(String big, String rest) => Padding(
           padding: const EdgeInsets.only(top: 6),
           child: Row(crossAxisAlignment: CrossAxisAlignment.baseline, textBaseline: TextBaseline.alphabetic, children: [
@@ -243,29 +245,46 @@ class _TomorrowCard extends StatelessWidget {
             Expanded(child: Text(rest, style: t.bodyMedium)),
           ]),
         );
+    final ordinaryDue = p.dueReviews - p.problemReviews;
+    final times = p.answersPerNew == 1 ? 'once' : '${p.answersPerNew} times';
     return Semantics(
       container: true,
-      label: 'Tomorrow: ${p.dueReviews} reviews due and ${p.newCards} new cards, $mins. $verdict',
-      child: ExcludeSemantics(
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('Tomorrow', style: t.titleMedium),
-          const SizedBox(height: 2),
-          Text('${p.cards} card${p.cards == 1 ? '' : 's'}, $mins', style: t.headlineSmall),
-          line('${p.dueReviews}', '${p.dueReviews == 1 ? 'review' : 'reviews'} due (scheduled)'),
-          line('${p.newCards}', p.newWaiting == 0
-              ? 'new cards (none waiting: add cards to start more)'
-              : '${p.newCards == 1 ? 'new card' : 'new cards'} (your daily limit is ${p.newLimit}; ${p.newWaiting} waiting)'),
-          if (p.stillDueToday > 0) line('+${p.stillDueToday}', 'still due today: if you leave them, they come first tomorrow'),
-          const SizedBox(height: 10),
-          Text(verdict, style: t.bodyMedium?.copyWith(color: room < 0 ? c.danger : c.ink, fontWeight: FontWeight.w600)),
-          const SizedBox(height: 6),
-          Text(
-            'Minutes count every answer (a new card is answered ${p.answersPerNew} times while it is learned) at your own pace of about ${p.secondsPerAnswer.round()} seconds. '
-            'Only the cards in this app are counted.',
-            style: t.bodySmall?.copyWith(color: c.inkSoft),
-          ),
-        ]),
-      ),
+      label: 'Tomorrow: ${p.dueReviews} reviews due, ${p.newCards} new cards, ${p.newProblems} new problems, ${_min(p.minutes)}. $verdict',
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        ExcludeSemantics(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('Tomorrow', style: t.titleMedium),
+            const SizedBox(height: 2),
+            Text('${p.cards} card${p.cards == 1 ? '' : 's'}, ${_min(p.minutes)}', style: t.headlineSmall),
+            line('$ordinaryDue', '${ordinaryDue == 1 ? 'review' : 'reviews'} due (scheduled)'),
+            if (p.problemReviews > 0) line('${p.problemReviews}', 'problem ${p.problemReviews == 1 ? 'review' : 'reviews'} due (they take longer)'),
+            line('${p.newCards}', p.newWaiting == 0
+                ? 'new cards (none waiting: add cards to start more)'
+                : '${p.newCards == 1 ? 'new card' : 'new cards'} (your daily limit is ${p.newLimit}; ${p.newWaiting} waiting)'),
+            if (p.newProblems > 0) line('${p.newProblems}', 'new ${p.newProblems == 1 ? 'problem' : 'problems'} (up to your daily problem limit)'),
+            if (p.stillDueToday > 0)
+              line('+${p.stillDueToday}', 'left to do today (some may come back later tonight); if you leave them, they come first tomorrow'),
+            const SizedBox(height: 10),
+            Text(verdict, style: t.bodyMedium?.copyWith(color: left < 0 ? c.danger : c.ink, fontWeight: FontWeight.w600)),
+            const SizedBox(height: 6),
+            Text(
+              'Your pace, the middle of your recent answers: about ${p.secondsPerAnswer.round()} seconds for an ordinary card'
+              '${p.problemReviews + p.newProblems > 0 ? ' and ${(p.secondsPerProblem / 60).toStringAsFixed(1)} minutes for a problem' : ''}; '
+              'a new card is answered $times while it is learned. Only the cards in this app are counted.',
+              style: t.bodySmall?.copyWith(color: c.inkSoft),
+            ),
+          ]),
+        ),
+        const SizedBox(height: 8),
+        // New cards also add reviews on later days, which tomorrow alone cannot show: the forecast over the
+        // coming years can, and it already says how many new cards a day can be kept up.
+        TextButton.icon(
+          style: TextButton.styleFrom(minimumSize: const Size(48, 48), alignment: Alignment.centerLeft, padding: EdgeInsets.zero),
+          onPressed: onLookAhead,
+          icon: const Icon(Icons.trending_up),
+          label: const Text('How many new cards a day can I keep up? (Looking ahead)'),
+        ),
+      ]),
     );
   }
 }
