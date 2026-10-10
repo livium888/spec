@@ -280,6 +280,14 @@ void main() {
                 req.response.statusCode = 429;
               case '/ua':
                 req.response.write(req.headers.value('user-agent'));
+              case '/headers':
+                req.response.write('${req.headers.value('referer')}|${req.headers.value('x-test')}');
+              case '/gone':
+                req.response.statusCode = 410;
+                req.response.write('<html><head><style>x{}</style></head><body><h1>Gone</h1><p>This endpoint\nwas   retired.</p><script>alert(1)</script></body></html>');
+              case '/gone_long':
+                req.response.statusCode = 403;
+                req.response.write('x' * 5000);
               default:
                 req.response.statusCode = 500;
             }
@@ -292,6 +300,32 @@ void main() {
       tearDown(() => server.close(force: true));
 
       String u(String path) => 'http://127.0.0.1:${server.port}$path';
+
+      test('extra headers go only to the host they are set for', () async {
+        final withHeaders = SafeFetcher(
+          allowedHosts: {'127.0.0.1'},
+          requireHttps: false,
+          hostHeaders: {'127.0.0.1': {'Referer': 'https://www.artic.edu/', 'X-Test': 'yes'}, 'other.example': {'X-Test': 'no'}},
+        );
+        expect(utf8.decode(await withHeaders.get(u('/headers'), maxBytes: 1000)), 'https://www.artic.edu/|yes');
+        expect(utf8.decode(await f.get(u('/headers'), maxBytes: 1000)), 'null|null', reason: 'the plain fetcher sets none for a loopback host');
+        final defaults = SafeFetcher.defaultHostHeaders();
+        expect(defaults['www.artic.edu'], {'Referer': 'https://www.artic.edu/'});
+        expect(defaults['api.artic.edu']!.keys, ['AIC-User-Agent']);
+        expect(defaults.keys.every(kPictureHosts.contains), isTrue, reason: 'headers are never set for a host that is not on the list');
+      });
+
+      test('an error answer carries a few words of what the website said, with no tags or scripts', () async {
+        await expectLater(
+          f.get(u('/gone'), maxBytes: 1000),
+          throwsA(isA<PictureFinderException>().having((e) => e.message, 'message', allOf(contains('(410)'), contains('Gone This endpoint was retired.'), isNot(contains('<')), isNot(contains('alert'))))),
+        );
+        await expectLater(
+          f.get(u('/gone_long'), maxBytes: 1000),
+          throwsA(isA<PictureFinderException>().having((e) => e.message.length, 'length', lessThan(200))),
+        );
+        await expectLater(f.get(u('/nothing'), maxBytes: 1000), throwsA(isA<PictureFinderException>().having((e) => e.message, 'message', endsWith('(500).'))));
+      });
 
       test('returns the bytes and identifies the app', () async {
         expect(await f.get(u('/ok'), maxBytes: 1000), png);

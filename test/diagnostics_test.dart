@@ -22,6 +22,16 @@ void main() {
       expect(log.entryCount, 1);
     });
 
+    test('every entry names the build that wrote it, so an old entry can be told from a new one', () {
+      final log = ErrorLog(File('${dir.path}/error.log'), build: '46');
+      log.record('first', null, where: 'a');
+      ErrorLog(File('${dir.path}/error.log'), build: '47').record('second', null);
+      final t = log.read();
+      expect(RegExp(r'--- \S+Z build 46 \[a\]\nfirst').hasMatch(t), isTrue, reason: t);
+      expect(RegExp(r'--- \S+Z build 47\nsecond').hasMatch(t), isTrue, reason: t);
+      expect(log.entryCount, 2);
+    });
+
     test('long messages and stacks are cut; the file stays bounded and keeps the newest entries', () {
       final log = ErrorLog(File('${dir.path}/error.log'), maxBytes: 6000);
       for (var i = 0; i < 80; i++) {

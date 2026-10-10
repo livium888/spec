@@ -59,12 +59,25 @@ class SafeFetcher {
     this.requireHttps = true,
     this.timeout = const Duration(seconds: 20),
     HttpClient Function()? clientFactory,
-  }) : _clientFactory = clientFactory ?? HttpClient.new;
+    Map<String, Map<String, String>>? hostHeaders,
+  })  : _clientFactory = clientFactory ?? HttpClient.new,
+        hostHeaders = hostHeaders ?? defaultHostHeaders();
 
   final Set<String> allowedHosts;
   final bool requireHttps; // false only in tests that talk to a loopback server
   final Duration timeout;
   final HttpClient Function() _clientFactory;
+
+  /// Extra request headers for ONE host each (never sent to another host, also not after a redirect).
+  final Map<String, Map<String, String>> hostHeaders;
+
+  /// The Art Institute of Chicago asks API clients to say who they are (AIC-User-Agent), and its image server
+  /// has been reported to refuse (403) requests that do not say they come from its own site (a Referer of its
+  /// own address; one source, so this is a try, not a known fix: D53).
+  static Map<String, Map<String, String>> defaultHostHeaders() => {
+        'api.artic.edu': {'AIC-User-Agent': userAgent},
+        'www.artic.edu': {'Referer': 'https://www.artic.edu/'},
+      };
 
   /// Wikimedia asks every client to say who it is. The repository address is the contact.
   static String get userAgent => 'DailyLearning/${BuildInfo.number} (https://github.com/livium888/spec; flashcard app)';
@@ -130,6 +143,27 @@ class SafeFetcher {
   /// same host check, so a redirect can never lead off the allowed hosts.
   static const maxRedirects = 3;
 
+  /// The first words of an error page: tags removed, spaces collapsed, at most 100 characters. Shown as plain text.
+  static Future<String> _bodySnippet(HttpClientResponse res) async {
+    try {
+      final out = BytesBuilder(copy: false);
+      await for (final chunk in res.timeout(const Duration(seconds: 3))) {
+        out.add(chunk);
+        if (out.length >= 600) break;
+      }
+      final text = utf8
+          .decode(out.takeBytes(), allowMalformed: true)
+          .replaceAll(RegExp(r'<(script|style)[^>]*>.*?</\1>', dotAll: true, caseSensitive: false), ' ')
+          .replaceAll(RegExp(r'<[^>]*>'), ' ')
+          .replaceAll(RegExp(r'[\u0000-\u001F]'), ' ')
+          .replaceAll(RegExp(r'\s+'), ' ')
+          .trim();
+      return text.length > 100 ? '${text.substring(0, 100)}…' : text;
+    } catch (_) {
+      return '';
+    }
+  }
+
   Future<Uint8List> _read(HttpClient client, Uri uri, int maxBytes) async {
     var target = uri;
     HttpClientResponse res;
@@ -137,6 +171,9 @@ class SafeFetcher {
       final req = await client.getUrl(target);
       req.followRedirects = false;
       req.headers.set(HttpHeaders.acceptHeader, 'application/json, image/jpeg, image/png, image/webp, */*;q=0.1');
+      for (final h in (hostHeaders[target.host] ?? const <String, String>{}).entries) {
+        req.headers.set(h.key, h.value);
+      }
       res = await req.close();
       final redirect = const {301, 302, 303, 307, 308}.contains(res.statusCode);
       if (!redirect) break;
@@ -152,8 +189,9 @@ class SafeFetcher {
       throw PictureFinderException('The website is asking apps to slow down. Wait a minute and try again.');
     }
     if (res.statusCode != 200) {
-      await res.drain<void>();
-      throw PictureFinderException('The website (${uri.host}) answered with an error (${res.statusCode}).');
+      // What the website said, a few words of it, so a report shows the reason (a 403 or a 410 alone does not).
+      final detail = await _bodySnippet(res);
+      throw PictureFinderException('The website (${uri.host}) answered with an error (${res.statusCode})${detail.isEmpty ? '' : ': $detail'}.');
     }
     if (res.contentLength > maxBytes) {
       await res.drain<void>().catchError((_) {});

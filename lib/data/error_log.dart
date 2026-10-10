@@ -1,13 +1,17 @@
 import 'dart:io';
 
+import '../app/build_info.dart';
+
 /// A small local log of crashes and unexpected errors, so a problem on the phone can be
 /// shared and diagnosed. Offline: it only ever writes to one file next to the database.
 /// Synchronous on purpose (it runs inside error handlers, possibly while crashing).
 /// Entries can contain text from the error message, so the learner shares it by choice.
+/// Each entry says which build wrote it (D53): the log survives updates, so an old entry must be recognisable as old.
 class ErrorLog {
-  ErrorLog(this.file, {this.maxBytes = 120000});
+  ErrorLog(this.file, {this.maxBytes = 120000, String? build}) : build = build ?? BuildInfo.number;
   final File file;
   final int maxBytes;
+  final String build;
 
   static const _maxMessage = 1500;
   static const _maxStackLines = 14;
@@ -18,7 +22,7 @@ class ErrorLog {
       if (msg.length > _maxMessage) msg = '${msg.substring(0, _maxMessage)}…';
       final lines = (stack?.toString() ?? '').split('\n').where((l) => l.trim().isNotEmpty).take(_maxStackLines);
       final entry = StringBuffer()
-        ..writeln('--- ${DateTime.now().toUtc().toIso8601String()}${where.isEmpty ? '' : ' [$where]'}')
+        ..writeln('--- ${DateTime.now().toUtc().toIso8601String()} build $build${where.isEmpty ? '' : ' [$where]'}')
         ..writeln(msg)
         ..writeAll(lines, '\n')
         ..writeln();
