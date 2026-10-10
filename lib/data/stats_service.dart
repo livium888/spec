@@ -3,6 +3,8 @@ import 'package:drift/drift.dart';
 import '../domain/memory_summary.dart';
 import '../domain/milestones.dart';
 import '../domain/streak.dart';
+import '../domain/study_card.dart' show backlogAdjustedNewLimit;
+import '../domain/tomorrow_plan.dart';
 import 'activity_cache.dart';
 import 'db/database.dart';
 import 'params_repo.dart';
@@ -66,6 +68,7 @@ class ProgressStats {
     required this.activitySpanDays,
     required this.retention,
     required this.recallBins,
+    required this.tomorrow,
     this.estimatedRecall,
     required this.forecast,
     required this.totalReviews,
@@ -100,6 +103,9 @@ class ProgressStats {
 
   /// Days the activity heatmap really covers (since the first study day, at most the heatmap length).
   final int activitySpanDays;
+
+  /// What tomorrow asks of the learner, and how much more would fit (D54).
+  final TomorrowPlan tomorrow;
 
   /// True retention by card age and period (D49).
   final RetentionTable retention;
@@ -282,6 +288,27 @@ class StatsService {
         'SELECT AVG(duration_ms) AS ms, COUNT(*) AS n FROM '
         '(SELECT duration_ms FROM review_log WHERE revoked_at IS NULL AND duration_ms > 0 ORDER BY id DESC LIMIT 200)');
 
+    // Tomorrow (D54): reviews are scheduled; new cards come from the daily limit (as the queue applies it).
+    final baseNew = await settings.getInt(SettingsRepo.newPerDay, 10);
+    final shrink = await settings.get(SettingsRepo.backlogShrink) == '1';
+    final divisor = await settings.getInt(SettingsRepo.backlogDivisor, 25);
+    final newLimit = shrink ? backlogAdjustedNewLimit(baseNew, forecast[1], divisor: divisor) : (baseNew < 0 ? 0 : baseNew);
+    final waiting = await one(
+        "SELECT COUNT(DISTINCT c.note_id) AS n FROM card c JOIN note n ON n.id = c.note_id "
+        "WHERE c.state = 'new' AND c.suspended = 0 AND n.type != 'problem'");
+    final newWaiting = i(waiting['n']);
+    final steps = await settings.getIntList(SettingsRepo.learningSteps, [1, 10]);
+    final tomorrow = TomorrowPlan(
+      dueReviews: forecast[1],
+      stillDueToday: forecast[0],
+      newCards: newWaiting < newLimit ? newWaiting : newLimit,
+      newWaiting: newWaiting,
+      newLimit: newLimit,
+      answersPerNew: steps.isEmpty ? 1 : steps.length,
+      secondsPerAnswer: i(pace['n']) < 20 ? 10.0 : (((pace['ms'] as num?)?.toDouble() ?? 10000) / 1000).clamp(3.0, 120.0),
+      budgetMinutes: await settings.getInt(SettingsRepo.dailyMinutes, 20),
+    );
+
     final totalReviews = await cache.total();
     final revisited = await one('SELECT COUNT(*) AS n FROM syllabus_item WHERE rounds >= 2');
     final retiredN = i(counts['retired']);
@@ -295,6 +322,7 @@ class StatsService {
       answers30d: retention.all30.answers,
       retention: retention,
       recallBins: bins,
+      tomorrow: tomorrow,
       newCards: i(counts['fresh']),
       learningCards: learningN,
       youngCards: growingN,

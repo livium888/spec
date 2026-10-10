@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../app/providers.dart';
 import '../data/stats_service.dart';
 import '../domain/memory_summary.dart';
+import '../domain/tomorrow_plan.dart';
 import '../domain/milestones.dart';
 import 'plan_ahead_screen.dart';
 import 'theme/app_theme.dart';
@@ -107,6 +108,8 @@ class ProgressBody extends StatelessWidget {
       const SizedBox(height: Sp.m),
       SoftCard(child: _RetentionTable(s.retention)),
       const SectionTitle('Coming up'),
+      SoftCard(child: _TomorrowCard(s.tomorrow)),
+      const SizedBox(height: Sp.m),
       SoftCard(child: _Forecast(s.forecast, s.todayWeekday)),
       const SizedBox(height: Sp.s),
       SoftCard(
@@ -214,6 +217,56 @@ class _MemoryBar extends StatelessWidget {
             style: t.bodySmall),
       ],
     ]);
+  }
+}
+
+/// Tomorrow in full: reviews due, new cards, minutes, and how many more new cards would fit (D54).
+class _TomorrowCard extends StatelessWidget {
+  const _TomorrowCard(this.p);
+  final TomorrowPlan p;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Theme.of(context).textTheme;
+    final c = AppColors.of(context);
+    final mins = p.minutes < 1 ? 'under a minute' : 'about ${p.minutes.round()} min';
+    final room = p.roomForNew;
+    final verdict = room > 0
+        ? 'Room for about $room more new card${room == 1 ? '' : 's'} a day within your ${p.budgetMinutes} minutes.'
+        : room == 0
+            ? 'Right at your ${p.budgetMinutes} minutes: adding more new cards would go over.'
+            : 'Over your ${p.budgetMinutes} minutes: start fewer new cards for now, or the reviews will pile up.';
+    Widget line(String big, String rest) => Padding(
+          padding: const EdgeInsets.only(top: 6),
+          child: Row(crossAxisAlignment: CrossAxisAlignment.baseline, textBaseline: TextBaseline.alphabetic, children: [
+            SizedBox(width: 44, child: Text(big, style: t.titleLarge)),
+            Expanded(child: Text(rest, style: t.bodyMedium)),
+          ]),
+        );
+    return Semantics(
+      container: true,
+      label: 'Tomorrow: ${p.dueReviews} reviews due and ${p.newCards} new cards, $mins. $verdict',
+      child: ExcludeSemantics(
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text('Tomorrow', style: t.titleMedium),
+          const SizedBox(height: 2),
+          Text('${p.cards} card${p.cards == 1 ? '' : 's'}, $mins', style: t.headlineSmall),
+          line('${p.dueReviews}', '${p.dueReviews == 1 ? 'review' : 'reviews'} due (scheduled)'),
+          line('${p.newCards}', p.newWaiting == 0
+              ? 'new cards (none waiting: add cards to start more)'
+              : '${p.newCards == 1 ? 'new card' : 'new cards'} (your daily limit is ${p.newLimit}; ${p.newWaiting} waiting)'),
+          if (p.stillDueToday > 0) line('+${p.stillDueToday}', 'still due today: if you leave them, they come first tomorrow'),
+          const SizedBox(height: 10),
+          Text(verdict, style: t.bodyMedium?.copyWith(color: room < 0 ? c.danger : c.ink, fontWeight: FontWeight.w600)),
+          const SizedBox(height: 6),
+          Text(
+            'Minutes count every answer (a new card is answered ${p.answersPerNew} times while it is learned) at your own pace of about ${p.secondsPerAnswer.round()} seconds. '
+            'Only the cards in this app are counted.',
+            style: t.bodySmall?.copyWith(color: c.inkSoft),
+          ),
+        ]),
+      ),
+    );
   }
 }
 
@@ -337,7 +390,7 @@ class _Forecast extends StatelessWidget {
     const names = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     final today = todayWeekday;
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text('Reviews scheduled over the next week', style: t.bodySmall),
+      Text('Reviews due each day. New cards are not in these bars: you choose how many to start (see Tomorrow above).', style: t.bodySmall),
       const SizedBox(height: Sp.m),
       SizedBox(
         height: 104,

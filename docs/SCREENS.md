@@ -374,3 +374,11 @@ Steps: choose a file -> plan (what was found, subjects to tick and rename) -> im
 | card paused, then Undo | the card is back and shown again |
 | Paused only, nothing paused | "No paused cards." |
 
+## Progress > Coming up: Tomorrow card (D54)
+Above the 7-day chart. Content in order: "Tomorrow"; "N cards, about M min"; reviews due (scheduled); new cards (daily limit, how many waiting; "none waiting: add cards to start more"); "+N still due today: if you leave them, they come first tomorrow" (only when N > 0); a verdict against the study-time budget (green-neutral: room for N more; neutral: right at it; red text and words: over it); a note on how minutes are counted and that only this app's cards are counted. Read as one sentence by screen readers. The chart caption says new cards are not in the bars.
+| State | Shows |
+|---|---|
+| nothing due, nothing waiting | "0 cards, under a minute", "none waiting: add cards to start more", room for the whole budget |
+| tomorrow over the budget | verdict in words and colour: start fewer new cards for now |
+| reviews left today | the "+N still due today" line |
+
