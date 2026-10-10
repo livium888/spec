@@ -385,8 +385,10 @@ void memoryModelWidgetTests() {
                 cards: r.cards, start: r.start, defaults: r.defaults, steps: 20, batchReviews: 1000)),
           )),
     ]);
-    // Today shows the nudge with the reason.
+    // Today shows the nudge with the reason, below the day's work (D48), so scroll down to it.
+    await t.dragUntilVisible(find.text('Your memory model can be personalised'), find.byType(ListView).first, const Offset(0, -300));
     expect(find.text('Your memory model can be personalised'), findsOneWidget);
+    await t.ensureVisible(find.text('See details'));
     await t.tap(find.text('See details'));
     await until(t, find.text('Fit to my memory'));
     await settle(t);

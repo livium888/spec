@@ -308,3 +308,20 @@ Each subject card now shows its topics straight under the subject name: "Topics:
 - **List:** "Start here", then "Builds on the topics above"; each topic: state icon, title, state, percent known, what it needs, what holds it back.
 - **Topic sheet:** state and meaning; Known now, Cards, Recall of what you have learned, hard cards, foundation cards, "practised with"; "Held back by ..."; "Builds on" with states; "Make cards for this topic" / "Add more cards"; "Practise with" chips (AI decides, Concepts, Problems, Both); skip or offer again.
 - **States:** loading; error; subject without topics ("No topics yet..."); topics but no cards (all Not started, next up lists the ones with no prerequisites); all solid.
+
+## Today and Progress: accuracy pass (D48)
+**Today.** The ring counts cards: done = cards answered today that are not still waiting in the queue; left = cards in the queue. "About N min" = left x the learner's own seconds per answer (10 s until 20 answers). Under the streak: "You would recall about N% of what you have learned right now" (hidden below 10 learned cards). The memory-model nudge sits below the subject tiles, above the backup banner. The first-run guide card stays on top until seen. The streak letters follow the app's day (turns over at 04:00).
+| State | Shows |
+|---|---|
+| no cards | unchanged: first-cards headline, "Get started" |
+| fewer than 10 learned cards | no recall line |
+| cards waiting | headline "N cards waiting", about M min, "K done today" (cards) |
+| all done | "You studied K cards in M min" |
+
+**Progress.** "in long-term memory" = long-term now (stable 21 days or more AND at least 90% recall predicted now) plus retired cards. The memory bar has seven parts that add up to the card count in its header: New, Learning, Growing, Fading, Long-term, Retired, Paused (the last three are listed only when they hold cards; every segment's name and count is in the legend, so nothing is carried by colour alone). Under it: what long-term and fading mean, and the estimated recall across learned cards. "Recalled, last 30 days" = answers on cards in normal review that were not "Again". The activity caption says "X of the last N days" where N starts at the first study day (at most the grid length). Forecast weekday names follow the app's day.
+| State | Shows |
+|---|---|
+| no history | caption "No study days yet. The first one starts the grid."; recall "-" (needs 10 answers) |
+| overdue stable cards | counted under Fading, not Long-term |
+| retired cards | stay counted in "in long-term memory" and appear as Retired |
+

@@ -161,17 +161,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             onPressed: () => _go(const SettingsScreen()),
           ),
         ]),
-        if (d.guideSeen && d.modelNudge != null) ...[
-          const SizedBox(height: Sp.m),
-          _ModelNudge(
-            why: d.modelNudge!,
-            onOpen: () => _go(const MemoryModelScreen()),
-            onLater: () async {
-              await ref.read(optimizerServiceProvider).snoozeBanner(const Duration(days: 14));
-              if (mounted) ref.read(refreshProvider.notifier).bump();
-            },
-          ),
-        ],
         if (!d.guideSeen) ...[
           const SizedBox(height: Sp.m),
           _GuideCard(onOpen: _openGuide, onDismiss: _dismissGuide),
@@ -196,6 +185,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 return SubjectTile(s, onTap: () => _go(TopicsScreen(domainId: s.domainId)));
               },
             ),
+          ),
+        ],
+        // Housekeeping lives below the day's work, so the first screen is one decision (D48).
+        if (d.guideSeen && d.modelNudge != null) ...[
+          const SizedBox(height: Sp.l),
+          _ModelNudge(
+            why: d.modelNudge!,
+            onOpen: () => _go(const MemoryModelScreen()),
+            onLater: () async {
+              await ref.read(optimizerServiceProvider).snoozeBanner(const Duration(days: 14));
+              if (mounted) ref.read(refreshProvider.notifier).bump();
+            },
           ),
         ],
         const SizedBox(height: Sp.xl),
@@ -264,11 +265,14 @@ class _TodayCard extends StatelessWidget {
     final t = Theme.of(context).textTheme;
     final s = d.stats;
     final remaining = d.queue.ordered.length;
-    final done = s.todayAnswered;
+    // Cards, not answers: a new card answered three times is one card. A card still waiting in the queue
+    // (a learning step due later today) is not "done" yet (D48).
+    final waitingIds = {for (final c in d.queue.ordered) c.id};
+    final done = s.todayCardIds.where((id) => !waitingIds.contains(id)).length;
     final total = done + remaining;
     final noCards = s.totalCards == 0;
     final caughtUp = remaining == 0 && !noCards;
-    final mins = (remaining * 12 / 60).ceil().clamp(1, 999);
+    final mins = (remaining * s.secondsPerCard / 60).ceil().clamp(1, 999);
     final tomorrow = s.forecast.length > 1 ? s.forecast[1] : 0;
 
     final String headline;
@@ -281,7 +285,7 @@ class _TodayCard extends StatelessWidget {
       sub = 'About $mins min${done > 0 ? ' · $done done today' : ''}';
     } else if (done > 0) {
       headline = 'All done for today';
-      sub = 'You answered $done in ${s.todayMinutes < 1 ? 'under a minute' : '${s.todayMinutes.round()} min'}.'
+      sub = 'You studied ${done == 1 ? '1 card' : '$done cards'} in ${s.todayMinutes < 1 ? 'under a minute' : '${s.todayMinutes.round()} min'}.'
           '${tomorrow > 0 ? ' $tomorrow reviews are scheduled for tomorrow.' : ''}';
     } else {
       headline = 'You\'re all caught up';
@@ -321,6 +325,19 @@ class _TodayCard extends StatelessWidget {
         ]),
         const SizedBox(height: 16),
         _StreakRow(s),
+        if (s.estimatedRecall != null) ...[
+          const SizedBox(height: 10),
+          Row(children: [
+            Icon(Icons.psychology_outlined, size: 22, color: c.inkSoft),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text(
+                'You would recall about ${(s.estimatedRecall! * 100).round()}% of what you have learned right now',
+                style: t.bodyMedium,
+              ),
+            ),
+          ]),
+        ],
         if (remaining > 0) ...[
           const SizedBox(height: 16),
           FilledButton(
@@ -356,7 +373,7 @@ class _StreakRow extends StatelessWidget {
         : st.restDayProtected
             ? '${st.current}-day streak · rest day used'
             : '${st.current}-day streak';
-    final weekday = DateTime.now().weekday;
+    final weekday = s.todayWeekday;
     const letters = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
     return Row(children: [
       Icon(Icons.local_fire_department_outlined, size: 22, color: st.current > 0 ? c.accent : c.inkSoft),

@@ -65,7 +65,7 @@ final paramsRepoProvider =
 final reviewServiceProvider = Provider((ref) => ReviewService(
     ref.watch(dbProvider), ref.watch(settingsRepoProvider), ref.watch(paramsRepoProvider)));
 final statsServiceProvider =
-    Provider((ref) => StatsService(ref.watch(dbProvider), ref.watch(settingsRepoProvider)));
+    Provider((ref) => StatsService(ref.watch(dbProvider), ref.watch(settingsRepoProvider), params: ref.watch(paramsRepoProvider)));
 final queueServiceProvider =
     Provider((ref) => QueueService(ref.watch(dbProvider), ref.watch(settingsRepoProvider)));
 final importServiceProvider = Provider((ref) => ImportService(ref.watch(dbProvider)));

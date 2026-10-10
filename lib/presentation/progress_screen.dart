@@ -80,12 +80,16 @@ class ProgressBody extends StatelessWidget {
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           ActivityHeatmap(activity: s.activity, todayIndex: s.todayIndex),
           const SizedBox(height: Sp.m),
-          Text('You studied on $activeDays of the last 17 weeks\' days.', style: t.bodySmall),
+          Text(
+              s.activitySpanDays == 0
+                  ? 'No study days yet. The first one starts the grid.'
+                  : 'You studied on $activeDays of the last ${s.activitySpanDays} days.',
+              style: t.bodySmall),
         ]),
       ),
       const SectionTitle('Your memory'),
       Row(children: [
-        Expanded(child: _Stat('${s.matureCards}', 'in long-term memory', c.good)),
+        Expanded(child: _Stat('${s.longTermTotal}', 'in long-term memory', c.good)),
         const SizedBox(width: Sp.m),
         Expanded(
           child: _Stat(
@@ -98,7 +102,7 @@ class ProgressBody extends StatelessWidget {
       const SizedBox(height: Sp.m),
       SoftCard(child: _MemoryBar(s)),
       const SectionTitle('Coming up'),
-      SoftCard(child: _Forecast(s.forecast)),
+      SoftCard(child: _Forecast(s.forecast, s.todayWeekday)),
       const SizedBox(height: Sp.s),
       SoftCard(
         onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const PlanAheadScreen())),
@@ -161,7 +165,10 @@ class _MemoryBar extends StatelessWidget {
       ('New', s.newCards, c.line),
       ('Learning', s.learningCards, c.warn),
       ('Growing', s.youngCards, c.info),
+      ('Fading', s.fadingCards, c.danger),
       ('Long-term', s.matureCards, c.good),
+      ('Retired', s.retiredCards, c.accent),
+      ('Paused', s.suspendedCards, c.inkSoft),
     ];
     final total = parts.fold<int>(0, (a, p) => a + p.$2);
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -182,19 +189,35 @@ class _MemoryBar extends StatelessWidget {
       const SizedBox(height: Sp.m),
       Wrap(spacing: Sp.l, runSpacing: Sp.xs, children: [
         for (final p in parts)
+          // Fading, Retired and Paused appear only when there is something in them; the first four always do.
+          if (p.$2 > 0 || const {'New', 'Learning', 'Growing', 'Long-term'}.contains(p.$1))
           Row(mainAxisSize: MainAxisSize.min, children: [
             Container(width: 10, height: 10, decoration: BoxDecoration(color: p.$3, shape: BoxShape.circle)),
             const SizedBox(width: 6),
             Text('${p.$1} ${p.$2}', style: t.bodySmall),
           ]),
       ]),
+      const SizedBox(height: Sp.m),
+      Text(
+        'Long-term means stable for three weeks or more and still at least 90% likely to be recalled now; '
+        'fading means it was, and is now overdue.',
+        style: t.bodySmall?.copyWith(color: c.inkSoft),
+      ),
+      if (s.estimatedRecall != null) ...[
+        const SizedBox(height: Sp.s),
+        Text('Estimated recall right now, across the cards you have learned: ${(s.estimatedRecall! * 100).round()}% (a model estimate).',
+            style: t.bodySmall),
+      ],
     ]);
   }
 }
 
 class _Forecast extends StatelessWidget {
-  const _Forecast(this.counts);
+  const _Forecast(this.counts, this.todayWeekday);
   final List<int> counts;
+
+  /// 1 = Monday, for the app's day (it turns over at 04:00, so just after midnight it is still yesterday).
+  final int todayWeekday;
 
   @override
   Widget build(BuildContext context) {
@@ -202,7 +225,7 @@ class _Forecast extends StatelessWidget {
     final t = Theme.of(context).textTheme;
     final maxV = counts.fold<int>(1, (m, v) => v > m ? v : m);
     const names = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    final today = DateTime.now().weekday;
+    final today = todayWeekday;
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Text('Reviews scheduled over the next week', style: t.bodySmall),
       const SizedBox(height: Sp.m),

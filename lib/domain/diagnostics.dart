@@ -53,6 +53,8 @@ const kPhoneCheck = <PhoneCheckItem>[
       'In a maths or physics subject choose Learn something new, or set a topic to Problems (Subjects and topics, the menu on the topic). Import: the preview says Arithmetic checked. Review: the worked example comes first; levels 2 to 4 come on later days with steps hidden. Try Show next step and Show solution.'),
   PhoneCheckItem('map', 'Knowledge map',
       'Library > a subject > the map icon at the top. Topics appear as tiles with their prerequisites above; Next up lists what is ready; tap a topic: the sheet shows the state in words. Switch to List: same facts. Pinch to zoom the map.'),
+  PhoneCheckItem('numbers', 'Today and Progress numbers',
+      'Progress > Your memory: add the legend counts (New, Learning, Growing, Fading, Long-term, Retired, Paused): they equal the card count above the bar. Retire some cards (Library > Retire): "in long-term memory" does not drop. Today: answer a new card three times: the ring counts it once. After midnight but before 4 am the weekday letters and the forecast still show the day before.'),
   PhoneCheckItem('speech', 'Read aloud',
       'Subjects and topics > Read cards aloud: pick a language. In a review tap the speaker. If there is no voice, the message says how to install one.'),
   PhoneCheckItem('reminder', 'Daily reminder', 'Turn it on, set a time two minutes ahead, wait for it, tap it.'),

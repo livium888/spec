@@ -1,20 +1,21 @@
 import 'package:drift/drift.dart';
 
+import '../domain/memory_summary.dart';
 import '../domain/milestones.dart';
 import '../domain/streak.dart';
 import 'activity_cache.dart';
 import 'db/database.dart';
+import 'params_repo.dart';
 import 'settings_repo.dart';
 
 const _day = 86400000;
-
-/// A card counts as "mature" (a stable long-term memory) at this FSRS stability, in days.
-const kMatureStabilityDays = 21.0;
 
 class SubjectStat {
   const SubjectStat(this.domainId, this.name, this.cards, this.mature, this.dueNow);
   final int domainId;
   final String name;
+
+  /// Cards in play (not paused by hand); [mature] of them are long-term or retired (D48).
   final int cards, mature, dueNow;
   double get masteredShare => cards == 0 ? 0 : mature / cards;
 }
@@ -30,8 +31,15 @@ class ProgressStats {
     required this.newCards,
     required this.learningCards,
     required this.youngCards,
+    required this.fadingCards,
     required this.matureCards,
+    required this.retiredCards,
     required this.suspendedCards,
+    required this.todayCardIds,
+    required this.secondsPerCard,
+    required this.todayWeekday,
+    required this.activitySpanDays,
+    this.estimatedRecall,
     required this.forecast,
     required this.totalReviews,
     required this.subjects,
@@ -48,7 +56,29 @@ class ProgressStats {
   final double todayMinutes;
   final double? retention30d;
   final int answers30d;
-  final int newCards, learningCards, youngCards, matureCards, suspendedCards;
+
+  /// The seven places a card can be (D48); together they are every card, so the memory bar adds up.
+  /// [matureCards] = long-term now (stable and still >= 90% likely to be recalled); [fadingCards] = was stable
+  /// but is overdue; [retiredCards] = mastered and put away by the learner; [suspendedCards] = paused by hand.
+  final int newCards, learningCards, youngCards, fadingCards, matureCards, retiredCards, suspendedCards;
+
+  /// Cards answered today (each once, however many times), so Today can count cards, not answers.
+  final Set<int> todayCardIds;
+
+  /// The learner's own recent pace (seconds per answer), for "about N min".
+  final double secondsPerCard;
+
+  /// Weekday (1 = Monday) of the app's day, which rolls over at 04:00, not at midnight.
+  final int todayWeekday;
+
+  /// Days the activity heatmap really covers (since the first study day, at most the heatmap length).
+  final int activitySpanDays;
+
+  /// Average chance of recalling the cards you have learned, right now (a model estimate); null with too few.
+  final double? estimatedRecall;
+
+  /// Cards in long-term memory including the ones the learner retired: what "in long-term memory" shows.
+  int get longTermTotal => matureCards + retiredCards;
 
   /// Reviews scheduled for today (remaining) and the next 6 days.
   final List<int> forecast;
@@ -60,14 +90,15 @@ class ProgressStats {
   final List<bool> weekActive;
   final int todayIndex;
 
-  int get totalCards => newCards + learningCards + youngCards + matureCards + suspendedCards;
+  int get totalCards => newCards + learningCards + youngCards + fadingCards + matureCards + retiredCards + suspendedCards;
 }
 
 /// Everything the Home and Progress screens show, computed from the review log and cards.
 class StatsService {
-  StatsService(this.db, this.settings);
+  StatsService(this.db, this.settings, {ParamsRepo? params}) : params = params ?? ParamsRepo(db, settings);
   final AppDatabase db;
   final SettingsRepo settings;
+  final ParamsRepo params;
 
   Future<ProgressStats> compute({DateTime? now, int heatmapDays = 119}) async {
     final t = (now ?? DateTime.now()).toUtc();
@@ -104,18 +135,56 @@ class StatsService {
         [Variable.withInt(dayStart)]);
 
     final r30 = await one('''
-      SELECT SUM(CASE WHEN state_before IN ('review','relearning') THEN 1 ELSE 0 END) AS answers,
-             SUM(CASE WHEN state_before IN ('review','relearning') AND rating > 1 THEN 1 ELSE 0 END) AS passed
+      SELECT SUM(CASE WHEN state_before = 'review' THEN 1 ELSE 0 END) AS answers,
+             SUM(CASE WHEN state_before = 'review' AND rating > 1 THEN 1 ELSE 0 END) AS passed
       FROM review_log WHERE revoked_at IS NULL AND reviewed_at >= ?''',
         [Variable.withInt(nowMs - 30 * _day)]);
 
-    final mat = await one('''
-      SELECT SUM(CASE WHEN suspended = 1 THEN 1 ELSE 0 END) AS susp,
-             SUM(CASE WHEN suspended = 0 AND state = 'new' THEN 1 ELSE 0 END) AS fresh,
-             SUM(CASE WHEN suspended = 0 AND state IN ('learning','relearning') THEN 1 ELSE 0 END) AS learning,
-             SUM(CASE WHEN suspended = 0 AND state = 'review' AND COALESCE(stability, 0) < ? THEN 1 ELSE 0 END) AS young,
-             SUM(CASE WHEN suspended = 0 AND state = 'review' AND COALESCE(stability, 0) >= ? THEN 1 ELSE 0 END) AS mature
-      FROM card''', [Variable.withReal(kMatureStabilityDays), Variable.withReal(kMatureStabilityDays)]);
+    // Where every card stands (D48). New, paused and retired cards are counted in SQL; the cards that have a
+    // memory trace are read one by one, because "still >= 90% likely to be recalled" depends on the clock.
+    final nowMsInt = nowMs;
+    final counts = await one('''
+      SELECT SUM(CASE WHEN retired_at IS NOT NULL THEN 1 ELSE 0 END) AS retired,
+             SUM(CASE WHEN retired_at IS NULL AND suspended = 1 THEN 1 ELSE 0 END) AS paused,
+             SUM(CASE WHEN suspended = 0 AND state = 'new' THEN 1 ELSE 0 END) AS fresh
+      FROM card''');
+    final traced = await db.customSelect('''
+      SELECT n.domain_id AS dom, c.state AS state, c.stability AS stab, c.last_review AS last
+      FROM card c JOIN note n ON n.id = c.note_id
+      WHERE c.suspended = 0 AND c.state != 'new' ''').get();
+    final weightsFor = <int, List<double>>{};
+    var learningN = 0, growingN = 0, fadingN = 0, longTermN = 0;
+    var recallSum = 0.0, recallN = 0;
+    final longByDomain = <int, int>{}, inPlayByDomain = <int, int>{};
+    for (final r in traced) {
+      final d = r.data;
+      final dom = d['dom']! as int;
+      var w = weightsFor[dom];
+      if (w == null) {
+        w = (await params.configFor(await params.idForDomain(dom))).weights;
+        weightsFor[dom] = w;
+      }
+      final fact = MemoryFact(state: d['state']! as String, stability: (d['stab'] as num?)?.toDouble(), lastReviewMs: d['last'] as int?);
+      final rec = recallNow(fact, w, nowMsInt);
+      switch (bucketOf(fact, w, nowMsInt, recall: rec)) {
+        case MemoryBucket.learning:
+          learningN++;
+        case MemoryBucket.growing:
+          growingN++;
+        case MemoryBucket.fading:
+          fadingN++;
+        case MemoryBucket.longTerm:
+          longTermN++;
+          longByDomain[dom] = (longByDomain[dom] ?? 0) + 1;
+        default:
+          break;
+      }
+      inPlayByDomain[dom] = (inPlayByDomain[dom] ?? 0) + 1;
+      if (rec > 0) {
+        recallSum += rec;
+        recallN++;
+      }
+    }
 
     // Forecast: reviews still due today, then each of the next 6 days. Cards in their first
     // learning steps (or relearning after a lapse) come back within the day, so they count as today.
@@ -132,8 +201,9 @@ class StatsService {
 
     final subjects = <SubjectStat>[];
     final rows = await db.customSelect('''
-      SELECT d.id AS id, d.name AS name, COUNT(c.id) AS cards,
-             SUM(CASE WHEN c.state = 'review' AND COALESCE(c.stability, 0) >= ? THEN 1 ELSE 0 END) AS mature,
+      SELECT d.id AS id, d.name AS name,
+             SUM(CASE WHEN c.id IS NOT NULL AND (c.suspended = 0 OR c.retired_at IS NOT NULL) THEN 1 ELSE 0 END) AS cards,
+             SUM(CASE WHEN c.retired_at IS NOT NULL THEN 1 ELSE 0 END) AS retired,
              SUM(CASE WHEN c.suspended = 0 AND (
                    (c.state IN ('learning','relearning') AND c.due <= ?) OR
                    (c.state = 'review' AND c.due < ?)) THEN 1 ELSE 0 END) AS due_now
@@ -142,14 +212,23 @@ class StatsService {
       LEFT JOIN card c ON c.note_id = n.id
       WHERE d.active = 1
       GROUP BY d.id ORDER BY d.id''',
-        variables: [Variable.withReal(kMatureStabilityDays), Variable.withInt(nowMs), Variable.withInt(dayEnd)]).get();
+        variables: [Variable.withInt(nowMs), Variable.withInt(dayEnd)]).get();
     for (final r in rows) {
-      subjects.add(SubjectStat(r.read<int>('id'), r.read<String>('name'), i(r.data['cards']), i(r.data['mature']), i(r.data['due_now'])));
+      final id = r.read<int>('id');
+      subjects.add(SubjectStat(id, r.read<String>('name'), i(r.data['cards']), (longByDomain[id] ?? 0) + i(r.data['retired']), i(r.data['due_now'])));
     }
+
+    final answeredIds = await db.customSelect(
+        // No DISTINCT: it makes SQLite walk the whole card index (about 60 ms at 120,000 answers); today's few rows are de-duplicated below.
+        'SELECT card_id FROM review_log WHERE revoked_at IS NULL AND reviewed_at >= ?',
+        variables: [Variable.withInt(dayStart)]).get();
+    final pace = await one(
+        'SELECT AVG(duration_ms) AS ms, COUNT(*) AS n FROM '
+        '(SELECT duration_ms FROM review_log WHERE revoked_at IS NULL AND duration_ms > 0 ORDER BY id DESC LIMIT 200)');
 
     final totalReviews = await cache.total();
     final revisited = await one('SELECT COUNT(*) AS n FROM syllabus_item WHERE rounds >= 2');
-    final matureTotal = i(mat['mature']);
+    final retiredN = i(counts['retired']);
     final answers = i(r30['answers']);
 
     return ProgressStats(
@@ -159,18 +238,26 @@ class StatsService {
       todayMinutes: i(spent['ms']) / 60000,
       retention30d: answers < 10 ? null : i(r30['passed']) / answers,
       answers30d: answers,
-      newCards: i(mat['fresh']),
-      learningCards: i(mat['learning']),
-      youngCards: i(mat['young']),
-      matureCards: matureTotal,
-      suspendedCards: i(mat['susp']),
+      newCards: i(counts['fresh']),
+      learningCards: learningN,
+      youngCards: growingN,
+      fadingCards: fadingN,
+      matureCards: longTermN,
+      retiredCards: retiredN,
+      suspendedCards: i(counts['paused']),
+      todayCardIds: {for (final r in answeredIds) r.read<int>('card_id')},
+      secondsPerCard: i(pace['n']) < 20 ? 10.0 : (((pace['ms'] as num?)?.toDouble() ?? 10000) / 1000).clamp(3.0, 120.0),
+      todayWeekday: DateTime.fromMillisecondsSinceEpoch(dayStart).weekday,
+      activitySpanDays: activeDays.isEmpty ? 0 : today - [activeDays.reduce((a, b) => a < b ? a : b), today - heatmapDays + 1].reduce((a, b) => a > b ? a : b) + 1,
+      estimatedRecall: recallN < kMinCardsForEstimate ? null : recallSum / recallN,
       forecast: forecast,
       totalReviews: totalReviews,
       subjects: subjects,
       milestones: milestonesFor(MilestoneInputs(
         totalReviews: totalReviews,
         bestStreak: streak.best,
-        matureCards: matureTotal,
+        // A milestone is earned for good: it counts every card that ever reached a stable memory.
+        matureCards: longTermN + fadingN + retiredN,
         subjectsStarted: subjects.where((s) => s.cards > 0).length,
         topicsRevisited: i(revisited['n']),
       )),
