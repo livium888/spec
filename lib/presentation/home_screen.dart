@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:saf_util/saf_util.dart';
 
+import '../app/launch_service.dart';
 import '../app/providers.dart';
 import '../data/backup/backup_service.dart';
 import '../data/backup/backup_storage.dart';
@@ -42,6 +43,15 @@ final homeDataProvider = FutureProvider.autoDispose<HomeData>((ref) async {
   final queue = await ref.watch(queueServiceProvider).build();
   final stats = await ref.watch(statsServiceProvider).compute();
   // Keep tomorrow's reminder right: once today's reviews are done, skip today's.
+  // The home-screen widget and the Quick Settings tile show this number (D51).
+  final clock = await settings.dayClock();
+  ref
+      .read(dueBridgeProvider)
+      .publish(
+          due: queue.ordered.length,
+          minutes: (queue.ordered.length * stats.secondsPerCard / 60).ceil(),
+          dayEndMs: clock.dayEndMs(DateTime.now().toUtc()))
+      .ignore();
   final doneToday = queue.learning.isEmpty && queue.reviews.isEmpty && stats.todayAnswered > 0;
   final reminders = ref.watch(reminderServiceProvider);
   reminders.refresh(doneToday: doneToday).ignore(); // fire and forget; it never throws
@@ -166,7 +176,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           _GuideCard(onOpen: _openGuide, onDismiss: _dismissGuide),
         ],
         const SizedBox(height: Sp.l),
-        _TodayCard(d, onReview: () => _go(const ReviewScreen()), onLearn: () => _go(const LearnScreen())),
+        _TodayCard(d,
+            onReview: () => _go(const ReviewScreen()),
+            onQuick: () => _go(const ReviewScreen(quick: kQuickSessionCards)),
+            onLearn: () => _go(const LearnScreen())),
         const SizedBox(height: Sp.m),
         _LearnTile(d.advice, onTap: () => _go(const LearnScreen())),
         const SizedBox(height: Sp.s),
@@ -255,9 +268,9 @@ class _GuideCard extends StatelessWidget {
 
 /// The hero: how much is left today, the streak, and the one big button.
 class _TodayCard extends StatelessWidget {
-  const _TodayCard(this.d, {required this.onReview, required this.onLearn});
+  const _TodayCard(this.d, {required this.onReview, required this.onQuick, required this.onLearn});
   final HomeData d;
-  final VoidCallback onReview, onLearn;
+  final VoidCallback onReview, onQuick, onLearn;
 
   @override
   Widget build(BuildContext context) {
@@ -347,6 +360,16 @@ class _TodayCard extends StatelessWidget {
             onPressed: onReview,
             child: Text(done > 0 ? 'Keep going' : 'Start review'),
           ),
+          // A short way in: five cards, then stop (or carry on).
+          if (remaining > kQuickSessionCards)
+            Align(
+              alignment: Alignment.center,
+              child: TextButton(
+                style: TextButton.styleFrom(minimumSize: const Size(48, 48)),
+                onPressed: onQuick,
+                child: const Text('Just $kQuickSessionCards cards'),
+              ),
+            ),
         ] else if (noCards) ...[
           const SizedBox(height: 16),
           FilledButton.icon(

@@ -30,6 +30,7 @@ import '../data/settings_repo.dart';
 import '../data/stats_service.dart';
 import 'bootstrap.dart';
 import 'device_services.dart';
+import 'launch_service.dart';
 import 'share_service.dart';
 
 /// Where bundled starter subjects are read from (overridden in tests).
@@ -50,7 +51,11 @@ final errorLogProvider = Provider((ref) =>
     ErrorLog(File(p.join(ref.watch(bootstrapProvider).dbFile.parent.path, 'error.log'))));
 final promptSharerProvider = Provider<PromptSharer>((_) => const SharePlusPromptSharer());
 final shareInboxProvider = Provider<ShareInbox>((_) => const ChannelShareInbox());
-final reminderBackendProvider = Provider<ReminderBackend>((_) => LocalNotificationsBackend());
+final reminderBackendProvider =
+    Provider<ReminderBackend>((_) => LocalNotificationsBackend(onOpenReview: () => LaunchRelay.pending.value = LaunchRoute.review));
+final launchInboxProvider = Provider<LaunchInbox>((_) => const ChannelLaunchInbox());
+final dueBridgeProvider = Provider<DueBridge>((_) => const ChannelDueBridge());
+final notificationLaunchProvider = Provider<NotificationLaunch>((_) => const PluginNotificationLaunch());
 final pictureFinderProvider = Provider<PictureFinder>((_) => PictureLookup());
 final pageOpenerProvider = Provider<PageOpener>((_) => const InAppPageOpener());
 final imagePickerProvider = Provider<ImagePickerService>((_) => const GalleryImagePicker());

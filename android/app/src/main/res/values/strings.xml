@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Home-screen widget -->
+    <string name="widget_label">Cards waiting</string>
+    <string name="widget_description">How many cards are waiting today. Tap to start your review.</string>
+    <plurals name="widget_cards_waiting">
+        <item quantity="one">%d card waiting</item>
+        <item quantity="other">%d cards waiting</item>
+    </plurals>
+    <string name="widget_minutes">About %d min</string>
+    <string name="widget_done">All done</string>
+    <string name="widget_done_detail">Nothing due right now</string>
+    <string name="widget_open">Daily Learning</string>
+    <string name="widget_open_detail">Tap to see today\'s cards</string>
+    <string name="widget_quick">Quick 5</string>
+    <string name="widget_quick_description">Review just five cards</string>
+
+    <!-- Quick Settings tile -->
+    <string name="tile_label">Review</string>
+    <string name="tile_due">%d due</string>
+    <string name="tile_done">All done</string>
+    <string name="tile_open">Tap to start</string>
+
+    <!-- Launcher shortcuts (long-press the app icon) -->
+    <string name="shortcut_review_short">Review now</string>
+    <string name="shortcut_review_long">Review your cards now</string>
+    <string name="shortcut_quick_short">Quick 5</string>
+    <string name="shortcut_quick_long">Review just five cards</string>
+</resources>

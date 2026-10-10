@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../app/launch_service.dart';
 import '../app/providers.dart';
 import '../app/share_service.dart';
 import 'home_screen.dart';
 import 'import_screen.dart';
 import 'library_screen.dart';
 import 'progress_screen.dart';
+import 'review_screen.dart';
 
 /// Three places: Today, Progress, Library. Settings lives in the Today header.
 /// Also the one place that notices text shared into the app (an AI's answer) and opens the
@@ -20,23 +22,53 @@ class AppShell extends ConsumerStatefulWidget {
 class _AppShellState extends ConsumerState<AppShell> with WidgetsBindingObserver {
   int _index = 0;
   bool _checking = false;
+  bool _launching = false;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    WidgetsBinding.instance.addPostFrameCallback((_) => _checkShared());
+    LaunchRelay.pending.addListener(_checkLaunch);
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await _checkLaunch(coldStart: true);
+      await _checkShared();
+    });
   }
 
   @override
   void dispose() {
+    LaunchRelay.pending.removeListener(_checkLaunch);
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) _checkShared();
+    if (state == AppLifecycleState.resumed) {
+      _checkLaunch();
+      _checkShared();
+    }
+  }
+
+  /// A shortcut, the widget, the Quick Settings tile or the reminder asked to open the review (D51). Never twice
+  /// at once, and never on top of a review that is already open.
+  Future<void> _checkLaunch({bool coldStart = false}) async {
+    if (_launching || !mounted) return;
+    _launching = true;
+    LaunchRoute? route;
+    try {
+      route = LaunchRelay.take();
+      route ??= await ref.read(launchInboxProvider).take();
+      if (route == null && coldStart && await ref.read(notificationLaunchProvider).openedFromReminder()) {
+        route = LaunchRoute.review;
+      }
+    } finally {
+      _launching = false; // not held while the review is open: the route is already taken
+    }
+    if (route == null || !mounted || ReviewScreen.open > 0) return;
+    final quick = route == LaunchRoute.quick ? kQuickSessionCards : null;
+    await Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => ReviewScreen(quick: quick)));
+    if (mounted) ref.read(refreshProvider.notifier).bump();
   }
 
   Future<void> _checkShared() async {

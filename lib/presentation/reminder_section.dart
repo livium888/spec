@@ -86,3 +86,43 @@ class _ReminderSectionState extends ConsumerState<ReminderSection> {
     ]);
   }
 }
+
+/// How to get into the review without opening the app first (D51). The steps are the Android ones; the names of
+/// menus differ a little between phone makers, which the card says.
+class FasterWaysInCard extends StatelessWidget {
+  const FasterWaysInCard({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Theme.of(context).textTheme;
+    Widget step(String n, String text) => Padding(
+          padding: const EdgeInsets.only(bottom: 6),
+          child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            SizedBox(width: 22, child: Text(n, style: t.titleSmall)),
+            Expanded(child: Text(text, style: t.bodyMedium)),
+          ]),
+        );
+    return Card(
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text('Faster ways in', style: t.titleMedium),
+          const SizedBox(height: 4),
+          Text('Open your cards without opening the app first. All of these are yours to add or ignore.', style: t.bodySmall),
+          const SizedBox(height: 10),
+          step('1.', 'Touch and hold the app icon: "Review now" or "Quick 5" (five cards, then stop).'),
+          step('2.', 'Home screen widget: touch and hold an empty spot, choose Widgets, then Daily Learning > Cards waiting.'),
+          step('3.', 'Quick Settings tile: swipe down twice, tap the pencil, and drag "Review" into your tiles.'),
+          step('4.', 'The daily reminder above opens the review when you tap it.'),
+          const SizedBox(height: 4),
+          Text(
+            'Menu names differ a little between phones. The widget and tile show how many cards are waiting for today once the app has been opened today; until then they say "tap to start".',
+            style: t.bodySmall,
+          ),
+        ]),
+      ),
+    );
+  }
+}
+

@@ -351,3 +351,15 @@ Steps: choose a file -> plan (what was found, subjects to tick and rename) -> im
 | import stopped midway | message; cards already added are kept; importing the same file again skips them |
 | done | "N notes added" (or "Nothing new to add"), cards and subjects, duplicates skipped, pictures kept or left out, "They are new cards", "Open <subject>", "Done" |
 
+
+
+## Faster ways in (D51)
+**Settings** has a "Faster ways in" card under the reminder: four numbered steps (icon shortcuts, widget, tile, reminder tap), a note that menu names differ between phones and that the widget and tile show today's count only after the app was opened today.
+**Today** hero: "Just 5 cards" (text button under "Start review") when more than five wait.
+**Review, Quick 5:** the caption counts the session ("5 left", not the whole day). After five answers: a check ring, "That was your 5", the usual summary, "Keep going · N waiting" (primary, only if cards are left) and "Back to home". With fewer than five cards it is an ordinary session.
+**Widget** (3 x 1): left, "N cards waiting" and "About M min" (or "All done / Nothing due right now", or "Daily Learning / Tap to see today's cards" when no number is known for today); right, a "Quick 5" button when more than five wait. Whole widget = review. **Tile:** label "Review", subtitle "N due" / "All done" / "Tap to start". **Shortcuts:** "Review now", "Quick 5".
+| State | Widget and tile |
+|---|---|
+| app never opened / new day not started | "Tap to see today's cards" / "Tap to start" |
+| cards waiting | the count, about minutes, Quick 5 button (widget) |
+| nothing due | "All done" |

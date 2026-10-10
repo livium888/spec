@@ -28,7 +28,12 @@ import 'widgets/progress_ring.dart';
 import 'widgets/soft_card.dart';
 
 class ReviewScreen extends ConsumerStatefulWidget {
-  const ReviewScreen({super.key});
+  /// [quick]: a short session of this many cards (the "Quick 5" entry points, D51); null = the whole day.
+  const ReviewScreen({super.key, this.quick});
+  final int? quick;
+
+  /// How many review screens are open now: an outside entry point never opens a second one on top (D51).
+  static int open = 0;
   @override
   ConsumerState<ReviewScreen> createState() => _ReviewScreenState();
 }
@@ -61,14 +66,20 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
   int? _lastRating; // shown in the undo bar for a few seconds after an answer
   Timer? _undoTimer;
 
+  /// A short session stops after this many answers; "Keep going" lifts the limit (D51).
+  late int? _limit = widget.quick;
+  bool get _quotaDone => _limit != null && _answered >= _limit!;
+
   @override
   void initState() {
     super.initState();
+    ReviewScreen.open++;
     _load();
   }
 
   @override
   void dispose() {
+    ReviewScreen.open--;
     _poll?.cancel();
     _undoTimer?.cancel();
     super.dispose();
@@ -77,7 +88,8 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
   Future<void> _load({StudyCard? force}) async {
     try {
       final q = await ref.read(queueServiceProvider).build();
-      final next = force ?? q.next;
+      final next = _quotaDone ? null : (force ?? q.next);
+      _publishDue(q);
       Map<int, Duration> pv = {};
       if (next != null) {
         final params = ref.read(paramsRepoProvider);
@@ -115,16 +127,27 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
         ..start();
       if (next != null) _autoSpeak(next, revealed: false);
       _poll?.cancel();
-      if (next == null && q.nextLearningDue != null) {
+      if (!_quotaDone && next == null && q.nextLearningDue != null) {
         // Waiting on a learning step: re-check shortly.
         _poll = Timer.periodic(const Duration(seconds: 20), (_) => _load());
       } else if (next == null && _answered > 0 && !_sessionEnded) {
         _sessionEnded = true;
-        WidgetsBinding.instance.addPostFrameCallback((_) => _askInterest());
+        // A short session ending with cards still waiting does not interrupt with a question (D51).
+        if (!_quotaDone) WidgetsBinding.instance.addPostFrameCallback((_) => _askInterest());
       }
     } catch (e) {
       if (mounted) setState(() { _error = '$e'; _loading = false; });
     }
+  }
+
+  /// Tell the home-screen widget and the Quick Settings tile how many cards are waiting (fire and forget).
+  Future<void> _publishDue(DailyQueue q) async {
+    try {
+      final clock = await ref.read(settingsRepoProvider).dayClock();
+      final now = DateTime.now().toUtc();
+      final n = q.ordered.length;
+      await ref.read(dueBridgeProvider).publish(due: n, minutes: (n * 10 / 60).ceil(), dayEndMs: clock.dayEndMs(now));
+    } catch (_) {}
   }
 
   Future<void> _answer(int rating) async {
@@ -331,7 +354,8 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
   @override
   Widget build(BuildContext context) {
     final c = AppColors.of(context);
-    final left = _queue?.ordered.length ?? 0;
+    final waiting = _queue?.ordered.length ?? 0;
+    final left = _quotaDone ? 0 : (_limit == null ? waiting : (waiting < _limit! - _answered ? waiting : _limit! - _answered));
     final total = _answered + left;
     return Scaffold(
       body: SafeArea(
@@ -746,7 +770,8 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
   Widget _done(BuildContext context) {
     final c = AppColors.of(context);
     final t = Theme.of(context).textTheme;
-    final waiting = _queue?.nextLearningDue;
+    final waiting = _quotaDone ? null : _queue?.nextLearningDue;
+    final leftover = _quotaDone ? (_queue?.ordered.length ?? 0) : 0;
     final mins = waiting == null
         ? null
         : ((waiting - DateTime.now().millisecondsSinceEpoch) / 60000).ceil().clamp(1, 100000);
@@ -773,7 +798,10 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                   size: 48, color: waiting == null ? c.good : c.warn),
             ),
             const SizedBox(height: 20),
-            Text(waiting == null ? (_answered > 0 ? 'Nicely done' : 'All done for today') : 'Next card in about $mins min',
+            Text(
+                _quotaDone
+                    ? 'That was your $_answered'
+                    : (waiting == null ? (_answered > 0 ? 'Nicely done' : 'All done for today') : 'Next card in about $mins min'),
                 textAlign: TextAlign.center, style: t.headlineMedium),
             if (_answered > 0) ...[
               const SizedBox(height: 18),
@@ -806,11 +834,27 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
               AdviceCard(_advice!, compact: true),
             ],
             const SizedBox(height: 22),
-            FilledButton(
-              style: FilledButton.styleFrom(minimumSize: const Size(220, 56)),
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Back to home'),
-            ),
+            if (leftover > 0) ...[
+              FilledButton(
+                style: FilledButton.styleFrom(minimumSize: const Size(220, 56)),
+                onPressed: () {
+                  setState(() {
+                    _limit = null;
+                    _sessionEnded = false;
+                    _loading = true;
+                  });
+                  _load();
+                },
+                child: Text('Keep going · $leftover waiting'),
+              ),
+              const SizedBox(height: 8),
+              TextButton(onPressed: () => Navigator.pop(context), child: const Text('Back to home')),
+            ] else
+              FilledButton(
+                style: FilledButton.styleFrom(minimumSize: const Size(220, 56)),
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Back to home'),
+              ),
           ]),
         ),
       ),

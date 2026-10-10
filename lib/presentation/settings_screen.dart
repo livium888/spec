@@ -258,6 +258,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 const SizedBox(height: 16),
                 const ReminderSection(),
                 const SizedBox(height: 8),
+                const FasterWaysInCard(),
+                const SizedBox(height: 16),
                 Text('Backup', style: t.titleLarge),
                 const SizedBox(height: 8),
                 Text(_folder == null ? 'No folder chosen.' : 'Folder chosen. Weekly in the background, and on open if older than 7 days.'),

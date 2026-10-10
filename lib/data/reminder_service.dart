@@ -16,8 +16,13 @@ abstract class ReminderBackend {
   Future<void> cancel();
 }
 
+/// What the reminder notification carries, so tapping it opens the review (D51).
+const kReminderPayload = 'review';
+
 class LocalNotificationsBackend implements ReminderBackend {
-  LocalNotificationsBackend();
+  /// [onOpenReview] runs when the learner taps the reminder while the app is already running.
+  LocalNotificationsBackend({this.onOpenReview});
+  final void Function()? onOpenReview;
   final _plugin = FlutterLocalNotificationsPlugin();
   bool _ready = false;
   static const _id = 1;
@@ -29,6 +34,9 @@ class LocalNotificationsBackend implements ReminderBackend {
     tz.setLocalLocation(tz.getLocation(zone.identifier));
     await _plugin.initialize(
       settings: const InitializationSettings(android: AndroidInitializationSettings('@mipmap/ic_launcher')),
+      onDidReceiveNotificationResponse: (r) {
+        if (r.payload == kReminderPayload) onOpenReview?.call();
+      },
     );
     _ready = true;
   }
@@ -49,6 +57,7 @@ class LocalNotificationsBackend implements ReminderBackend {
       id: _id,
       title: title,
       body: body,
+      payload: kReminderPayload,
       scheduledDate: tz.TZDateTime(tz.local, firstLocal.year, firstLocal.month, firstLocal.day, firstLocal.hour, firstLocal.minute),
       notificationDetails: const NotificationDetails(
         android: AndroidNotificationDetails(

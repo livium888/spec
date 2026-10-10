@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="review_now"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_review"
+        android:shortcutShortLabel="@string/shortcut_review_short"
+        android:shortcutLongLabel="@string/shortcut_review_long">
+        <intent
+            android:action="android.intent.action.MAIN"
+            android:targetPackage="app.dailylearning.daily_learning"
+            android:targetClass="app.dailylearning.daily_learning.MainActivity">
+            <extra android:name="dl_route" android:value="review" />
+        </intent>
+    </shortcut>
+    <shortcut
+        android:shortcutId="quick_five"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_quick"
+        android:shortcutShortLabel="@string/shortcut_quick_short"
+        android:shortcutLongLabel="@string/shortcut_quick_long">
+        <intent
+            android:action="android.intent.action.MAIN"
+            android:targetPackage="app.dailylearning.daily_learning"
+            android:targetClass="app.dailylearning.daily_learning.MainActivity">
+            <extra android:name="dl_route" android:value="quick5" />
+        </intent>
+    </shortcut>
+</shortcuts>
