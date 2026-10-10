@@ -379,3 +379,13 @@ New pushes cancel older builds (`concurrency`), and the rolling `latest-apk` rel
 - **Checked and clean:** the calculator (no exceptions, finite results), the knowledge map logic, schema v9 migration, the review screen's state handling, replay == live over the simulated months, no card twice in a queue and one card per note.
 - **Not fixed (low):** a formula that spans a cloze gap shows its dollar signs raw; a gap answer written `std::vector` is split into an answer and a hint (the old behaviour); the old-version migration tests drop columns from a current file rather than starting from a genuinely old one.
 - **Known limit:** the fuzz tests cannot tell `$a$$b$` (two formulas side by side) from display maths.
+
+## D46 — Performance pass: measure, then fix only what the numbers show
+- **Setup:** `test/perf_test.dart` seeds 12,000 cards, 400 topics, 12 subjects and 120,000 answers, times each service, and fails if one exceeds a generous ceiling (about 10x the measured value). Timings are from the build sandbox, NOT a phone: expect a phone to be several times slower; the ratios are what matter.
+- **Chosen:**
+  - Queue: the three "introduced today" counts became one query; `CROSS JOIN` fixes the join order so SQLite uses the answer-time index instead of scanning all answers. Queue build 133 -> about 45 ms.
+  - Learn view 466 -> about 220 ms and advice 139 -> about 50 ms, from the same fix plus fewer repeated queries.
+  - `rebuildAll` (replay of every answer, used by backup restore): chunks of 400 cards, one joined query, cached schedulers per parameter set, batched updates. 9.5 s -> about 1.8 s for 120,000 answers. Replay still equals live (simulation and backup tests pass unchanged).
+- **Rejected:** new indexes on `note.domain_id` / `note.syllabus_item_id` (a schema bump for no measured gain: the slow queries after the fix are 15 to 50 ms at this size); caching the queue in memory (adds a staleness bug class for a 45 ms saving).
+- **Revisit if:** a real phone shows the queue above about 200 ms, the learn view above about 1 s, or a library over 50,000 cards; first candidates then are paging the due-review hydration and the per-topic stats query.
+

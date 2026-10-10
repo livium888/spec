@@ -209,14 +209,47 @@ class ReviewService {
   /// RebuildCardsFromLog use case: wipe scheduling fields of every card and
   /// replay. With `apply: false` it only reports mismatches (restore check).
   Future<List<Mismatch>> rebuildAll({bool apply = true}) async {
-    final ids = await (db.selectOnly(db.cards)..addColumns([db.cards.id])).map((r) => r.read(db.cards.id)!).get();
+    final ids = await (db.selectOnly(db.cards)
+          ..addColumns([db.cards.id])
+          ..orderBy([OrderingTerm.asc(db.cards.id)]))
+        .map((r) => r.read(db.cards.id)!)
+        .get();
     final mismatches = <Mismatch>[];
-    for (final id in ids) {
-      final stored = snapshotOf(await (db.select(db.cards)..where((c) => c.id.equals(id))).getSingle());
-      final replayed = await _replay(id);
-      if (replayed != stored) mismatches.add(Mismatch(id, stored, replayed));
-      if (apply) {
-        await (db.update(db.cards)..where((c) => c.id.equals(id))).write(companionOf(replayed));
+    final schedulers = <int, Scheduler>{}; // one scheduler per parameter set, not one per answer
+    const chunk = 400; // cards per round trip: a handful of queries instead of three per card
+    for (var i = 0; i < ids.length; i += chunk) {
+      final part = ids.sublist(i, i + chunk > ids.length ? ids.length : i + chunk);
+      final cardRows = await (db.select(db.cards).join([
+        innerJoin(db.notes, db.notes.id.equalsExp(db.cards.noteId)),
+      ])
+            ..where(db.cards.id.isIn(part)))
+          .get();
+      final logs = await (db.select(db.reviewLogs)
+            ..where((l) => l.cardId.isIn(part) & l.revokedAt.isNull())
+            ..orderBy([(l) => OrderingTerm.asc(l.cardId), (l) => OrderingTerm.asc(l.reviewedAt), (l) => OrderingTerm.asc(l.id)]))
+          .get();
+      final byCard = <int, List<ReviewLog>>{};
+      for (final l in logs) {
+        byCard.putIfAbsent(l.cardId, () => []).add(l);
+      }
+      final updates = <(int, CardSnapshot)>[];
+      for (final row in cardRows) {
+        final stored = snapshotOf(row.readTable(db.cards));
+        // A new card's `due` is its note's creation time (see ImportCards).
+        var card = CardSnapshot(id: stored.id, due: row.readTable(db.notes).createdAt);
+        for (final l in byCard[stored.id] ?? const <ReviewLog>[]) {
+          final scheduler = schedulers[l.paramsId] ??= await params.schedulerFor(l.paramsId);
+          card = applyRating(scheduler, card, l.rating, DateTime.fromMillisecondsSinceEpoch(l.reviewedAt, isUtc: true));
+        }
+        if (card != stored) mismatches.add(Mismatch(stored.id, stored, card));
+        if (apply) updates.add((stored.id, card));
+      }
+      if (apply && updates.isNotEmpty) {
+        await db.batch((b) {
+          for (final (id, card) in updates) {
+            b.update(db.cards, companionOf(card), where: (c) => c.id.equals(id));
+          }
+        });
       }
     }
     return mismatches;

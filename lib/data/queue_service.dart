@@ -60,15 +60,16 @@ class QueueService {
     );
     final dueReviewCount = reviews.length;
 
-    final introduced = await _introducedToday(dayStart, domainId, problems: false);
-    final problemsIntroduced = await _introducedToday(dayStart, domainId, problems: true);
+    final intro = await _introducedToday(dayStart, domainId);
+    final introduced = intro.cards;
+    final problemsIntroduced = intro.problems;
     // The learner's own number is used as it is, unless they switched the backlog shrink on.
     final shrink = await settings.get(SettingsRepo.backlogShrink) == '1';
     final limit = shrink ? backlogAdjustedNewLimit(base, dueReviewCount, divisor: divisor) : (base < 0 ? 0 : base);
     final remaining = (limit - introduced).clamp(0, limit);
     // Foundation cards (made to prepare for a hard card) come first and do not use up the daily limit.
     final isFoundation = CustomExpression<bool>("note.fields_json LIKE '%\"foundation_of\":%'");
-    final foundationRoom = (kMaxFoundationPerDay - await _foundationsIntroducedToday(dayStart, domainId)).clamp(0, kMaxFoundationPerDay);
+    final foundationRoom = (kMaxFoundationPerDay - intro.foundations).clamp(0, kMaxFoundationPerDay);
     final foundationNew = foundationRoom == 0
         ? <StudyCard>[]
         : await fetch(
@@ -166,32 +167,20 @@ class QueueService {
     return r == null ? null : _study(r.readTable(db.cards), r.readTable(db.notes));
   }
 
-  Future<int> _introducedToday(int dayStart, int? domainId, {required bool problems}) async {
-    final rows = await db.customSelect(
-      'SELECT COUNT(DISTINCT l.card_id) AS n FROM review_log l '
-      'JOIN card c ON c.id = l.card_id JOIN note n ON n.id = c.note_id '
-      "WHERE l.revoked_at IS NULL AND l.state_before = 'new' AND l.reviewed_at >= ? "
-      "AND (? IS NULL OR n.domain_id = ?) AND ((n.type = 'problem') = ?)",
-      variables: [
-        Variable.withInt(dayStart),
-        Variable<int>(domainId),
-        Variable<int>(domainId),
-        Variable.withInt(problems ? 1 : 0),
-      ],
-    ).getSingle();
-    return rows.read<int>('n');
-  }
-
-  /// Foundation cards answered for the first time today (they have a daily cap of their own).
-  Future<int> _foundationsIntroducedToday(int dayStart, int? domainId) async {
-    final rows = await db.customSelect(
-      'SELECT COUNT(DISTINCT l.card_id) AS n FROM review_log l '
-      'JOIN card c ON c.id = l.card_id JOIN note n ON n.id = c.note_id '
-      "WHERE l.revoked_at IS NULL AND l.state_before = 'new' AND l.reviewed_at >= ? "
-      "AND (? IS NULL OR n.domain_id = ?) AND n.fields_json LIKE '%\"foundation_of\":%'",
+  /// Cards answered for the first time today, in one pass: ordinary cards, problem cards, foundation cards.
+  /// (CROSS JOIN keeps review_log first, so the index on the answer time narrows it to today; left to itself
+  /// SQLite scanned the whole answer history on every call, about 50 ms with 120,000 answers.)
+  Future<({int cards, int problems, int foundations})> _introducedToday(int dayStart, int? domainId) async {
+    final r = await db.customSelect(
+      '''SELECT COUNT(DISTINCT CASE WHEN n.type != 'problem' THEN l.card_id END) AS normal,
+                COUNT(DISTINCT CASE WHEN n.type = 'problem' THEN l.card_id END) AS prob,
+                COUNT(DISTINCT CASE WHEN n.fields_json LIKE '%"foundation_of":%' THEN l.card_id END) AS found
+         FROM review_log l CROSS JOIN card c ON c.id = l.card_id CROSS JOIN note n ON n.id = c.note_id
+         WHERE l.reviewed_at >= ? AND l.revoked_at IS NULL AND l.state_before = 'new'
+           AND (? IS NULL OR n.domain_id = ?)''',
       variables: [Variable.withInt(dayStart), Variable<int>(domainId), Variable<int>(domainId)],
     ).getSingle();
-    return rows.read<int>('n');
+    return (cards: r.read<int>('normal'), problems: r.read<int>('prob'), foundations: r.read<int>('found'));
   }
 
   /// Has the learner answered the card of [noteId] at [ord] with at least [minRating]?
