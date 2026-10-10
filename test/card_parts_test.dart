@@ -44,6 +44,26 @@ void main() {
       expect(edge.where((p) => p.isGap).map((p) => p.text), ['A', 'B']); // one number, two gaps
       expect(cloze('x {{c1::y}}', back: '  note ').clozeExtra, 'note');
     });
+
+    test('a gap inside a formula keeps the formula whole (no bare dollar signs)', () {
+      final parts = cloze(r'Solve $x = {{c1::5}} + {{c2::2}}$ now.').clozeParts;
+      expect(parts.any((p) => p.isGap), isFalse);
+      expect(parts.map((p) => p.text).join(), r'Solve $x = \boxed{5} + 2$ now.');
+      expect(parts[1].hiddenText, r'$x = \square + 2$');
+      final second = cloze(r'Solve $x = {{c1::5}} + {{c2::2}}$ now.', ord: 1).clozeParts;
+      expect(second[1].text, r'$x = 5 + \boxed{2}$');
+      // A gap beside a formula, and a gap that is itself a formula, are still ordinary gaps.
+      expect(cloze(r'$a$ is {{c1::big}}').clozeParts.where((p) => p.isGap).single.text, 'big');
+      expect(cloze(r'is {{c1::$\frac{a}{b}$}} ok').clozeParts.where((p) => p.isGap).single.text, r'$\frac{a}{b}$');
+    });
+
+    test('an escaped "::" stays in the answer; the first plain "::" still starts the hint', () {
+      final p = cloze(r'Use {{c1::std\::vector::a container}} here.').clozeParts.firstWhere((p) => p.isGap);
+      expect((p.text, p.hint), ('std::vector', 'a container'));
+      final q = cloze(r'Use {{c1::std\::vector}} here.').clozeParts.firstWhere((p) => p.isGap);
+      expect((q.text, q.hint), ('std::vector', null));
+      expect(cloze(r'Use {{c1::std\::vector}} here.').front, 'Use [...] here.');
+    });
   });
 
   group('ClozeSentence', () {
@@ -59,6 +79,29 @@ void main() {
       });
       return teal;
     }
+
+    testWidgets('a gap inside a formula draws an empty box, then the boxed answer, with no raw dollar signs', (t) async {
+      var revealed = false;
+      late StateSetter set;
+      final parts = cloze(r'Then $x = {{c1::\frac{1}{2}}} + 3$ holds.').clozeParts;
+      await t.pumpWidget(host(StatefulBuilder(builder: (c, s) {
+        set = s;
+        return ClozeSentence(
+          parts: parts,
+          revealed: revealed,
+          style: const TextStyle(fontSize: 26, color: Colors.black),
+          strong: const Color(0xFF0F766E),
+          tint: const Color(0xFFD9F2EE),
+        );
+      })));
+      await t.pump();
+      expect(t.takeException(), isNull);
+      expect(find.textContaining(r'$'), findsNothing);
+      set(() => revealed = true);
+      await t.pump(const Duration(milliseconds: 500));
+      expect(t.takeException(), isNull);
+      expect(find.textContaining(r'$'), findsNothing);
+    });
 
     testWidgets('paints without errors in both states, and the revealed answer is actually visible', (t) async {
       final key = GlobalKey();

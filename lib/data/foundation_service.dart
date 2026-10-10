@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:drift/drift.dart';
 
+import '../domain/cloze.dart';
 import '../domain/prompt_template.dart';
 import 'db/database.dart';
 import 'engine_service.dart' show PromptService;
@@ -47,7 +48,7 @@ class FoundationService {
     final fields = jsonDecode(note.fieldsJson) as Map<String, dynamic>;
     final isCloze = note.type == 'cloze';
     final front = isCloze
-        ? ((fields['cloze'] as String? ?? '').replaceAllMapped(RegExp(r'\{\{c\d+::(.*?)(?:::.*?)?\}\}', dotAll: true), (m) => m[1]!))
+        ? replaceClozes(fields['cloze'] as String? ?? '', (m) => m.answer)
         : (fields['front'] as String? ?? '');
     final back = isCloze ? (fields['back'] as String? ?? '') : (fields['back'] as String? ?? '');
     final dom = await (db.select(db.domains)..where((d) => d.id.equals(note.domainId))).getSingle();

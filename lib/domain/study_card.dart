@@ -3,10 +3,12 @@ import 'models.dart';
 
 /// One piece of a cloze sentence: plain text, or the gap this card asks about.
 class ClozePart {
-  const ClozePart.text(this.text)
+  const ClozePart.text(this.text, {this.hiddenText})
       : isGap = false,
         hint = null;
-  const ClozePart.gap(this.text, {this.hint}) : isGap = true;
+  const ClozePart.gap(this.text, {this.hint})
+      : isGap = true,
+        hiddenText = null;
 
   /// Plain text, or (for the gap) the hidden answer.
   final String text;
@@ -14,6 +16,32 @@ class ClozePart {
 
   /// The optional hint written as {{c1::answer::hint}}.
   final String? hint;
+
+  /// For a formula with this card's gap inside it (`$x = {{c1::5}}$`): [text] is the formula with the answer
+  /// boxed (shown after the reveal), this is the same formula with an empty box (shown before).
+  final String? hiddenText;
+}
+
+/// Closed `$...$` / `$$...$$` regions of [text], ignoring any `$` that sits inside a cloze gap and any `\$`.
+List<(int, int)> _mathRegions(String text, List<ClozeMatch> gaps) {
+  bool inGap(int i) => gaps.any((g) => i >= g.start && i < g.end);
+  final out = <(int, int)>[];
+  int? open;
+  String? delim;
+  for (var i = 0; i < text.length; i++) {
+    if (text[i] != r'$' || inGap(i) || (i > 0 && text[i - 1] == '\\')) continue;
+    final d = text.startsWith(r'$$', i) ? r'$$' : r'$';
+    if (open == null) {
+      open = i;
+      delim = d;
+      i += d.length - 1;
+    } else if (d == delim || (delim == r'$$' && d == r'$')) {
+      out.add((open, i + d.length));
+      open = null;
+      i += d.length - 1;
+    }
+  }
+  return out;
 }
 
 /// The four levels of a problem family.
@@ -90,7 +118,31 @@ class StudyCard {
     final text = fields['cloze'] as String? ?? '';
     final parts = <ClozePart>[];
     var at = 0;
-    for (final m in findClozes(text)) {
+    final all = findClozes(text);
+    final regions = _mathRegions(text, all);
+    (int, int)? inRegion(ClozeMatch m) {
+      for (final r in regions) {
+        if (m.start > r.$1 && m.end < r.$2) return r;
+      }
+      return null;
+    }
+
+    for (var k = 0; k < all.length; k++) {
+      final m = all[k];
+      final region = inRegion(m);
+      if (region != null) {
+        // A gap inside a formula: the whole formula is one piece, so its dollar signs are not left bare.
+        // Gaps are visited in order; the first one of a region emits it, the rest were folded into it.
+        if (at > region.$1) continue;
+        if (region.$1 > at) parts.add(ClozePart.text(text.substring(at, region.$1)));
+        String build(bool hidden) => replaceClozes(text.substring(region.$1, region.$2), (g) {
+              if (g.number != ord + 1) return g.answer;
+              return hidden ? r'\square' : '\\boxed{${g.answer}}';
+            });
+        parts.add(ClozePart.text(build(false), hiddenText: build(true)));
+        at = region.$2;
+        continue;
+      }
       if (m.start > at) parts.add(ClozePart.text(text.substring(at, m.start)));
       if (m.number == ord + 1) {
         parts.add(ClozePart.gap(m.answer, hint: m.hint));

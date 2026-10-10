@@ -11,6 +11,9 @@ bool _hasMath(String s) => s.contains(r'$') && parseCardMarkup(s).any((b) => b.i
 
 bool _hasMarkup(String s) => RegExp(r'[$*_`\\]').hasMatch(s);
 
+/// The text of a non-gap part: a formula with this card's gap inside it shows an empty box until the reveal.
+String _revealedOr(ClozePart p, bool revealed) => revealed ? p.text : (p.hiddenText ?? p.text);
+
 /// A cloze sentence: plain text, with this card's own gap shown as a soft blank that fills in place
 /// (highlighted in the subject colour) when the answer is revealed. Card text is plain `Text`
 /// spans: it comes from an AI, so only the safe Markdown subset and formulas of card_markup.dart are drawn (D42).
@@ -27,10 +30,10 @@ class ClozeSentence extends StatelessWidget {
     return Text.rich(
       TextSpan(style: style, children: [
         for (final p in parts)
-          if (!p.isGap && !_hasMarkup(p.text))
-            TextSpan(text: p.text)
+          if (!p.isGap && !_hasMarkup(_revealedOr(p, revealed)))
+            TextSpan(text: _revealedOr(p, revealed))
           else if (!p.isGap)
-            ...cardSpans(context, parseCardMarkup(p.text).expand((b) => b.inlines).toList(), style)
+            ...cardSpans(context, parseCardMarkup(_revealedOr(p, revealed)).expand((b) => b.inlines).toList(), style)
           else
             WidgetSpan(
               alignment: PlaceholderAlignment.baseline,
