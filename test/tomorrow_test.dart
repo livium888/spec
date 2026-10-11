@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:daily_learning/data/db/database.dart';
 import 'package:daily_learning/data/import_service.dart';
+import 'package:daily_learning/data/params_repo.dart';
 import 'package:daily_learning/data/settings_repo.dart';
 import 'package:daily_learning/data/stats_service.dart';
 import 'package:daily_learning/domain/tomorrow_plan.dart';
@@ -41,6 +42,7 @@ void main() {
     setUp(() async {
       db = AppDatabase(NativeDatabase.memory());
       settings = SettingsRepo(db);
+      await ParamsRepo(db, settings).activeId(); // answers below name a parameter set
       final imp = ImportService(db);
       await imp.commit(
           await imp.preview(jsonEncode({
@@ -77,12 +79,35 @@ void main() {
       expect(p.dueReviews, 5);
       expect(p.stillDueToday, 2);
       expect(s.forecast[1], 5, reason: 'the chart and the card say the same number');
-      expect(p.newWaiting, 11, reason: '20 cards, 8 now in review or paused, one note each');
+      expect(p.newStillToday, 4, reason: 'today starts 4 of the 11 new cards (its own limit) before tomorrow gets any');
+      expect(p.newWaiting, 11 - 4, reason: '20 cards, 9 in review or paused, 11 new; today takes 4');
       expect(p.newLimit, 4);
       expect(p.newCards, 4);
+      expect((p.reviewsStillToday, p.learningLaterToday), (2, 0));
       expect(p.answersPerNew, 2);
       expect(p.budgetMinutes, 20);
       expect((p.problemReviews, p.newProblems), (0, 0));
+    });
+
+    test('new cards are never counted on both days: today\'s share first, buried siblings go to tomorrow, started ones use up the limit', () async {
+      final now = t0.add(const Duration(hours: 3));
+      final dayEnd = (await settings.dayClock()).dayEndMs(now);
+      final ids = [for (final c in await db.select(db.cards).get()) c.id];
+      await settings.set(SettingsRepo.newPerDay, '5');
+      // Eight new cards are on today's list (20 new, 12 held back: buried until tomorrow).
+      await db.customStatement('UPDATE card SET buried_until = ? WHERE id > ?', [dayEnd, ids[7]]);
+      var p = (await StatsService(db, settings).compute(now: now)).tomorrow;
+      expect(p.newStillToday, 5, reason: 'today may start 5');
+      expect(p.newWaiting, (8 - 5) + 12, reason: '3 not needed today, plus the 12 that come back tomorrow');
+      expect(p.newCards, 5, reason: 'tomorrow is limited to 5');
+      // Two were started this morning: today has 3 left of its 5.
+      for (var k = 0; k < 2; k++) {
+        await db.customStatement(
+            "INSERT INTO review_log (card_id, reviewed_at, rating, duration_ms, state_before, due_before, elapsed_days, scheduled_days, fsrs_version, params_id) "
+            "VALUES (${ids[k]}, ${now.millisecondsSinceEpoch - 600000}, 3, 8000, 'new', 0, 0, 0, 'v', 1)");
+      }
+      p = (await StatsService(db, settings).compute(now: now)).tomorrow;
+      expect(p.newStillToday, 3);
     });
 
     test('problem cards are counted apart: due tomorrow, and the new ones up to the daily problem limit', () async {
@@ -104,7 +129,7 @@ void main() {
       expect(p.dueReviews, 6);
       expect(p.problemReviews, 2);
       expect(p.newProblems, 2, reason: 'three waiting, the limit is two');
-      expect(p.newWaiting, 20 - 6 - 3, reason: 'ordinary new cards only: problems are not in this count');
+      expect(p.newWaiting, 20 - 6 - 3 - 10, reason: 'ordinary new cards only (problems are not in this count); today starts 10 of the 11 first');
     });
 
     test('fewer waiting than the limit: only those; the backlog shrink lowers the limit as the queue does', () async {
@@ -116,10 +141,10 @@ void main() {
       }
       await settings.set(SettingsRepo.newPerDay, '10');
       var p = (await StatsService(db, settings).compute(now: now)).tomorrow;
-      expect((p.newWaiting, p.newCards), (3, 3), reason: 'three new cards are all there is');
+      expect((p.newWaiting, p.newCards, p.newStillToday), (0, 0, 3), reason: 'the three new cards are today\'s: none are left for tomorrow');
       await db.customStatement("UPDATE card SET state = 'review', stability = 5, difficulty = 5, reps = 3, due = ? WHERE state = 'new'", [dayEnd + 86400000 * 3]);
       p = (await StatsService(db, settings).compute(now: now)).tomorrow;
-      expect((p.newWaiting, p.newCards), (0, 0));
+      expect((p.newWaiting, p.newCards, p.newStillToday), (0, 0, 0));
       await settings.set(SettingsRepo.backlogShrink, '1');
       await settings.set(SettingsRepo.backlogDivisor, '5');
       p = (await StatsService(db, settings).compute(now: now)).tomorrow;

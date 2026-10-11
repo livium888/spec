@@ -13,6 +13,8 @@ class TomorrowPlan {
     required this.answersPerNew,
     required this.secondsPerAnswer,
     required this.budgetMinutes,
+    this.learningLaterToday = 0,
+    this.newStillToday = 0,
     this.problemReviews = 0,
     this.newProblems = 0,
     this.secondsPerProblem = 240,
@@ -28,13 +30,23 @@ class TomorrowPlan {
   /// Reviews scheduled for tomorrow (the app's day, which turns over at 04:00).
   final int dueReviews;
 
-  /// Reviews still due today: if they are left, tomorrow's session starts with them too.
+  /// Still to do today (on the Today screen now): reviews due, plus learning steps that come back later today. Anything
+  /// left undone is added to tomorrow.
   final int stillDueToday;
 
-  /// New cards tomorrow would introduce: the daily limit, or fewer if fewer are waiting.
+  /// Of [stillDueToday], the learning steps that come back after a short wait (not on Today until they are due).
+  final int learningLaterToday;
+
+  /// New cards today will introduce (up to what is left of today's limit): they are NOT counted again in [newCards].
+  final int newStillToday;
+
+  /// Reviews due today that are on the Today screen now.
+  int get reviewsStillToday => stillDueToday - learningLaterToday;
+
+  /// New cards tomorrow would introduce: the daily limit, or fewer if fewer remain once today's are started.
   final int newCards;
 
-  /// New cards in the library that have not been started.
+  /// New cards left for tomorrow: not started, and not part of today's new cards.
   final int newWaiting;
   final int newLimit;
   final int answersPerNew;

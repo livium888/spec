@@ -385,3 +385,6 @@ Above the 7-day chart. Content in order: "Tomorrow"; "N cards, about M min"; rev
 ## Tomorrow card, corrected (D55; replaces the verdict in D54)
 Lines: reviews due (ordinary); problem reviews due (they take longer), only if any; new cards (daily limit, waiting); new problems (up to the daily problem limit), only if any; "+N left to do today (some may come back later tonight)", only if any. Verdict: "That is about M min of your B minutes: about X min to spare." or "...over your B minutes by about X min. Start fewer new cards for now." (red text and words). A note: the pace (middle of recent answers; ordinary seconds, problem minutes), how many times a new card is answered, and that only this app's cards are counted. Button: "How many new cards a day can I keep up? (Looking ahead)". Today's "About N min" uses the same pace, problems priced at the problem pace.
 
+## Tomorrow card, today block (D56; refines D55)
+After the tomorrow lines, when anything is left today: heading "Still to do today (these are on the Today screen)"; reviews due today; "back later today, after a short wait" (learning steps only); new cards for today, not started; and "Tomorrow above does not include these. Anything you leave today is added to tomorrow." Tomorrow's new cards exclude today's share.
+

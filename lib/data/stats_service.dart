@@ -253,16 +253,18 @@ class StatsService {
     // Forecast: reviews still due today, then each of the next 6 days. Cards in their first
     // learning steps (or relearning after a lapse) come back within the day, so they count as today.
     final due = await db.customSelect(
-        "SELECT c.due AS due, n.type AS type FROM card c JOIN note n ON n.id = c.note_id WHERE c.suspended = 0 AND ((c.state = 'review' AND c.due < ?) "
+        "SELECT c.due AS due, c.state AS state, n.type AS type FROM card c JOIN note n ON n.id = c.note_id WHERE c.suspended = 0 AND ((c.state = 'review' AND c.due < ?) "
         "OR (c.state IN ('learning', 'relearning') AND c.due < ?))",
         variables: [Variable.withInt(dayEnd + 6 * _day), Variable.withInt(dayEnd)]).get();
     final forecast = List<int>.filled(7, 0);
     var problemTomorrow = 0; // of tomorrow's reviews, the problem cards (they take minutes, not seconds)
+    var learningLater = 0; // today's learning steps that come back after a short wait (not yet on Today)
     for (final r in due) {
       final d = r.read<int>('due');
       final idx = d < dayEnd ? 0 : ((d - dayEnd) ~/ _day) + 1;
       if (idx >= 0 && idx < 7) forecast[idx]++;
       if (idx == 1 && r.read<String>('type') == 'problem') problemTomorrow++;
+      if (idx == 0 && r.read<String>('state') != 'review' && d > nowMs) learningLater++;
     }
 
     final subjects = <SubjectStat>[];
@@ -297,10 +299,22 @@ class StatsService {
     final shrink = await settings.get(SettingsRepo.backlogShrink) == '1';
     final divisor = await settings.getInt(SettingsRepo.backlogDivisor, 25);
     final newLimit = shrink ? backlogAdjustedNewLimit(baseNew, forecast[1], divisor: divisor) : (baseNew < 0 ? 0 : baseNew);
+    // New cards not started yet, one per note per day (a sibling answered today is buried until tomorrow). The ones
+    // available now belong to TODAY first, up to what is left of today's limit; tomorrow gets what remains, plus the
+    // buried ones. Counting all of them for tomorrow would count the same cards on both days.
     final waiting = await one(
-        "SELECT COUNT(DISTINCT c.note_id) AS n FROM card c JOIN note n ON n.id = c.note_id "
-        "WHERE c.state = 'new' AND c.suspended = 0 AND n.type != 'problem'");
-    final newWaiting = i(waiting['n']);
+        "SELECT COUNT(DISTINCT CASE WHEN c.buried_until IS NULL OR c.buried_until <= ? THEN c.note_id END) AS now_n, "
+        "COUNT(DISTINCT CASE WHEN c.buried_until > ? THEN c.note_id END) AS buried_n "
+        "FROM card c JOIN note n ON n.id = c.note_id "
+        "WHERE c.state = 'new' AND c.suspended = 0 AND n.type != 'problem'",
+        [Variable.withInt(nowMs), Variable.withInt(nowMs)]);
+    final introduced = await one(
+        "SELECT COUNT(DISTINCT l.card_id) AS n FROM review_log l CROSS JOIN card c ON c.id = l.card_id CROSS JOIN note n ON n.id = c.note_id "
+        "WHERE l.reviewed_at >= ? AND l.revoked_at IS NULL AND l.state_before = 'new' AND n.type != 'problem'",
+        [Variable.withInt(dayStart)]);
+    final todayLeft = ((baseNew < 0 ? 0 : baseNew) - i(introduced['n'])).clamp(0, 1 << 30);
+    final newToday = i(waiting['now_n']) < todayLeft ? i(waiting['now_n']) : todayLeft;
+    final newWaiting = (i(waiting['now_n']) - newToday) + i(waiting['buried_n']);
     final steps = await settings.getIntList(SettingsRepo.learningSteps, [1, 10]);
     final problemLimit = (await settings.getInt(SettingsRepo.problemsPerDay, kDefaultProblemsPerDay)).clamp(0, kMaxProblemsPerDay);
     final problemsWaiting = i((await one(
@@ -310,6 +324,8 @@ class StatsService {
     final tomorrow = TomorrowPlan(
       dueReviews: forecast[1],
       stillDueToday: forecast[0],
+      learningLaterToday: learningLater,
+      newStillToday: newToday,
       newCards: newWaiting < newLimit ? newWaiting : newLimit,
       newWaiting: newWaiting,
       newLimit: newLimit,

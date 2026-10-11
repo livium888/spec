@@ -262,8 +262,15 @@ class _TomorrowCard extends StatelessWidget {
                 ? 'new cards (none waiting: add cards to start more)'
                 : '${p.newCards == 1 ? 'new card' : 'new cards'} (your daily limit is ${p.newLimit}; ${p.newWaiting} waiting)'),
             if (p.newProblems > 0) line('${p.newProblems}', 'new ${p.newProblems == 1 ? 'problem' : 'problems'} (up to your daily problem limit)'),
-            if (p.stillDueToday > 0)
-              line('+${p.stillDueToday}', 'left to do today (some may come back later tonight); if you leave them, they come first tomorrow'),
+            if (p.stillDueToday > 0 || p.newStillToday > 0) ...[
+              const SizedBox(height: 10),
+              Text('Still to do today (these are on the Today screen)', style: t.titleSmall),
+              if (p.reviewsStillToday > 0) line('${p.reviewsStillToday}', '${p.reviewsStillToday == 1 ? 'review' : 'reviews'} due today'),
+              if (p.learningLaterToday > 0) line('${p.learningLaterToday}', 'back later today, after a short wait'),
+              if (p.newStillToday > 0) line('${p.newStillToday}', 'new ${p.newStillToday == 1 ? 'card' : 'cards'} for today, not started'),
+              const SizedBox(height: 4),
+              Text('Tomorrow above does not include these. Anything you leave today is added to tomorrow.', style: t.bodySmall?.copyWith(color: c.inkSoft)),
+            ],
             const SizedBox(height: 10),
             Text(verdict, style: t.bodyMedium?.copyWith(color: left < 0 ? c.danger : c.ink, fontWeight: FontWeight.w600)),
             const SizedBox(height: 6),
