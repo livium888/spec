@@ -54,16 +54,17 @@ class LaunchRelay {
 /// only for the day it was written for: after the day rolls over they say "tap to see today's cards" until the
 /// app has run again (a number from yesterday would be a wrong number).
 abstract class DueBridge {
-  Future<void> publish({required int due, required int minutes, required int dayEndMs});
+  /// [next]: the next card's question, shortened, for the pause before apps (D59).
+  Future<void> publish({required int due, required int minutes, required int dayEndMs, String? next});
 }
 
 class ChannelDueBridge implements DueBridge {
   const ChannelDueBridge();
 
   @override
-  Future<void> publish({required int due, required int minutes, required int dayEndMs}) async {
+  Future<void> publish({required int due, required int minutes, required int dayEndMs, String? next}) async {
     try {
-      await ChannelLaunchInbox.channel.invokeMethod<void>('publishDue', {'due': due, 'minutes': minutes, 'dayEndMs': dayEndMs});
+      await ChannelLaunchInbox.channel.invokeMethod<void>('publishDue', {'due': due, 'minutes': minutes, 'dayEndMs': dayEndMs, 'next': next});
     } on MissingPluginException {
       return;
     } on PlatformException {

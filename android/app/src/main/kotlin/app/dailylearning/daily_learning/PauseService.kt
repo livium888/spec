@@ -116,6 +116,7 @@ class PauseService : AccessibilityService(), SharedPreferences.OnSharedPreferenc
         // Never stack pauses: the screen behind keeps sending events while ours opens.
         if (PauseActivity.showing || now - PauseActivity.lastLaunch < RELAUNCH_GAP_MS) return
         PauseActivity.lastLaunch = now
+        PauseStore.log(this, PauseStore.KIND_SHOWN, key, now) // an attempt to open (D59)
         val i = Intent(this, PauseActivity::class.java).apply {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_NO_ANIMATION)
             putExtra(PauseActivity.EXTRA_KEY, key)

@@ -8,6 +8,7 @@ import '../data/backup/backup_service.dart';
 import '../data/backup/backup_storage.dart';
 import '../data/settings_repo.dart';
 import '../data/stats_service.dart';
+import '../domain/pause_stats.dart';
 import '../domain/memory_summary.dart';
 import '../domain/study_advisor.dart';
 import '../domain/study_card.dart';
@@ -21,6 +22,7 @@ import 'theme/tokens.dart';
 import 'topics_screen.dart';
 import 'guide_screen.dart';
 import 'memory_model_screen.dart';
+import 'pause_summary.dart';
 import 'widgets/progress_ring.dart';
 import 'widgets/soft_card.dart';
 
@@ -56,7 +58,8 @@ final homeDataProvider = FutureProvider.autoDispose<HomeData>((ref) async {
                       queue.ordered.where((c) => c.isProblem).length * stats.tomorrow.secondsPerProblem) /
                   60)
               .ceil(),
-          dayEndMs: clock.dayEndMs(DateTime.now().toUtc()))
+          dayEndMs: clock.dayEndMs(DateTime.now().toUtc()),
+          next: queue.next == null ? null : pausePreview(queue.next!.front))
       .ignore();
   final doneToday = queue.learning.isEmpty && queue.reviews.isEmpty && stats.todayAnswered > 0;
   final reminders = ref.watch(reminderServiceProvider);
@@ -186,6 +189,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             onReview: () => _go(const ReviewScreen()),
             onQuick: () => _go(const ReviewScreen(quick: kQuickSessionCards)),
             onLearn: () => _go(const LearnScreen())),
+        const PauseTodayNote(), // this week's pauses, or a warning that the pause is off (D59)
         const SizedBox(height: Sp.m),
         _LearnTile(d.advice, onTap: () => _go(const LearnScreen())),
         const SizedBox(height: Sp.s),

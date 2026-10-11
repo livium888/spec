@@ -35,7 +35,7 @@ class MainActivity : FlutterActivity() {
                         val due = call.argument<Int>("due") ?: 0
                         val minutes = call.argument<Int>("minutes") ?: 1
                         val dayEnd = call.argument<Number>("dayEndMs")?.toLong() ?: 0L
-                        DueStore.write(applicationContext, due, minutes, dayEnd)
+                        DueStore.write(applicationContext, due, minutes, dayEnd, call.argument<String>("next"))
                         result.success(null)
                     }
                     else -> result.notImplemented()
@@ -66,6 +66,10 @@ class MainActivity : FlutterActivity() {
                     call.argument<List<String>>("wholeBrowsers") ?: emptyList(),
                     call.argument<String>("rules") ?: "",
                     call.argument<Int>("freeMinutes") ?: 2,
+                    call.argument<Boolean>("rising") ?: true,
+                    call.argument<Int>("openLimit") ?: 0,
+                    call.argument<Boolean>("showNext") ?: true,
+                    call.argument<Int>("rolloverHour") ?: 4,
                 )
                 result.success(null)
             }
@@ -80,14 +84,17 @@ class MainActivity : FlutterActivity() {
                     .sortedBy { (it["label"] as String).lowercase() }
                 result.success(apps)
             }
-            "status" -> {
-                val week = PauseStore.week(ctx, now)
-                result.success(mapOf(
-                    "on" to serviceOn(),
-                    "back" to week[PauseStore.CHOICE_BACK],
-                    "open" to week[PauseStore.CHOICE_OPEN],
-                    "cards" to week[PauseStore.CHOICE_CARDS],
-                ))
+            "status" -> result.success(mapOf("on" to serviceOn()))
+            "log" -> result.success(PauseStore.logText(ctx))
+            "test" -> {
+                // The settings screen's "Test the pause": the real screen, about this app, not counted (key test:).
+                val i = Intent(ctx, PauseActivity::class.java).apply {
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    putExtra(PauseActivity.EXTRA_KEY, "test:pause")
+                    putExtra(PauseActivity.EXTRA_PKG, ctx.packageName)
+                    putExtra(PauseActivity.EXTRA_LABEL, "Test")
+                }
+                result.success(start(i))
             }
             "openAccessibility" -> result.success(start(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)))
             "openAppInfo" -> result.success(start(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + ctx.packageName))))

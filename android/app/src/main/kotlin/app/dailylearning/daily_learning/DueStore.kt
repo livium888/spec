@@ -20,8 +20,9 @@ object DueStore {
     const val ROUTE_PAUSE = "pause5" // five cards asked for by the pause screen (D58); grants nothing by itself
     private const val FILE = "daily_learning_due"
 
-    fun write(ctx: Context, due: Int, minutes: Int, dayEndMs: Long) {
+    fun write(ctx: Context, due: Int, minutes: Int, dayEndMs: Long, next: String? = null) {
         ctx.getSharedPreferences(FILE, Context.MODE_PRIVATE).edit()
+            .putString("next", next?.take(200) ?: "")
             .putInt("due", due)
             .putInt("minutes", minutes)
             .putLong("dayEnd", dayEndMs)
@@ -35,6 +36,12 @@ object DueStore {
         if (!p.contains("due")) return null
         if (System.currentTimeMillis() >= p.getLong("dayEnd", 0L)) return null
         return p.getInt("due", 0)
+    }
+
+    /** The next card's question, shortened (shown on the pause, D59), or null when unknown for today. */
+    fun next(ctx: Context): String? {
+        if (due(ctx) == null) return null
+        return ctx.getSharedPreferences(FILE, Context.MODE_PRIVATE).getString("next", null)?.takeIf { it.isNotBlank() }
     }
 
     fun minutes(ctx: Context): Int =

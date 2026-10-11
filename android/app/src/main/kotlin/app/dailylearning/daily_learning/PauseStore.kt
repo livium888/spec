@@ -16,6 +16,10 @@ object PauseStore {
     const val KEY_WHOLE = "whole_browsers"
     const val KEY_RULES = "rules"
     const val KEY_FREE = "free_minutes"
+    const val KEY_RISING = "rising_wait"
+    const val KEY_LIMIT = "open_limit"
+    const val KEY_SHOW_NEXT = "show_next"
+    const val KEY_ROLLOVER = "rollover_hour"
     const val KEY_ALL_UNTIL = "all_until"
     private const val PASS = "pass:"
     private const val PENDING_KEY = "pending_key"
@@ -30,18 +34,34 @@ object PauseStore {
     const val CHOICE_OPEN = "open"
     const val CHOICE_CARDS = "cards"
 
-    data class Config(val apps: Set<String>, val wholeBrowsers: Set<String>, val rules: List<PauseRules.Rule>, val freeMinutes: Int)
+    data class Config(
+        val apps: Set<String>,
+        val wholeBrowsers: Set<String>,
+        val rules: List<PauseRules.Rule>,
+        val freeMinutes: Int,
+        val rising: Boolean = true,
+        val openLimit: Int = 0,
+        val showNext: Boolean = true,
+        val rolloverHour: Int = 4,
+    )
 
     data class Pending(val key: String, val label: String, val pkg: String, val atMs: Long)
 
     fun prefs(ctx: Context): SharedPreferences = ctx.getSharedPreferences(FILE, Context.MODE_PRIVATE)
 
-    fun writeConfig(ctx: Context, apps: List<String>, whole: List<String>, rules: String, freeMinutes: Int) {
+    fun writeConfig(
+        ctx: Context, apps: List<String>, whole: List<String>, rules: String, freeMinutes: Int,
+        rising: Boolean, openLimit: Int, showNext: Boolean, rolloverHour: Int,
+    ) {
         prefs(ctx).edit()
             .putStringSet(KEY_APPS, apps.toSet())
             .putStringSet(KEY_WHOLE, whole.toSet())
             .putString(KEY_RULES, rules)
             .putInt(KEY_FREE, freeMinutes.coerceIn(1, 60))
+            .putBoolean(KEY_RISING, rising)
+            .putInt(KEY_LIMIT, openLimit.coerceIn(0, 50))
+            .putBoolean(KEY_SHOW_NEXT, showNext)
+            .putInt(KEY_ROLLOVER, rolloverHour.coerceIn(0, 23))
             .apply()
     }
 
@@ -52,6 +72,10 @@ object PauseStore {
             wholeBrowsers = p.getStringSet(KEY_WHOLE, emptySet())?.toSet() ?: emptySet(),
             rules = PauseRules.parseRules(p.getString(KEY_RULES, "")),
             freeMinutes = p.getInt(KEY_FREE, 2).coerceIn(1, 60),
+            rising = p.getBoolean(KEY_RISING, true),
+            openLimit = p.getInt(KEY_LIMIT, 0).coerceIn(0, 50),
+            showNext = p.getBoolean(KEY_SHOW_NEXT, true),
+            rolloverHour = p.getInt(KEY_ROLLOVER, 4).coerceIn(0, 23),
         )
     }
 
@@ -104,35 +128,50 @@ object PauseStore {
         prefs(ctx).edit().remove(PENDING_KEY).remove(PENDING_LABEL).remove(PENDING_PKG).remove(PENDING_AT).apply()
     }
 
-    // ---- what the learner chose, per day (kept two weeks) ----------------------------------------------------
+    // ---- the log of pauses (D59) ------------------------------------------------------------------------------
+    // One line per event: ms<TAB>kind<TAB>key. Read by the app for Progress and Today (lib/domain/pause_stats.dart
+    // parses it and skips damaged lines). Kept 60 days, at most 4000 lines; never leaves the phone.
 
-    private fun dayOf(ms: Long): Long = ms / 86_400_000L
+    private const val KEY_LOG = "log"
+    private const val LOG_DAYS = 60L
+    private const val LOG_MAX = 4000
 
-    fun count(ctx: Context, choice: String, now: Long) {
+    const val KIND_SHOWN = "shown"
+
+    fun log(ctx: Context, kind: String, key: String, now: Long) {
         val p = prefs(ctx)
-        val today = dayOf(now)
-        val e = p.edit()
-        for (k in p.all.keys) {
-            if (k.startsWith("n:")) {
-                val d = k.split(':').getOrNull(1)?.toLongOrNull()
-                if (d == null || d < today - 14) e.remove(k)
-            }
-        }
-        val key = "n:$today:$choice"
-        e.putInt(key, p.getInt(key, 0) + 1).apply()
+        val cutoff = now - LOG_DAYS * 86_400_000L
+        val lines = (p.getString(KEY_LOG, "") ?: "").split('\n')
+            .filter { l -> l.isNotEmpty() && (l.substringBefore('\t').toLongOrNull() ?: 0L) >= cutoff }
+            .takeLast(LOG_MAX - 1)
+        val clean = key.replace('\t', ' ').replace('\n', ' ').take(300)
+        val e = p.edit().putString(KEY_LOG, (lines + "$now\t$kind\t$clean").joinToString("\n"))
+        // Counters from the first version of the pause: replaced by this log.
+        for (k in p.all.keys) if (k.startsWith("n:")) e.remove(k)
+        e.apply()
     }
 
-    /** Choices over the last 7 days: back, open, cards. */
-    fun week(ctx: Context, now: Long): Map<String, Int> {
-        val today = dayOf(now)
-        val out = mutableMapOf(CHOICE_BACK to 0, CHOICE_OPEN to 0, CHOICE_CARDS to 0)
-        for ((k, v) in prefs(ctx).all) {
-            if (!k.startsWith("n:")) continue
-            val parts = k.split(':')
-            val d = parts.getOrNull(1)?.toLongOrNull() ?: continue
-            val c = parts.getOrNull(2) ?: continue
-            if (d > today - 7 && d <= today && out.containsKey(c)) out[c] = out[c]!! + (v as? Int ?: 0)
+    fun logText(ctx: Context): String = prefs(ctx).getString(KEY_LOG, "") ?: ""
+
+    /** How many [kind] events [key] had since the app's day began (rolls over at the learner's hour, local time). */
+    fun countToday(ctx: Context, kind: String, key: String, now: Long): Int {
+        val start = dayStartMs(now, config(ctx).rolloverHour)
+        return logText(ctx).split('\n').count { l ->
+            val p = l.split('\t')
+            p.size == 3 && p[1] == kind && p[2] == key && (p[0].toLongOrNull() ?: 0L) >= start
         }
-        return out
+    }
+
+    /** Mirror of DayClock.dayStartMs (lib/domain/day_clock.dart): the day turns at [rolloverHour] local time. */
+    fun dayStartMs(now: Long, rolloverHour: Int): Long {
+        val day = 86_400_000L
+        val shift = java.util.TimeZone.getDefault().getOffset(now).toLong() - rolloverHour * 3_600_000L
+        return Math.floorDiv(now + shift, day) * day - shift
+    }
+
+    /** Mirror of pauseWaitSeconds (lib/domain/pause_stats.dart). */
+    fun waitSeconds(shownToday: Int, rising: Boolean): Int {
+        if (!rising || shownToday <= 1) return 10
+        return (10 + 5 * (shownToday - 1)).coerceAtMost(60)
     }
 }

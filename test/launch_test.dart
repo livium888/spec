@@ -32,7 +32,7 @@ class _Inbox implements LaunchInbox {
 class _Bridge implements DueBridge {
   final calls = <({int due, int minutes, int dayEndMs})>[];
   @override
-  Future<void> publish({required int due, required int minutes, required int dayEndMs}) async => calls.add((due: due, minutes: minutes, dayEndMs: dayEndMs));
+  Future<void> publish({required int due, required int minutes, required int dayEndMs, String? next}) async => calls.add((due: due, minutes: minutes, dayEndMs: dayEndMs));
 }
 
 class _NoNotification implements NotificationLaunch {

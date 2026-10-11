@@ -137,8 +137,14 @@ class PauseActivity : Activity() {
 
     private fun build() {
         if (isFinishing) return
-        val free = PauseStore.config(this).freeMinutes
+        val cfg = PauseStore.config(this)
+        val free = cfg.freeMinutes
         val due = DueStore.due(this)
+        val now = System.currentTimeMillis()
+        // D59: the wait grows with each pause of this app today, and a daily open limit leaves only the cards.
+        val wait = PauseStore.waitSeconds(PauseStore.countToday(this, PauseStore.KIND_SHOWN, key, now), cfg.rising)
+        val opens = PauseStore.countToday(this, PauseStore.CHOICE_OPEN, key, now)
+        val limitReached = cfg.openLimit > 0 && opens >= cfg.openLimit
         column = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER_HORIZONTAL
@@ -154,6 +160,17 @@ class PauseActivity : Activity() {
             else -> "$due ${if (due == 1) "card" else "cards"} waiting, about ${DueStore.minutes(this)} min."
         }
         if (cardsLine != null) column.addView(text(cardsLine, 18f, ink))
+        val next = if (cfg.showNext && due != 0) DueStore.next(this) else null
+        if (next != null) {
+            column.addView(text("Next card: $next", 18f, ink).apply {
+                setTypeface(typeface, Typeface.ITALIC)
+                setPadding(dp(12), dp(12), dp(12), dp(12))
+                background = GradientDrawable().apply {
+                    cornerRadius = dp(12).toFloat()
+                    setStroke(dp(1), inkSoft)
+                }
+            })
+        }
 
         if (due != 0) {
             column.addView(button("Do 5 cards", primary = true) { doCards() }.apply {
@@ -163,7 +180,15 @@ class PauseActivity : Activity() {
                 importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO // said by the button
             })
         }
-        column.addView(button("Breathe, then open", primary = due == 0) { breathe(free) })
+        if (limitReached) {
+            column.addView(text(
+                "You opened $label $opens ${if (opens == 1) "time" else "times"} today, your daily limit. " +
+                    (if (due == 0) "No cards are due, so it opens again tomorrow." else "Do 5 cards, or come back tomorrow."),
+                16f, ink,
+            ))
+        } else {
+            column.addView(button(if (wait > 10) "Breathe ($wait s), then open" else "Breathe, then open", primary = due == 0) { breathe(free, wait) })
+        }
         column.addView(button("Not now", primary = false) { notNow() })
 
         val scroll = ScrollView(this).apply {
@@ -187,14 +212,14 @@ class PauseActivity : Activity() {
     /** Five cards in the app; the review screen grants the free time once they are answered (D58). */
     private fun doCards() {
         val now = System.currentTimeMillis()
-        PauseStore.count(this, PauseStore.CHOICE_CARDS, now)
+        PauseStore.log(this, PauseStore.CHOICE_CARDS, key, now)
         PauseStore.setPending(this, key, label, pkg, now)
         startActivity(DueStore.openIntent(this, DueStore.ROUTE_PAUSE))
         finish()
     }
 
     private fun notNow() {
-        PauseStore.count(this, PauseStore.CHOICE_BACK, System.currentTimeMillis())
+        PauseStore.log(this, PauseStore.CHOICE_BACK, key, System.currentTimeMillis())
         try {
             startActivity(Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
         } catch (e: Exception) {
@@ -205,14 +230,14 @@ class PauseActivity : Activity() {
 
     private fun open(free: Int) {
         val now = System.currentTimeMillis()
-        PauseStore.count(this, PauseStore.CHOICE_OPEN, now)
+        PauseStore.log(this, PauseStore.CHOICE_OPEN, key, now)
         PauseStore.grant(this, key, now + free * 60_000L)
         launchTarget(this, pkg)
         finish()
     }
 
-    /** Ten seconds of slow breathing, then the open button. */
-    private fun breathe(free: Int) {
+    /** [seconds] of slow breathing (5 in, 5 out), then the open button. */
+    private fun breathe(free: Int, seconds: Int) {
         column.removeAllViews()
         column.addView(text(label, 26f, ink, bold = true).apply { accessibilityHeading() })
         val still = Settings.Global.getFloat(contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f) == 0f
@@ -229,7 +254,7 @@ class PauseActivity : Activity() {
         column.addView(circle)
         val words = text("Breathe in", 22f, ink).apply { accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE }
         column.addView(words)
-        val left = text("10", 18f, inkSoft).apply { importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO }
+        val left = text("$seconds", 18f, inkSoft).apply { importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO }
         column.addView(left)
         column.addView(button("Not now", primary = false) { notNow() })
 
@@ -237,7 +262,7 @@ class PauseActivity : Activity() {
             animator = ValueAnimator.ofFloat(0.55f, 1f).apply {
                 duration = 5000
                 repeatMode = ValueAnimator.REVERSE
-                repeatCount = 1
+                repeatCount = (seconds / 5 - 1).coerceAtLeast(0)
                 interpolator = AccelerateDecelerateInterpolator()
                 addUpdateListener {
                     val v = it.animatedValue as Float
@@ -247,11 +272,11 @@ class PauseActivity : Activity() {
                 start()
             }
         }
-        for (s in 1..10) {
+        for (s in 1..seconds) {
             main.postDelayed({
-                left.text = "${10 - s}"
-                if (s == 5) words.text = "Breathe out"
-                if (s == 10) {
+                left.text = "${seconds - s}"
+                if (s % 5 == 0 && s < seconds) words.text = if ((s / 5) % 2 == 1) "Breathe out" else "Breathe in"
+                if (s == seconds) {
                     words.text = "Ready when you are."
                     left.visibility = View.GONE
                     column.addView(button("Open $label for $free ${minutesWord(free)}", primary = true) { open(free) }, 3)

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../app/providers.dart';
 import '../data/pause_bridge.dart';
 import '../data/pause_settings.dart';
+import '../domain/pause_stats.dart';
 import '../domain/site_rule.dart';
 
 /// "Pause before apps" (D58): which apps and sites bring up the pause, the free time, and the Android switch.
@@ -18,6 +19,7 @@ class _PauseAppsScreenState extends ConsumerState<PauseAppsScreen> with WidgetsB
   PauseChoices? _c;
   List<InstalledApp>? _installed;
   PauseStatus _status = PauseStatus.off;
+  String? _weekLine;
   String? _error;
   final _site = TextEditingController();
   String? _siteError;
@@ -44,7 +46,13 @@ class _PauseAppsScreenState extends ConsumerState<PauseAppsScreen> with WidgetsB
 
   Future<void> _refreshStatus() async {
     final s = await ref.read(pauseBridgeProvider).status();
-    if (mounted) setState(() => _status = s);
+    final week = pauseWeekLine(await ref.read(pauseSettingsProvider).week());
+    if (mounted) {
+      setState(() {
+        _status = s;
+        _weekLine = week;
+      });
+    }
   }
 
   Future<void> _load() async {
@@ -53,6 +61,7 @@ class _PauseAppsScreenState extends ConsumerState<PauseAppsScreen> with WidgetsB
       var c = await ref.read(pauseSettingsProvider).load();
       final installed = await bridge.apps();
       final status = await bridge.status();
+      final week = pauseWeekLine(await ref.read(pauseSettingsProvider).week());
       if (!c.saved) {
         // First visit: suggest LinkedIn (the app and the site), which the learner can remove.
         final hasLinkedIn = installed.any((a) => a.pkg == kLinkedInPackage);
@@ -64,6 +73,7 @@ class _PauseAppsScreenState extends ConsumerState<PauseAppsScreen> with WidgetsB
         _c = c;
         _installed = installed;
         _status = status;
+        _weekLine = week;
         _error = null;
       });
     } catch (e) {
@@ -134,7 +144,7 @@ class _PauseAppsScreenState extends ConsumerState<PauseAppsScreen> with WidgetsB
                       style: t.bodyLarge,
                     ),
                     const SizedBox(height: 16),
-                    _StatusCard(status: _status),
+                    _StatusCard(status: _status, weekLine: _weekLine),
                     const Divider(height: 32),
                     _apps(c, t),
                     const Divider(height: 32),
@@ -150,6 +160,43 @@ class _PauseAppsScreenState extends ConsumerState<PauseAppsScreen> with WidgetsB
                       items: [for (final m in kPauseFreeMinutesChoices) DropdownMenuItem(value: m, child: Text('$m ${m == 1 ? 'minute' : 'minutes'}'))],
                       onChanged: (m) => m == null ? null : _save(c.copyWith(freeMinutes: m)),
                     ),
+                    const Divider(height: 32),
+                    Text('Harder to open', style: t.titleLarge),
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text('The wait grows each time'),
+                      subtitle: const Text('Breathing starts at 10 seconds and adds 5 for each pause of the same app or site today, up to a minute. It starts again at the turn of the day.'),
+                      value: c.risingWait,
+                      onChanged: (v) => _save(c.copyWith(risingWait: v)),
+                    ),
+                    const SizedBox(height: 8),
+                    DropdownButtonFormField<int>(
+                      initialValue: c.openLimit,
+                      decoration: const InputDecoration(
+                        labelText: 'Daily open limit, per app or site',
+                        helperText: 'After this many openings by breathing, only the cards (or not now) remain until tomorrow.',
+                        helperMaxLines: 3,
+                      ),
+                      items: [for (final n in kPauseOpenLimitChoices) DropdownMenuItem(value: n, child: Text(n == 0 ? 'No limit' : '$n ${n == 1 ? 'opening' : 'openings'} a day'))],
+                      onChanged: (n) => n == null ? null : _save(c.copyWith(openLimit: n)),
+                    ),
+                    const SizedBox(height: 8),
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text('Show my next card\'s question'),
+                      subtitle: const Text('On the pause, so you can see what the cards are about. Anyone looking at your screen can see it too.'),
+                      value: c.showNext,
+                      onChanged: (v) => _save(c.copyWith(showNext: v)),
+                    ),
+                    const SizedBox(height: 12),
+                    OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(52)),
+                      onPressed: () => ref.read(pauseBridgeProvider).test(),
+                      icon: const Icon(Icons.play_arrow),
+                      label: const Text('Test the pause'),
+                    ),
+                    const SizedBox(height: 4),
+                    Text('Shows the pause now, as it will look. A test is not counted.', style: t.bodySmall),
                     const SizedBox(height: 24),
                   ]),
       ),
@@ -243,8 +290,9 @@ class _PauseAppsScreenState extends ConsumerState<PauseAppsScreen> with WidgetsB
 
 /// Whether Android has the pause switched on, how to switch it on, and what it can see.
 class _StatusCard extends ConsumerWidget {
-  const _StatusCard({required this.status});
+  const _StatusCard({required this.status, this.weekLine});
   final PauseStatus status;
+  final String? weekLine;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -261,8 +309,7 @@ class _StatusCard extends ConsumerWidget {
           ]),
           const SizedBox(height: 8),
           if (status.on)
-            Text('This week: you turned back ${status.back} ${status.back == 1 ? 'time' : 'times'}, '
-                'did cards ${status.cards} ${status.cards == 1 ? 'time' : 'times'}, and breathed then opened ${status.open} ${status.open == 1 ? 'time' : 'times'}.')
+            Text(weekLine ?? 'It has not come up this week yet.')
           else ...[
             const Text('Android asks you to switch it on yourself: open the accessibility settings, find '
                 '"Daily Learning: pause before apps" and switch it on.'),

@@ -10,13 +10,10 @@ class InstalledApp {
 }
 
 class PauseStatus {
-  const PauseStatus({required this.on, this.back = 0, this.open = 0, this.cards = 0});
+  const PauseStatus({required this.on});
 
   /// The service is switched on in Android's accessibility settings.
   final bool on;
-
-  /// Choices on the pause over the last 7 days.
-  final int back, open, cards;
   static const off = PauseStatus(on: false);
 }
 
@@ -28,8 +25,23 @@ class PauseVisit {
 }
 
 abstract class PauseBridge {
-  Future<void> setConfig({required List<String> apps, required List<String> wholeBrowsers, required String rules, required int freeMinutes});
+  Future<void> setConfig({
+    required List<String> apps,
+    required List<String> wholeBrowsers,
+    required String rules,
+    required int freeMinutes,
+    required bool risingWait,
+    required int openLimit,
+    required bool showNext,
+    required int rolloverHour,
+  });
   Future<List<InstalledApp>> apps();
+
+  /// The phone side's log of pauses (D59): one `ms<TAB>kind<TAB>key` line each. Empty when there is none.
+  Future<String> log();
+
+  /// Show the real pause screen now, about this app (not counted).
+  Future<void> test();
   Future<PauseStatus> status();
   Future<void> openAccessibilitySettings();
   Future<void> openAppInfo();
@@ -55,8 +67,32 @@ class ChannelPauseBridge implements PauseBridge {
   }
 
   @override
-  Future<void> setConfig({required List<String> apps, required List<String> wholeBrowsers, required String rules, required int freeMinutes}) =>
-      _call<void>('setConfig', {'apps': apps, 'wholeBrowsers': wholeBrowsers, 'rules': rules, 'freeMinutes': freeMinutes});
+  Future<void> setConfig({
+    required List<String> apps,
+    required List<String> wholeBrowsers,
+    required String rules,
+    required int freeMinutes,
+    required bool risingWait,
+    required int openLimit,
+    required bool showNext,
+    required int rolloverHour,
+  }) =>
+      _call<void>('setConfig', {
+        'apps': apps,
+        'wholeBrowsers': wholeBrowsers,
+        'rules': rules,
+        'freeMinutes': freeMinutes,
+        'rising': risingWait,
+        'openLimit': openLimit,
+        'showNext': showNext,
+        'rolloverHour': rolloverHour,
+      });
+
+  @override
+  Future<String> log() async => await _call<String>('log') ?? '';
+
+  @override
+  Future<void> test() => _call<bool>('test');
 
   @override
   Future<List<InstalledApp>> apps() async {
@@ -71,8 +107,7 @@ class ChannelPauseBridge implements PauseBridge {
   Future<PauseStatus> status() async {
     final r = await _call<Map<Object?, Object?>>('status');
     if (r == null) return PauseStatus.off;
-    int n(Object? v) => (v as num?)?.toInt() ?? 0;
-    return PauseStatus(on: r['on'] == true, back: n(r['back']), open: n(r['open']), cards: n(r['cards']));
+    return PauseStatus(on: r['on'] == true);
   }
 
   @override

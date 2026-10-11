@@ -7,6 +7,7 @@ import '../domain/memory_summary.dart';
 import '../domain/tomorrow_plan.dart';
 import '../domain/milestones.dart';
 import 'plan_ahead_screen.dart';
+import 'pause_summary.dart';
 import 'theme/app_theme.dart';
 import 'theme/tokens.dart';
 import 'widgets/activity_heatmap.dart';
@@ -107,6 +108,7 @@ class ProgressBody extends StatelessWidget {
       SoftCard(child: _RecallBands(s.recallBins)),
       const SizedBox(height: Sp.m),
       SoftCard(child: _RetentionTable(s.retention)),
+      const _PauseSection(),
       const SectionTitle('Coming up'),
       SoftCard(
           child: _TomorrowCard(s.tomorrow,
@@ -293,6 +295,17 @@ class _TomorrowCard extends StatelessWidget {
         ),
       ]),
     );
+  }
+}
+
+/// The pause before apps over the last week (D59): only once the learner has set the pause up.
+class _PauseSection extends ConsumerWidget {
+  const _PauseSection();
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final s = ref.watch(pauseSummaryProvider).value;
+    if (s == null) return const SizedBox.shrink();
+    return Padding(padding: const EdgeInsets.only(top: Sp.m), child: SoftCard(child: PauseWeekCard(s)));
   }
 }
 

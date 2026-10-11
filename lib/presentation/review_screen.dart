@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 
 import '../app/launch_service.dart' show kQuickSessionCards;
 import '../data/pause_bridge.dart';
+import '../domain/pause_stats.dart' show pausePreview;
 import '../domain/site_rule.dart' show pauseEarned;
 import '../app/providers.dart';
 import '../data/stats_service.dart';
@@ -190,7 +191,8 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
       final clock = await ref.read(settingsRepoProvider).dayClock();
       final now = DateTime.now().toUtc();
       final n = q.ordered.length;
-      await ref.read(dueBridgeProvider).publish(due: n, minutes: (n * 10 / 60).ceil(), dayEndMs: clock.dayEndMs(now));
+      await ref.read(dueBridgeProvider).publish(
+          due: n, minutes: (n * 10 / 60).ceil(), dayEndMs: clock.dayEndMs(now), next: q.next == null ? null : pausePreview(q.next!.front));
     } catch (_) {}
   }
 
