@@ -30,6 +30,7 @@ class _AppShellState extends ConsumerState<AppShell> with WidgetsBindingObserver
     WidgetsBinding.instance.addObserver(this);
     LaunchRelay.pending.addListener(_checkLaunch);
     WidgetsBinding.instance.addPostFrameCallback((_) async {
+      ref.read(pauseSettingsProvider).push().ignore(); // the pause service runs without the app (D58)
       await _checkLaunch(coldStart: true);
       await _checkShared();
     });
@@ -66,8 +67,8 @@ class _AppShellState extends ConsumerState<AppShell> with WidgetsBindingObserver
       _launching = false; // not held while the review is open: the route is already taken
     }
     if (route == null || !mounted || ReviewScreen.open > 0) return;
-    final quick = route == LaunchRoute.quick ? kQuickSessionCards : null;
-    await Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => ReviewScreen(quick: quick)));
+    final quick = route == LaunchRoute.review ? null : kQuickSessionCards;
+    await Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => ReviewScreen(quick: quick, fromPause: route == LaunchRoute.pause)));
     if (mounted) ref.read(refreshProvider.notifier).bump();
   }
 

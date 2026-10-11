@@ -5,6 +5,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:flutter/services.dart';
 
+import '../app/launch_service.dart' show kQuickSessionCards;
+import '../data/pause_bridge.dart';
+import '../domain/site_rule.dart' show pauseEarned;
 import '../app/providers.dart';
 import '../data/stats_service.dart';
 import '../domain/card_markup.dart' show plainFromMarkup;
@@ -30,8 +33,12 @@ import 'widgets/soft_card.dart';
 
 class ReviewScreen extends ConsumerStatefulWidget {
   /// [quick]: a short session of this many cards (the "Quick 5" entry points, D51); null = the whole day.
-  const ReviewScreen({super.key, this.quick});
+  const ReviewScreen({super.key, this.quick, this.fromPause = false});
   final int? quick;
+
+  /// Opened by "Do 5 cards" on the pause before an app (D58): at the end, the free time is offered once the
+  /// answers are counted.
+  final bool fromPause;
 
   /// How many review screens are open now: an outside entry point never opens a second one on top (D51).
   static int open = 0;
@@ -70,6 +77,10 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
 
   /// A short session stops after this many answers; "Keep going" lifts the limit (D51).
   late int? _limit = widget.quick;
+
+  /// The pause that sent the learner here, and whether its five cards are done (D58).
+  PauseVisit? _visit;
+  bool _earned = false;
   bool get _quotaDone => _limit != null && _answered >= _limit!;
 
   @override
@@ -120,6 +131,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
       }
       _speakAuto = await ref.read(settingsRepoProvider).get('speak_auto') == '1';
       _textSize = cardTextSizeFrom(await ref.read(settingsRepoProvider).get(kCardTextSizeKey));
+      if (widget.fromPause && next == null) await _checkPause(q);
       if (!mounted) return;
       setState(() {
         _advice = adv;
@@ -150,6 +162,25 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
       }
     } catch (e) {
       if (mounted) setState(() { _error = '$e'; _loading = false; });
+    }
+  }
+
+  /// "Do 5 cards" from the pause (D58): free time only for answers really given since the pause opened.
+  Future<void> _checkPause(DailyQueue q) async {
+    final visit = await ref.read(pauseBridgeProvider).visit();
+    if (visit == null) return;
+    final n = await ref.read(pauseSettingsProvider).answersSince(visit.atMs);
+    _visit = visit;
+    _earned = pauseEarned(answersSincePause: n, quota: kQuickSessionCards, nothingLeft: q.ordered.isEmpty);
+  }
+
+  Future<void> _backToPaused() async {
+    final ok = await ref.read(pauseBridgeProvider).grantAll();
+    if (!mounted) return;
+    if (ok) {
+      Navigator.pop(context);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not open it again. Open it yourself: it is free for now.')));
     }
   }
 
@@ -900,6 +931,14 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
               AdviceCard(_advice!, compact: true),
             ],
             const SizedBox(height: 22),
+            if (_visit != null && _earned) ...[
+              FilledButton(
+                style: FilledButton.styleFrom(minimumSize: const Size(220, 56)),
+                onPressed: _backToPaused,
+                child: Text('Back to ${_visit!.label} · free for ${_visit!.freeMinutes} min'),
+              ),
+              const SizedBox(height: 8),
+            ],
             if (leftover > 0) ...[
               FilledButton(
                 style: FilledButton.styleFrom(minimumSize: const Size(220, 56)),

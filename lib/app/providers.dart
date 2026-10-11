@@ -5,6 +5,8 @@ import 'package:flutter/services.dart' show AssetBundle, rootBundle;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
 
+import '../data/pause_bridge.dart';
+import '../data/pause_settings.dart';
 import '../data/backup/backup_service.dart';
 import '../data/db/database.dart';
 import '../data/engine_service.dart';
@@ -55,6 +57,9 @@ final reminderBackendProvider =
     Provider<ReminderBackend>((_) => LocalNotificationsBackend(onOpenReview: () => LaunchRelay.pending.value = LaunchRoute.review));
 final launchInboxProvider = Provider<LaunchInbox>((_) => const ChannelLaunchInbox());
 final dueBridgeProvider = Provider<DueBridge>((_) => const ChannelDueBridge());
+final pauseBridgeProvider = Provider<PauseBridge>((_) => const ChannelPauseBridge());
+final pauseSettingsProvider =
+    Provider((ref) => PauseSettings(ref.watch(dbProvider), ref.watch(settingsRepoProvider), ref.watch(pauseBridgeProvider)));
 final notificationLaunchProvider = Provider<NotificationLaunch>((_) => const PluginNotificationLaunch());
 final pictureFinderProvider = Provider<PictureFinder>((_) => PictureLookup());
 final pageOpenerProvider = Provider<PageOpener>((_) => const InAppPageOpener());

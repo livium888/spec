@@ -16,6 +16,7 @@ import '../domain/prompt_template.dart' show kMaxProfileChars;
 import 'diagnostics_screen.dart';
 import 'guide_screen.dart';
 import 'memory_model_screen.dart';
+import 'pause_apps_screen.dart';
 import 'reminder_section.dart';
 import 'home_screen.dart' show pickBackupFolder;
 import 'subjects_screen.dart';
@@ -259,6 +260,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 const ReminderSection(),
                 const SizedBox(height: 8),
                 const FasterWaysInCard(),
+                const SizedBox(height: 8),
+                OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(52)),
+                  icon: const Icon(Icons.pause_circle_outline),
+                  label: const Text('Pause before apps (LinkedIn, sites...)'),
+                  onPressed: () => Navigator.of(context)
+                      .push(MaterialPageRoute<void>(builder: (_) => const PauseAppsScreen())),
+                ),
                 const SizedBox(height: 16),
                 Text('Backup', style: t.titleLarge),
                 const SizedBox(height: 8),

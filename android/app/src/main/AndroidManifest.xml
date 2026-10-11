@@ -58,6 +58,26 @@
                 <action android:name="android.service.quicksettings.action.QS_TILE" />
             </intent-filter>
         </service>
+        <!-- Pause before apps (D58): the pause screen. Not exported, so no other app can open it or ask it for free time. -->
+        <activity
+            android:name=".PauseActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:launchMode="singleTask"
+            android:taskAffinity="app.dailylearning.daily_learning.pause"
+            android:theme="@style/PauseTheme"
+            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|screenLayout|density|uiMode|fontScale" />
+        <!-- Pause before apps (D58): the learner turns this on in Settings > Accessibility. Only the system can bind it. -->
+        <service
+            android:name=".PauseService"
+            android:exported="true"
+            android:label="@string/pause_service_label"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data android:name="android.accessibilityservice" android:resource="@xml/pause_service" />
+        </service>
         <receiver android:exported="false" android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver" />
         <receiver android:exported="false" android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationBootReceiver">
             <intent-filter>
@@ -90,6 +110,11 @@
         <!-- In-app browser tabs (Chrome Custom Tabs) for the reading list: the page opens over the app. -->
         <intent>
             <action android:name="android.support.customtabs.action.CustomTabsService"/>
+        </intent>
+        <!-- Pause before apps (D58): the list of apps the learner can pick from (launcher apps only). -->
+        <intent>
+            <action android:name="android.intent.action.MAIN"/>
+            <category android:name="android.intent.category.LAUNCHER"/>
         </intent>
         <intent>
             <action android:name="android.intent.action.VIEW"/>

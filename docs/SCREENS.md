@@ -391,3 +391,19 @@ After the tomorrow lines, when anything is left today: heading "Still to do toda
 
 ## Progress counts = Today counts (D57)
 Every "due" number on Progress comes from the Today queue's rules (one card per note per day, buried cards wait): the "Still to do today" block (its first line now reads "N cards due now (reviews and learning steps)"; with the new-card line it adds up to the number on Today), the first forecast bar, tomorrow's reviews and the later bars (held-back cloze gaps and problem levels move to the next days), and "N due" on the subject tiles. States unchanged: empty library shows no Tomorrow card numbers above zero; loading and error as before; a partial day (some done) shows only what is left, as Today does.
+
+## Pause before apps: settings (D58)
+Settings > "Pause before apps (LinkedIn, sites...)". In reading order: one sentence on what the pause does; a status card; Apps (picked apps, each with a remove button; "Choose apps" opens a searchable checklist with Done); Browsers (supported installed browsers, each with "Pause whenever I open it"; a note that other browsers and pages inside other apps are not checked); Sites (rules with remove buttons; "Add a site" field with Add, inline error text; a note that some browsers show only the site); Free time (1, 2, 3, 5, 10, 15 minutes). Every change saves at once.
+
+| State | What shows |
+|---|---|
+| Loading | Spinner labelled "Loading". |
+| Error (apps could not be read) | The message and "Try again". |
+| Empty (first visit) | LinkedIn (if installed) and `*.linkedin.com` suggested and saved; both removable. "No apps yet." / "No sites yet." when removed. |
+| Service off | Status "The pause is off", "Open accessibility settings", the restricted-settings steps with "Open App info". Re-checked when the learner comes back. |
+| Partial | No supported browser: says which browsers are supported; sites then never pause. |
+| Success (on) | "The pause is on" and this week's choices: turned back, did cards, breathed then opened. |
+Always shown: what the service sees (the app in front; in supported browsers the address bar, not saved; nothing leaves the phone).
+
+## Pause before apps: the pause (D58)
+Native screen over the paused app. Reading order: the app or site name (heading), "You were about to open X. Take a moment first.", the cards line ("N cards waiting, about M min." / "No cards are due right now." / nothing when the count is not known for today), "Do 5 cards" (primary; hidden only when 0 are known to be due) with "Then everything you pause is free for N minutes.", "Breathe, then open", "Not now". Back = Not now (home screen). Breathing: a circle grows and shrinks (still when the phone's animations are off), "Breathe in" / "Breathe out" announced by screen readers, 10 seconds, then "Open X for N minutes". After "Do 5 cards", the review's end screen adds "Back to X · free for N min" once the answers are counted. Buttons 56 dp high, text in sp, light and dark colours with at least 4.5:1 contrast, clear of the system bars.

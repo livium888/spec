@@ -26,4 +26,8 @@
     <string name="shortcut_review_long">Review your cards now</string>
     <string name="shortcut_quick_short">Quick 5</string>
     <string name="shortcut_quick_long">Review just five cards</string>
+
+    <!-- Pause before apps (D58): what Android shows in Settings > Accessibility before the learner turns it on -->
+    <string name="pause_service_label">Daily Learning: pause before apps</string>
+    <string name="pause_service_description">Shows a short pause, with the choice to do 5 flashcards, when you open an app you picked (for example LinkedIn) or a site you listed in a browser. To know which app is in front it uses only the app\'s name. In a supported browser it reads the address bar, only to compare it with your list of sites; the address is never saved or sent anywhere. It reads nothing else on the screen, and the app has no other use for this permission. Turn it off here at any time.</string>
 </resources>
