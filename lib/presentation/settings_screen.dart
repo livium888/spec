@@ -218,6 +218,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         },
       );
       if (!mounted) return;
+      ref.read(pauseSettingsProvider).push().ignore(); // the restored pause choices reach the service now (D58)
       await _load();
       setState(() {
         _msg = 'Restored: ${report.fingerprint.cards} cards, ${report.fingerprint.reviews} reviews. '

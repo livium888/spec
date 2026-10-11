@@ -25,7 +25,11 @@ class PauseService : AccessibilityService(), SharedPreferences.OnSharedPreferenc
     private val main = Handler(Looper.getMainLooper())
     private var config: PauseStore.Config? = null
     private var browserPkg: String? = null
-    private val browserCheck = Runnable { browserPkg?.let { check(it, fromWindowChange = false) } }
+    private var browserCheckPending = false
+    private val browserCheck = Runnable {
+        browserCheckPending = false
+        browserPkg?.let { check(it, fromWindowChange = false) }
+    }
     private val expiryCheck = Runnable { recheckFront() }
 
     override fun onServiceConnected() {
@@ -39,6 +43,7 @@ class PauseService : AccessibilityService(), SharedPreferences.OnSharedPreferenc
         running = false
         PauseStore.prefs(this).unregisterOnSharedPreferenceChangeListener(this)
         main.removeCallbacksAndMessages(null)
+        browserCheckPending = false
         super.onDestroy()
     }
 
@@ -77,10 +82,13 @@ class PauseService : AccessibilityService(), SharedPreferences.OnSharedPreferenc
             if (pkg in c.apps) return
         }
         if (c.rules.isNotEmpty() && PauseRules.BROWSERS.containsKey(pkg)) {
-            // Pages change without a new window: look at the address bar once things settle (not on every event).
+            // Pages change without a new window: look at the address bar at most every BROWSER_CHECK_MS. A throttle,
+            // not a debounce: a page that never stops changing (a feed, a video) would starve a debounce forever.
             browserPkg = pkg
-            main.removeCallbacks(browserCheck)
-            main.postDelayed(browserCheck, BROWSER_SETTLE_MS)
+            if (!browserCheckPending) {
+                browserCheckPending = true
+                main.postDelayed(browserCheck, BROWSER_CHECK_MS)
+            }
         }
     }
 
@@ -144,7 +152,7 @@ class PauseService : AccessibilityService(), SharedPreferences.OnSharedPreferenc
     companion object {
         /** True while Android has this service switched on and connected (read by the settings screen). */
         @Volatile var running = false
-        private const val BROWSER_SETTLE_MS = 600L
+        private const val BROWSER_CHECK_MS = 600L
         private const val RELAUNCH_GAP_MS = 1500L
     }
 }
