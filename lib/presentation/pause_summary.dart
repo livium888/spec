@@ -121,7 +121,9 @@ class PauseTodayNote extends ConsumerWidget {
       return Padding(
         padding: const EdgeInsets.only(top: Sp.m),
         child: SoftCard(
-          onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const PauseAppsScreen())),
+          onTap: () => Navigator.of(context)
+              .push(MaterialPageRoute<void>(builder: (_) => const PauseAppsScreen()))
+              .then((_) => ref.invalidate(pauseSummaryProvider)),
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           child: Row(children: [
             Icon(Icons.pause_circle_outline, color: c.warn),
@@ -129,7 +131,7 @@ class PauseTodayNote extends ConsumerWidget {
             Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Text('The pause before apps is off', style: t.titleSmall),
-                Text('Android or the phone switched it off. Tap to switch it on again.', style: t.bodySmall),
+                Text('It works once it is switched on in Android\'s settings. Tap to do it.', style: t.bodySmall),
               ]),
             ),
             const Icon(Icons.chevron_right),

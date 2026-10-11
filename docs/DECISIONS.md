@@ -518,5 +518,7 @@ New pushes cancel older builds (`concurrency`), and the rolling `latest-apk` rel
   - **Progress:** a 7-day bar card (each bar = attempts, filled part = turned away; numbers and screen-reader labels, not colour alone). **Today:** one line ("This week the pause came up N times; you turned away M, K of them for cards"), or, when the pause is set up but switched off, a warning card that opens its settings.
   - **Next question:** the app hands the next card's question (markup dropped, one line, at most 140 characters) with the due count; the pause shows it in a box. Switchable, on by default; the settings say anyone looking at the screen can see it.
   - **Test the pause** button (real screen, not counted).
+- **What counts as an attempt:** only a pause brought up by opening the app or site (`shown`). When free time runs out with the app still in front, the pause comes back too, but that is logged as `again`: it is not an attempt and does not grow the wait, so the bars measure urges to open, not time spent inside.
+- **Today's warning** says only that the pause is off and how to switch it on (it may never have been on); Today and Progress refresh when the app comes back to the front.
 - **Not done:** the log is not in the backup (it lives on the phone side); a restored phone starts counting again. No intention question (no evidence it works).
 - **Revisit if:** attempts do not fall over two or three weeks (then a stricter default or Pack C, answering a card on the pause itself), or the limit is switched off soon after being set (frustration).

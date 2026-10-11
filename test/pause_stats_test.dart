@@ -27,9 +27,10 @@ void main() {
       PauseEvent(at(6, 12), PauseKind.shown, 'li'),
       PauseEvent(at(7, 12), PauseKind.shown, 'li'), // eight days ago: outside the week
       PauseEvent(at(0, 12), PauseKind.shown, 'test:pause'),
+      PauseEvent(at(0, 13), PauseKind.again, 'li'), // free time ran out in the app: not an attempt
     ], clock, now);
     expect(days.length, 7);
-    expect((days.last.shown, days.last.back, days.last.cards, days.last.turnedAway), (2, 1, 1, 2));
+    expect((days.last.shown, days.last.again, days.last.back, days.last.cards, days.last.turnedAway), (2, 1, 1, 1, 2));
     expect((days[5].shown, days[5].open), (1, 1));
     expect(days.first.shown, 1);
     expect(pauseWeekLine(days), 'This week the pause came up 4 times; you turned away 2, 1 of them for cards.');
@@ -54,6 +55,7 @@ void main() {
     expect(pausePreview('What does **ATP** stand for?'), 'What does ATP stand for?');
     expect(pausePreview('Solve \$x^2 = 4\$\n\nfor x'), 'Solve x^2 = 4 for x');
     expect(pausePreview('  '), '');
+    expect(pausePreview(r'It costs \$5 and 2 \* 3'), r'It costs $5 and 2 * 3', reason: 'an escaped mark (Anki import) is a real character');
     final long = pausePreview('word ' * 60);
     expect(long.length, lessThanOrEqualTo(kPausePreviewChars));
     expect(long.endsWith('…'), isTrue);

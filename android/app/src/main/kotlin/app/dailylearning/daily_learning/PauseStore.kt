@@ -137,6 +137,7 @@ object PauseStore {
     private const val LOG_MAX = 4000
 
     const val KIND_SHOWN = "shown"
+    const val KIND_AGAIN = "again"
 
     fun log(ctx: Context, kind: String, key: String, now: Long) {
         val p = prefs(ctx)

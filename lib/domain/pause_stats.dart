@@ -5,8 +5,10 @@ library;
 
 import 'day_clock.dart';
 
-/// What happened at a pause. `shown`: an attempt to open a paused app or site (the pause came up).
-enum PauseKind { shown, back, open, cards }
+/// What happened at a pause. `shown`: an attempt to open a paused app or site (the pause came up). `again`: the
+/// pause came back because free time ran out while the app was still in front; not an attempt, so it is not counted
+/// as one and does not grow the wait.
+enum PauseKind { shown, again, back, open, cards }
 
 class PauseEvent {
   const PauseEvent(this.atMs, this.kind, this.key);
@@ -31,10 +33,11 @@ class PauseEvent {
 class PauseDay {
   PauseDay(this.dayIndex);
   final int dayIndex;
-  int shown = 0, back = 0, open = 0, cards = 0;
+  int shown = 0, again = 0, back = 0, open = 0, cards = 0;
 
-  /// Attempts that ended without opening the app: turned back, or went to the cards instead.
-  int get turnedAway => back + cards;
+  /// Pauses that ended without opening the app: turned back, or went to the cards instead. Capped at the attempts:
+  /// a pause that came back after free time can also end in "not now".
+  int get turnedAway => back + cards > shown ? shown : back + cards;
 }
 
 /// The last [days] app days (oldest first, today last), counted from [events]. Test pauses are left out.
@@ -50,6 +53,8 @@ List<PauseDay> pauseDays(Iterable<PauseEvent> events, DayClock clock, DateTime n
     switch (e.kind) {
       case PauseKind.shown:
         day.shown++;
+      case PauseKind.again:
+        day.again++;
       case PauseKind.back:
         day.back++;
       case PauseKind.open:
@@ -93,8 +98,11 @@ bool pauseOpenLimitReached({required int opensToday, required int limit}) => lim
 const kPausePreviewChars = 140;
 String pausePreview(String front) {
   var s = front
+      // An escaped mark (\$, \*, from an Anki import) is a real character: hide it from the steps below, then restore it.
+      .replaceAllMapped(RegExp(r'\\([$*_`\\])'), (m) => String.fromCharCode(0xE000 + r'$*_`\'.indexOf(m[1]!)))
       .replaceAllMapped(RegExp(r'\$\$?([^$]*)\$\$?'), (m) => m[1]!) // formulas: keep their source, without the dollar signs
       .replaceAll(RegExp(r'[*_`#>]'), '')
+      .replaceAllMapped(RegExp('[\uE000-\uE004]'), (m) => r'$*_`\'[m[0]!.codeUnitAt(0) - 0xE000])
       .replaceAll(RegExp(r'\s+'), ' ')
       .trim();
   if (s.length > kPausePreviewChars) s = '${s.substring(0, kPausePreviewChars - 1).trimRight()}…';

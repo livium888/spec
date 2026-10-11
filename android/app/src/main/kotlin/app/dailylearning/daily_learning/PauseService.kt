@@ -93,11 +93,11 @@ class PauseService : AccessibilityService(), SharedPreferences.OnSharedPreferenc
     }
 
     /** Decide for [pkg], now in front: the whole app, or (in a browser) the site it shows. */
-    private fun check(pkg: String, fromWindowChange: Boolean) {
+    private fun check(pkg: String, fromWindowChange: Boolean, expiry: Boolean = false) {
         val c = config ?: return
         val now = System.currentTimeMillis()
         if (pkg in c.apps || pkg in c.wholeBrowsers) {
-            if (fromWindowChange) show(pkg, pkg, appLabel(pkg), now)
+            if (fromWindowChange) show(pkg, pkg, appLabel(pkg), now, expiry)
             if (pkg in c.apps) return
         }
         if (c.rules.isEmpty()) return
@@ -108,15 +108,17 @@ class PauseService : AccessibilityService(), SharedPreferences.OnSharedPreferenc
         if (bar.isFocused) return // the learner is typing: the bar holds their words, not the page
         val shown = bar.text?.toString() ?: return
         val rule = PauseRules.firstMatch(c.rules, shown) ?: return
-        show("site:" + rule.canonical, pkg, rule.label, now)
+        show("site:" + rule.canonical, pkg, rule.label, now, expiry)
     }
 
-    private fun show(key: String, pkg: String, label: String, now: Long) {
+    /** [expiry]: the free time ran out while the app was in front; that is not a new attempt to open it (D59). */
+    private fun show(key: String, pkg: String, label: String, now: Long, expiry: Boolean = false) {
         if (PauseStore.isFree(this, key, now)) return
         // Never stack pauses: the screen behind keeps sending events while ours opens.
         if (PauseActivity.showing || now - PauseActivity.lastLaunch < RELAUNCH_GAP_MS) return
         PauseActivity.lastLaunch = now
-        PauseStore.log(this, PauseStore.KIND_SHOWN, key, now) // an attempt to open (D59)
+        // An attempt to open counts (and grows the wait); free time running out is logged apart (D59).
+        PauseStore.log(this, if (expiry) PauseStore.KIND_AGAIN else PauseStore.KIND_SHOWN, key, now)
         val i = Intent(this, PauseActivity::class.java).apply {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_NO_ANIMATION)
             putExtra(PauseActivity.EXTRA_KEY, key)
@@ -140,7 +142,7 @@ class PauseService : AccessibilityService(), SharedPreferences.OnSharedPreferenc
 
     private fun recheckFront() {
         val pkg = try { rootInActiveWindow?.packageName?.toString() } catch (e: Exception) { null }
-        if (pkg != null && pkg != packageName) check(pkg, fromWindowChange = true)
+        if (pkg != null && pkg != packageName) check(pkg, fromWindowChange = true, expiry = true)
         scheduleExpiryCheck()
     }
 

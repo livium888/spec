@@ -5,6 +5,7 @@ import '../app/launch_service.dart';
 import '../app/providers.dart';
 import '../app/share_service.dart';
 import 'home_screen.dart';
+import 'pause_summary.dart';
 import 'import_screen.dart';
 import 'library_screen.dart';
 import 'progress_screen.dart';
@@ -46,6 +47,7 @@ class _AppShellState extends ConsumerState<AppShell> with WidgetsBindingObserver
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
+      ref.invalidate(pauseSummaryProvider); // back from LinkedIn or Android's settings: fresh counts and status (D59)
       _checkLaunch();
       _checkShared();
     }
