@@ -64,7 +64,7 @@ const kPhoneCheck = <PhoneCheckItem>[
   PhoneCheckItem('tomorrow', 'Tomorrow card',
       'Progress > Coming up > Tomorrow: reviews due equals the chart\'s tomorrow bar; new cards equals your daily limit (or fewer if fewer wait); the minutes and the verdict follow your study-time budget (Settings). Compare with the other app\'s count for the same cards and tell me both numbers.'),
   PhoneCheckItem('agree', 'Progress agrees with Today',
-      'Open Today and note the number of cards. Progress > Coming up > Tomorrow > Still to do today: "due now" plus "new cards for today" is that same number, and each subject tile\'s "N due" adds up to Today\'s due cards. Tomorrow morning: Today shows the reviews the Tomorrow card said (plus anything you left undone).'),
+      'Open Today and note the number of cards. Progress > Coming up > Tomorrow > Still to do today: "due now" plus "new cards for today" is that same number, and each subject tile\'s "N due" adds up to Today\'s due cards. Finish today, then read the Tomorrow card's reviews (ordinary plus problem). Tomorrow at 7: Today's Learning + Due (not the headline, which adds new cards) is that number, plus anything you left undone.'),
   PhoneCheckItem('speech', 'Read aloud',
       'Subjects and topics > Read cards aloud: pick a language. In a review tap the speaker. If there is no voice, the message says how to install one.'),
   PhoneCheckItem('reminder', 'Daily reminder', 'Turn it on, set a time two minutes ahead, wait for it, tap it.'),
