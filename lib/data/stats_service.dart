@@ -3,8 +3,8 @@ import 'package:drift/drift.dart';
 import '../domain/memory_summary.dart';
 import '../domain/milestones.dart';
 import '../domain/streak.dart';
-import '../domain/study_card.dart' show backlogAdjustedNewLimit;
-import 'queue_service.dart' show kDefaultProblemsPerDay, kMaxProblemsPerDay;
+import '../domain/study_card.dart' show DailyQueue, backlogAdjustedNewLimit;
+import 'queue_service.dart' show QueueService, kDefaultProblemsPerDay, kMaxProblemsPerDay;
 import '../domain/tomorrow_plan.dart';
 import 'activity_cache.dart';
 import 'db/database.dart';
@@ -141,7 +141,8 @@ class StatsService {
   final SettingsRepo settings;
   final ParamsRepo params;
 
-  Future<ProgressStats> compute({DateTime? now, int heatmapDays = 119}) async {
+  /// [queue]: the Today queue built for the same [now], when the caller has it (Home), so it is not built twice.
+  Future<ProgressStats> compute({DateTime? now, int heatmapDays = 119, DailyQueue? queue}) async {
     final t = (now ?? DateTime.now()).toUtc();
     final nowMs = t.millisecondsSinceEpoch;
     final clock = await settings.dayClock();
@@ -250,40 +251,76 @@ class StatsService {
       }
     }
 
-    // Forecast: reviews still due today, then each of the next 6 days. Cards in their first
-    // learning steps (or relearning after a lapse) come back within the day, so they count as today.
+    // What is due, counted by the Today screen's own rules (D57): one card per note per day (the other cards of
+    // a note, such as the other gaps of a cloze or the other levels of a problem, are buried until tomorrow), and
+    // buried cards wait. Today's numbers are the queue itself, never a second count beside it.
+    final q = queue ?? await QueueService(db, settings).build(now: t);
+    final onToday = {for (final c in q.ordered) c.id};
+    final notesToday = {for (final c in q.ordered) c.noteId};
     final due = await db.customSelect(
-        "SELECT c.due AS due, c.state AS state, n.type AS type FROM card c JOIN note n ON n.id = c.note_id WHERE c.suspended = 0 AND ((c.state = 'review' AND c.due < ?) "
+        "SELECT c.id AS id, c.note_id AS note, c.due AS due, c.state AS state, n.type AS type, c.buried_until AS buried "
+        "FROM card c JOIN note n ON n.id = c.note_id WHERE c.suspended = 0 AND ((c.state = 'review' AND c.due < ?) "
         "OR (c.state IN ('learning', 'relearning') AND c.due < ?))",
         variables: [Variable.withInt(dayEnd + 6 * _day), Variable.withInt(dayEnd)]).get();
+    final pool = [
+      for (final r in due)
+        (id: r.read<int>('id'), note: r.read<int>('note'), due: r.read<int>('due'), learning: r.read<String>('state') != 'review', problem: r.read<String>('type') == 'problem', buried: (r.data['buried'] as int?) ?? 0),
+    ]..sort((a, b) => a.learning != b.learning ? (a.learning ? -1 : 1) : a.due != b.due ? a.due.compareTo(b.due) : a.id.compareTo(b.id));
+    // Learning steps that come back later today: on Today once due, one per note, and not for a note that is on
+    // Today already or buried (answering a card buries the rest of its note until tomorrow).
+    var learningLater = 0;
+    final later = <int>{};
+    for (final c in pool) {
+      if (!c.learning || c.due <= nowMs || onToday.contains(c.id) || c.buried > nowMs) continue;
+      if (notesToday.contains(c.note) || !later.add(c.note)) continue;
+      onToday.add(c.id);
+      learningLater++;
+    }
     final forecast = List<int>.filled(7, 0);
+    forecast[0] = q.learning.length + q.reviews.length + q.learnAhead.length + learningLater;
+    // Days 1-6, assuming each day is finished: every note with a card due by the end of that day gives one card
+    // (its first in the queue's order); the rest of the note, and today's buried cards, move on to the next day.
+    var pending = [for (final c in pool) if (!onToday.contains(c.id)) c];
     var problemTomorrow = 0; // of tomorrow's reviews, the problem cards (they take minutes, not seconds)
-    var learningLater = 0; // today's learning steps that come back after a short wait (not yet on Today)
-    for (final r in due) {
-      final d = r.read<int>('due');
-      final idx = d < dayEnd ? 0 : ((d - dayEnd) ~/ _day) + 1;
-      if (idx >= 0 && idx < 7) forecast[idx]++;
-      if (idx == 1 && r.read<String>('type') == 'problem') problemTomorrow++;
-      if (idx == 0 && r.read<String>('state') != 'review' && d > nowMs) learningLater++;
+    var reviewsDueTomorrow = 0; // before one-per-note, as the queue counts them for the backlog shrink
+    for (var k = 1; k < 7; k++) {
+      final end = dayEnd + k * _day;
+      final taken = <int>{};
+      final rest = <({int id, int note, int due, bool learning, bool problem, int buried})>[];
+      for (final c in pending) {
+        if (c.due >= end) {
+          rest.add(c);
+          continue;
+        }
+        if (k == 1 && !c.learning) reviewsDueTomorrow++;
+        if (taken.add(c.note)) {
+          forecast[k]++;
+          if (k == 1 && c.problem) problemTomorrow++;
+        } else {
+          rest.add(c);
+        }
+      }
+      pending = rest;
     }
 
     final subjects = <SubjectStat>[];
     final rows = await db.customSelect('''
       SELECT d.id AS id, d.name AS name,
              SUM(CASE WHEN c.id IS NOT NULL AND (c.suspended = 0 OR c.retired_at IS NOT NULL) THEN 1 ELSE 0 END) AS cards,
-             SUM(CASE WHEN c.retired_at IS NOT NULL THEN 1 ELSE 0 END) AS retired,
-             SUM(CASE WHEN c.suspended = 0 AND (
-                   (c.state IN ('learning','relearning') AND c.due <= ?) OR
-                   (c.state = 'review' AND c.due < ?)) THEN 1 ELSE 0 END) AS due_now
+             SUM(CASE WHEN c.retired_at IS NOT NULL THEN 1 ELSE 0 END) AS retired
       FROM domain d
       LEFT JOIN note n ON n.domain_id = d.id
       LEFT JOIN card c ON c.note_id = n.id
       WHERE d.active = 1
-      GROUP BY d.id ORDER BY d.id''',
-        variables: [Variable.withInt(nowMs), Variable.withInt(dayEnd)]).get();
+      GROUP BY d.id ORDER BY d.id''').get();
+    // Due per subject: the cards the Today screen holds for it now (learning steps due and reviews).
+    final dueByDomain = <int, int>{};
+    for (final c in [...q.learning, ...q.reviews]) {
+      dueByDomain[c.domainId] = (dueByDomain[c.domainId] ?? 0) + 1;
+    }
     for (final r in rows) {
       final id = r.read<int>('id');
-      subjects.add(SubjectStat(id, r.read<String>('name'), i(r.data['cards']), (longByDomain[id] ?? 0) + i(r.data['retired']), i(r.data['due_now'])));
+      subjects.add(SubjectStat(id, r.read<String>('name'), i(r.data['cards']), (longByDomain[id] ?? 0) + i(r.data['retired']), dueByDomain[id] ?? 0));
     }
 
     final answeredIds = await db.customSelect(
@@ -294,27 +331,23 @@ class StatsService {
     final ordinaryPace = await ordinarySeconds(db);
     final problemPace = await problemSeconds(db);
 
-    // Tomorrow (D54): reviews are scheduled; new cards come from the daily limit (as the queue applies it).
+    // Tomorrow (D54, D57): reviews come from the simulation above; new cards from the daily limit, as the queue
+    // applies it. Today's new cards are the queue's own; tomorrow draws from the rest, one card per note.
     final baseNew = await settings.getInt(SettingsRepo.newPerDay, 10);
     final shrink = await settings.get(SettingsRepo.backlogShrink) == '1';
     final divisor = await settings.getInt(SettingsRepo.backlogDivisor, 25);
-    final newLimit = shrink ? backlogAdjustedNewLimit(baseNew, forecast[1], divisor: divisor) : (baseNew < 0 ? 0 : baseNew);
-    // New cards not started yet, one per note per day (a sibling answered today is buried until tomorrow). The ones
-    // available now belong to TODAY first, up to what is left of today's limit; tomorrow gets what remains, plus the
-    // buried ones. Counting all of them for tomorrow would count the same cards on both days.
-    final waiting = await one(
-        "SELECT COUNT(DISTINCT CASE WHEN c.buried_until IS NULL OR c.buried_until <= ? THEN c.note_id END) AS now_n, "
-        "COUNT(DISTINCT CASE WHEN c.buried_until > ? THEN c.note_id END) AS buried_n "
-        "FROM card c JOIN note n ON n.id = c.note_id "
-        "WHERE c.state = 'new' AND c.suspended = 0 AND n.type != 'problem'",
-        [Variable.withInt(nowMs), Variable.withInt(nowMs)]);
-    final introduced = await one(
-        "SELECT COUNT(DISTINCT l.card_id) AS n FROM review_log l CROSS JOIN card c ON c.id = l.card_id CROSS JOIN note n ON n.id = c.note_id "
-        "WHERE l.reviewed_at >= ? AND l.revoked_at IS NULL AND l.state_before = 'new' AND n.type != 'problem'",
-        [Variable.withInt(dayStart)]);
-    final todayLeft = ((baseNew < 0 ? 0 : baseNew) - i(introduced['n'])).clamp(0, 1 << 30);
-    final newToday = i(waiting['now_n']) < todayLeft ? i(waiting['now_n']) : todayLeft;
-    final newWaiting = (i(waiting['now_n']) - newToday) + i(waiting['buried_n']);
+    final newLimit = shrink ? backlogAdjustedNewLimit(baseNew, reviewsDueTomorrow, divisor: divisor) : (baseNew < 0 ? 0 : baseNew);
+    final newToday = {for (final c in q.newCards) c.id};
+    final fresh = await db.customSelect(
+        "SELECT c.id AS id, c.note_id AS note FROM card c JOIN note n ON n.id = c.note_id "
+        "WHERE c.state = 'new' AND c.suspended = 0 AND n.type != 'problem'").get();
+    var newWaiting = 0;
+    final newNotes = <int>{};
+    for (final r in fresh) {
+      if (newToday.contains(r.read<int>('id'))) continue;
+      newWaiting++;
+      newNotes.add(r.read<int>('note'));
+    }
     final steps = await settings.getIntList(SettingsRepo.learningSteps, [1, 10]);
     final problemLimit = (await settings.getInt(SettingsRepo.problemsPerDay, kDefaultProblemsPerDay)).clamp(0, kMaxProblemsPerDay);
     final problemsWaiting = i((await one(
@@ -325,8 +358,8 @@ class StatsService {
       dueReviews: forecast[1],
       stillDueToday: forecast[0],
       learningLaterToday: learningLater,
-      newStillToday: newToday,
-      newCards: newWaiting < newLimit ? newWaiting : newLimit,
+      newStillToday: q.newCards.length,
+      newCards: newNotes.length < newLimit ? newNotes.length : newLimit,
       newWaiting: newWaiting,
       newLimit: newLimit,
       answersPerNew: steps.isEmpty ? 1 : steps.length,

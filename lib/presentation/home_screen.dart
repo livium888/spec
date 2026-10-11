@@ -41,8 +41,10 @@ class HomeData {
 final homeDataProvider = FutureProvider.autoDispose<HomeData>((ref) async {
   ref.watch(refreshProvider);
   final settings = ref.watch(settingsRepoProvider);
-  final queue = await ref.watch(queueServiceProvider).build();
-  final stats = await ref.watch(statsServiceProvider).compute();
+  final now = DateTime.now();
+  final queue = await ref.watch(queueServiceProvider).build(now: now);
+  // The same queue feeds the numbers on Progress, so Today and Progress cannot disagree (D57).
+  final stats = await ref.watch(statsServiceProvider).compute(now: now, queue: queue);
   // Keep tomorrow's reminder right: once today's reviews are done, skip today's.
   // The home-screen widget and the Quick Settings tile show this number (D51).
   final clock = await settings.dayClock();

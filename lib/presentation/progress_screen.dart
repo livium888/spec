@@ -265,7 +265,7 @@ class _TomorrowCard extends StatelessWidget {
             if (p.stillDueToday > 0 || p.newStillToday > 0) ...[
               const SizedBox(height: 10),
               Text('Still to do today (these are on the Today screen)', style: t.titleSmall),
-              if (p.reviewsStillToday > 0) line('${p.reviewsStillToday}', '${p.reviewsStillToday == 1 ? 'review' : 'reviews'} due today'),
+              if (p.reviewsStillToday > 0) line('${p.reviewsStillToday}', '${p.reviewsStillToday == 1 ? 'card' : 'cards'} due now (reviews and learning steps)'),
               if (p.learningLaterToday > 0) line('${p.learningLaterToday}', 'back later today, after a short wait'),
               if (p.newStillToday > 0) line('${p.newStillToday}', 'new ${p.newStillToday == 1 ? 'card' : 'cards'} for today, not started'),
               const SizedBox(height: 4),

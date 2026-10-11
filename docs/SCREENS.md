@@ -388,3 +388,6 @@ Lines: reviews due (ordinary); problem reviews due (they take longer), only if a
 ## Tomorrow card, today block (D56; refines D55)
 After the tomorrow lines, when anything is left today: heading "Still to do today (these are on the Today screen)"; reviews due today; "back later today, after a short wait" (learning steps only); new cards for today, not started; and "Tomorrow above does not include these. Anything you leave today is added to tomorrow." Tomorrow's new cards exclude today's share.
 
+
+## Progress counts = Today counts (D57)
+Every "due" number on Progress comes from the Today queue's rules (one card per note per day, buried cards wait): the "Still to do today" block (its first line now reads "N cards due now (reviews and learning steps)"; with the new-card line it adds up to the number on Today), the first forecast bar, tomorrow's reviews and the later bars (held-back cloze gaps and problem levels move to the next days), and "N due" on the subject tiles. States unchanged: empty library shows no Tomorrow card numbers above zero; loading and error as before; a partial day (some done) shows only what is left, as Today does.

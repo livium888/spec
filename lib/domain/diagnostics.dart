@@ -63,6 +63,8 @@ const kPhoneCheck = <PhoneCheckItem>[
       'In a review the tag on the card says Growing, Long-term, Fading, Learning or New (tap it for the explanation: same word). Progress uses the same words in the legend. The top bar has Close, progress, Undo and a three-dot menu: Mark, Edit or delete, About this card, and Pause this card below a line. Pause a card: a message offers Undo; Library > Browse cards > Paused only lists it and Bring back returns it. Settings has "Tune my scheduling".'),
   PhoneCheckItem('tomorrow', 'Tomorrow card',
       'Progress > Coming up > Tomorrow: reviews due equals the chart\'s tomorrow bar; new cards equals your daily limit (or fewer if fewer wait); the minutes and the verdict follow your study-time budget (Settings). Compare with the other app\'s count for the same cards and tell me both numbers.'),
+  PhoneCheckItem('agree', 'Progress agrees with Today',
+      'Open Today and note the number of cards. Progress > Coming up > Tomorrow > Still to do today: "due now" plus "new cards for today" is that same number, and each subject tile\'s "N due" adds up to Today\'s due cards. Tomorrow morning: Today shows the reviews the Tomorrow card said (plus anything you left undone).'),
   PhoneCheckItem('speech', 'Read aloud',
       'Subjects and topics > Read cards aloud: pick a language. In a review tap the speaker. If there is no voice, the message says how to install one.'),
   PhoneCheckItem('reminder', 'Daily reminder', 'Turn it on, set a time two minutes ahead, wait for it, tap it.'),
