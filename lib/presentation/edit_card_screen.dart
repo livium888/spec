@@ -9,6 +9,7 @@ import '../domain/commons.dart' show cleanImageQuery, kMaxImageQueryChars;
 import '../domain/card_markup.dart';
 import 'card_picture.dart';
 import 'find_picture_screen.dart';
+import 'talk_sheet.dart';
 import 'widgets/rich_card_text.dart';
 
 /// What happened on the edit screen, so callers can reload.
@@ -273,6 +274,12 @@ class _EditCardScreenState extends ConsumerState<EditCardScreen> {
       appBar: AppBar(
         title: const Text('Edit card'),
         actions: [
+          if (n != null)
+            IconButton(
+              tooltip: 'Talk it through with an AI',
+              icon: const Icon(Icons.forum_outlined),
+              onPressed: () => showTalkSheet(context, noteId: widget.noteId),
+            ),
           if (n != null)
             IconButton(tooltip: 'Delete card', icon: const Icon(Icons.delete_outline), onPressed: _delete),
         ],

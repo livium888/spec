@@ -133,7 +133,7 @@ class ImportPreview {
 }
 
 /// Tags the app sets itself; an AI cannot claim them (a "leech" tag from an AI would mark a card as hard).
-const kReservedTags = {'leech', 'unverified', 'foundation', 'problem', 'marked'};
+const kReservedTags = {'leech', 'unverified', 'foundation', 'problem', 'marked', 'talked_through'};
 
 /// One tag, tidied (spaces become "_", lower case, at most 40 characters), or nothing if it is empty or reserved.
 List<String> cleanTag(String t) {

@@ -199,6 +199,10 @@ class ReviewService {
   /// Mark a card's note to look at later (or take the mark off). Only the note's tags change.
   Future<void> setMarked(int noteId, bool marked) => marked ? _addTag(noteId, 'marked') : _removeTag(noteId, 'marked');
 
+  /// The learner took this card's note to an AI to talk it through (D60). Only the note's tags change; the review
+  /// log and the schedule are never touched by it. Kept so the cards that needed explaining can be counted.
+  Future<void> markTalkedThrough(int noteId) => _addTag(noteId, 'talked_through');
+
   // ---- RebuildCardsFromLog ------------------------------------------------
 
   /// Replay non-revoked logs for one card from its pristine state and write the

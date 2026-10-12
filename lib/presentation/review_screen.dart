@@ -20,6 +20,7 @@ import '../domain/study_advisor.dart';
 import '../domain/study_card.dart';
 import 'advice_card.dart';
 import 'format.dart';
+import 'talk_sheet.dart';
 import 'theme/app_theme.dart';
 import 'theme/subject_style.dart';
 import 'card_info_sheet.dart';
@@ -75,6 +76,10 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
   final _ratings = <int>[];
   int? _lastRating; // shown in the undo bar for a few seconds after an answer
   Timer? _undoTimer;
+
+  /// The card just answered "Again" for at least the second time: the undo bar then offers to talk it through (D60).
+  /// Holds the ANSWERED card, not the one on screen now.
+  ({int noteId, int ord})? _talkNudge;
 
   /// A short session stops after this many answers; "Keep going" lifts the limit (D51).
   late int? _limit = widget.quick;
@@ -215,6 +220,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
       _ratings.add(rating);
       _answered++;
       _totalMs += ms;
+      _talkNudge = rating == Rating.again && res.card.lapses >= 2 ? (noteId: c.noteId, ord: c.ord) : null;
       _showUndoBar(rating);
       if (res.becameLeech && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -237,12 +243,18 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
     _undoTimer?.cancel();
     if (mounted) setState(() => _lastRating = rating);
     _undoTimer = Timer(const Duration(seconds: 6), () {
-      if (mounted) setState(() => _lastRating = null);
+      if (mounted) {
+        setState(() {
+          _lastRating = null;
+          _talkNudge = null;
+        });
+      }
     });
   }
 
   void _hideUndoBar() {
     _undoTimer?.cancel();
+    _talkNudge = null;
     if (_lastRating != null && mounted) setState(() => _lastRating = null);
   }
 
@@ -265,6 +277,16 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
     } finally {
       if (mounted) setState(() => _busy = false);
     }
+  }
+
+  /// "Talk it through with an AI" (D60). The preview shows the answer, so a card still showing its question counts as
+  /// revealed first (a rating given afterwards must not pass for recall from memory). The stopwatch stops while the
+  /// sheet is open: the time spent talking is not the time the card took to answer.
+  Future<void> _talk(int noteId, int ord) async {
+    if (!_revealed && _current != null && _current!.noteId == noteId) _reveal();
+    _stopwatch.stop();
+    await showTalkSheet(context, noteId: noteId, ord: ord);
+    if (mounted && _current != null) _stopwatch.start();
   }
 
   Future<void> _edit() async {
@@ -451,6 +473,8 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                         _edit();
                       case 'info':
                         showCardInfo(context, _current!);
+                      case 'talk':
+                        _talk(_current!.noteId, _current!.ord);
                       case 'pause':
                         _pause();
                     }
@@ -472,6 +496,10 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                     const PopupMenuItem(
                       value: 'info',
                       child: ListTile(dense: true, contentPadding: EdgeInsets.zero, leading: Icon(Icons.info_outline), title: Text('About this card')),
+                    ),
+                    const PopupMenuItem(
+                      value: 'talk',
+                      child: ListTile(dense: true, contentPadding: EdgeInsets.zero, leading: Icon(Icons.forum_outlined), title: Text('Talk it through with an AI')),
                     ),
                     const PopupMenuDivider(),
                     const PopupMenuItem(
@@ -516,6 +544,19 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
           padding: const EdgeInsets.fromLTRB(16, 2, 4, 2),
           child: Row(children: [
             Expanded(child: Text('Rated ${ratingName(rating)}', style: t.bodyMedium?.copyWith(color: c.surface))),
+            if (_talkNudge != null)
+              TextButton(
+                key: const Key('talk-nudge'),
+                style: TextButton.styleFrom(foregroundColor: c.surface, minimumSize: const Size(64, 48)),
+                onPressed: _busy
+                    ? null
+                    : () {
+                        final n = _talkNudge!;
+                        _hideUndoBar();
+                        _talk(n.noteId, n.ord);
+                      },
+                child: const Text('Talk it through'),
+              ),
             TextButton(
               style: TextButton.styleFrom(foregroundColor: c.surface, minimumSize: const Size(64, 48)),
               onPressed: _busy ? null : _undo,

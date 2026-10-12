@@ -11,6 +11,7 @@ import '../domain/memory_summary.dart';
 import '../domain/study_card.dart';
 import 'format.dart';
 import 'prompt_result_screen.dart';
+import 'talk_sheet.dart';
 import 'theme/tokens.dart';
 
 /// "About this card": the state in plain words, the model's three numbers for this card
@@ -115,6 +116,8 @@ class _CardInfoSheetState extends ConsumerState<CardInfoSheet> {
         Text(e.body, style: t.bodyLarge),
         const SizedBox(height: 14),
         _foundations(context, d),
+        const SizedBox(height: 12),
+        _talk(context),
         const SizedBox(height: 18),
         Semantics(header: true, child: Text('Memory statistics', style: t.titleMedium)),
         if (!m.hasModel)
@@ -216,6 +219,26 @@ class _CardInfoSheetState extends ConsumerState<CardInfoSheet> {
           } catch (e) {
             messenger.showSnackBar(SnackBar(content: Text('Could not build the prompt: $e')));
           }
+        },
+      ),
+    ]);
+  }
+
+  /// "Talk it through with an AI" (D60): for a card that still does not make sense.
+  Widget _talk(BuildContext context) {
+    final t = Theme.of(context).textTheme;
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text('Still does not make sense? Have an AI question you about it, one step at a time.', style: t.bodyMedium),
+      const SizedBox(height: 8),
+      OutlinedButton.icon(
+        style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(52)),
+        icon: const Icon(Icons.forum_outlined),
+        label: const Text('Talk it through with an AI'),
+        onPressed: () {
+          final nav = Navigator.of(context);
+          final noteId = widget.card.noteId, ord = widget.card.ord;
+          nav.pop();
+          showTalkSheet(nav.context, noteId: noteId, ord: ord);
         },
       ),
     ]);

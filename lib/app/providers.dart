@@ -30,6 +30,7 @@ import '../data/retire_service.dart';
 import '../data/review_service.dart';
 import '../data/settings_repo.dart';
 import '../data/stats_service.dart';
+import '../data/talk_service.dart';
 import 'bootstrap.dart';
 import 'device_services.dart';
 import 'launch_service.dart';
@@ -103,6 +104,7 @@ final promptServiceProvider = Provider(
 final knowledgeServiceProvider = Provider((ref) => KnowledgeService(ref.watch(dbProvider), ref.watch(paramsRepoProvider)));
 final foundationServiceProvider =
     Provider((ref) => FoundationService(ref.watch(dbProvider), ref.watch(settingsRepoProvider)));
+final talkServiceProvider = Provider((ref) => TalkService(ref.watch(dbProvider), ref.watch(settingsRepoProvider)));
 final interestServiceProvider = Provider((ref) => InterestService(ref.watch(dbProvider)));
 final featuresServiceProvider = Provider(
     (ref) => EngineFeaturesService(ref.watch(dbProvider), ref.watch(settingsRepoProvider)));

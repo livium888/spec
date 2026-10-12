@@ -413,3 +413,14 @@ Native screen over the paused app. Reading order: the app or site name (heading)
 - **Settings > Pause before apps:** a "Harder to open" section: "The wait grows each time" switch; "Daily open limit, per app or site" (No limit, 1-10); "Show my next card's question" switch (with the shoulder-surfing note); "Test the pause" button. The status card's on-state shows this week's line, or "It has not come up this week yet."
 - **Progress > Pause before apps** (only when the pause was set up): states: off and nothing counted ("The pause is off, so nothing is counted."); on but quiet ("has not come up in the last 7 days"); success (today's attempts and turned-away count, 7 bars Mon-Sun ending Today, labelled for screen readers).
 - **Today:** under the Today card, either the warning card "The pause before apps is off" (tap: its settings) or this week's line; nothing when never set up or no pauses this week.
+
+## Talk it through with an AI (D60)
+Opened from the review ⋮ menu, from "About this card" (a button under the foundations), from the nudge in the undo bar ("Talk it through", after Again on a card forgotten at least twice), and from the Edit card screen's app bar (the way in from Library > Browse cards). Bottom sheet, reading order: title; one paragraph saying it sends the card with its answer to the AI app the learner picks and nothing leaves by itself; "What's confusing you? (optional)" text field (500 characters); "What will be sent" (collapsed; the exact text, selectable, follows the field); "Share to an AI app" and "Copy" (48 dp+); a note: a clearer card from the AI can be shared back and arrives as an import preview, added as a new card (then pause or delete this one), and the chat does not change the schedule (problem cards: only the second part).
+| State | What shows |
+|---|---|
+| Loading | Spinner labelled "Loading the card". |
+| Card gone | "This card no longer exists." and Close. |
+| Error reading | The message, Try again, Close. |
+| Partial | Subject or topic missing: the prompt is built from the card's words alone. |
+| Success | As above; Share hands the text to Android's share sheet; Copy shows "Copied. Paste it into your AI app." Both tag the note `talked_through`. |
+From a review: opening it before the answer is shown reveals the card first. The nudge is a second button in the undo bar and disappears with it (about 6 seconds) or when Undo is used.
