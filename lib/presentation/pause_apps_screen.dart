@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../app/providers.dart';
 import '../data/pause_bridge.dart';
 import '../data/pause_settings.dart';
+import '../domain/pause_moves.dart';
 import '../domain/pause_stats.dart';
 import '../domain/site_rule.dart';
 
@@ -152,6 +153,8 @@ class _PauseAppsScreenState extends ConsumerState<PauseAppsScreen> with WidgetsB
                     const Divider(height: 32),
                     _sites(c, t),
                     const Divider(height: 32),
+                    _moves(c, t),
+                    const Divider(height: 32),
                     Text('Free time', style: t.titleLarge),
                     const SizedBox(height: 8),
                     DropdownButtonFormField<int>(
@@ -201,6 +204,50 @@ class _PauseAppsScreenState extends ConsumerState<PauseAppsScreen> with WidgetsB
                   ]),
       ),
     );
+  }
+
+  /// "Move first" (D61): the exercises offered on the pause as a third way to earn free time for one app or site.
+  Widget _moves(PauseChoices c, TextTheme t) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text('Move first', style: t.titleLarge),
+        const SizedBox(height: 4),
+        Text(
+          'A third way to earn free time for the one app or site: do an exercise for its time, then open it. '
+          'Nothing checks that you did it. The countdown only stops you tapping through, and if you skip it, you have only fooled yourself.',
+          style: t.bodyMedium,
+        ),
+        if (c.moves.isEmpty)
+          const Padding(padding: EdgeInsets.only(top: 8), child: Text('No exercises, so the pause shows no "Move first" button.')),
+        for (final m in c.moves)
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            title: Text(m.name),
+            subtitle: Text('${m.seconds} seconds'),
+            trailing: IconButton(
+              tooltip: 'Remove ${m.name}',
+              icon: const Icon(Icons.close),
+              onPressed: () => _save(c.copyWith(moves: [for (final x in c.moves) if (x != m) x])),
+            ),
+          ),
+        const SizedBox(height: 8),
+        Wrap(spacing: 8, runSpacing: 8, children: [
+          OutlinedButton.icon(
+            onPressed: c.moves.length >= kMaxPauseMoves ? null : () => _addMove(c),
+            icon: const Icon(Icons.add),
+            label: const Text('Add an exercise'),
+          ),
+          if (storePauseMoves(c.moves) != storePauseMoves(kStarterMoves))
+            TextButton(
+              style: TextButton.styleFrom(minimumSize: const Size(64, 48)),
+              onPressed: () => _save(c.copyWith(moves: kStarterMoves)),
+              child: const Text('Use the suggestions'),
+            ),
+        ]),
+        if (c.moves.length >= kMaxPauseMoves) Padding(padding: const EdgeInsets.only(top: 6), child: Text('The list is full ($kMaxPauseMoves).', style: t.bodySmall)),
+      ]);
+
+  Future<void> _addMove(PauseChoices c) async {
+    final made = await showDialog<PauseMove>(context: context, builder: (_) => _AddMoveDialog(taken: [for (final m in c.moves) m.name.toLowerCase()]));
+    if (made != null && mounted) await _save(c.copyWith(moves: [...c.moves, made]));
   }
 
   Widget _apps(PauseChoices c, TextTheme t) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -286,6 +333,64 @@ class _PauseAppsScreenState extends ConsumerState<PauseAppsScreen> with WidgetsB
         Text('Some browsers show only the site in the address bar, not the page: then a page rule cannot be seen. A site rule always can.',
             style: t.bodySmall),
       ]);
+}
+
+/// A name and a number of seconds for one exercise.
+class _AddMoveDialog extends StatefulWidget {
+  const _AddMoveDialog({required this.taken});
+  final List<String> taken;
+  @override
+  State<_AddMoveDialog> createState() => _AddMoveDialogState();
+}
+
+class _AddMoveDialogState extends State<_AddMoveDialog> {
+  final _name = TextEditingController();
+  final _seconds = TextEditingController(text: '30');
+  String? _error;
+
+  @override
+  void dispose() {
+    _name.dispose();
+    _seconds.dispose();
+    super.dispose();
+  }
+
+  void _add() {
+    final name = _name.text.replaceAll(RegExp(r'[ \t\r\n]+'), ' ').trim();
+    final secs = int.tryParse(_seconds.text.trim());
+    final err = pauseMoveError(name, secs) ?? (widget.taken.contains(name.toLowerCase()) ? 'That one is in the list already' : null);
+    if (err != null) {
+      setState(() => _error = err);
+      return;
+    }
+    Navigator.of(context).pop(PauseMove(name, secs!));
+  }
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+        title: const Text('Add an exercise'),
+        content: Column(mainAxisSize: MainAxisSize.min, children: [
+          TextField(
+            controller: _name,
+            autofocus: true,
+            maxLength: kMaxPauseMoveName,
+            textCapitalization: TextCapitalization.sentences,
+            decoration: const InputDecoration(labelText: 'Name', hintText: 'e.g. 20 jumping jacks'),
+            onChanged: (_) => setState(() => _error = null),
+          ),
+          TextField(
+            controller: _seconds,
+            keyboardType: TextInputType.number,
+            decoration: InputDecoration(labelText: 'Countdown in seconds ($kPauseMoveMinSeconds to $kPauseMoveMaxSeconds)', errorText: _error, errorMaxLines: 2),
+            onChanged: (_) => setState(() => _error = null),
+            onSubmitted: (_) => _add(),
+          ),
+        ]),
+        actions: [
+          TextButton(style: TextButton.styleFrom(minimumSize: const Size(64, 48)), onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
+          FilledButton(style: FilledButton.styleFrom(minimumSize: const Size(64, 48)), onPressed: _add, child: const Text('Add')),
+        ],
+      );
 }
 
 /// Whether Android has the pause switched on, how to switch it on, and what it can see.

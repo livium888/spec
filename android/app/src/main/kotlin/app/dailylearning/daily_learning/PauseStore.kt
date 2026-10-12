@@ -20,6 +20,7 @@ object PauseStore {
     const val KEY_LIMIT = "open_limit"
     const val KEY_SHOW_NEXT = "show_next"
     const val KEY_ROLLOVER = "rollover_hour"
+    const val KEY_MOVES = "moves"
     const val KEY_ALL_UNTIL = "all_until"
     private const val PASS = "pass:"
     private const val PENDING_KEY = "pending_key"
@@ -33,6 +34,7 @@ object PauseStore {
     const val CHOICE_BACK = "back"
     const val CHOICE_OPEN = "open"
     const val CHOICE_CARDS = "cards"
+    const val CHOICE_MOVE = "move"
 
     data class Config(
         val apps: Set<String>,
@@ -43,7 +45,27 @@ object PauseStore {
         val openLimit: Int = 0,
         val showNext: Boolean = true,
         val rolloverHour: Int = 4,
+        val moves: List<Move> = emptyList(),
     )
+
+    /** An exercise offered as "Move first" (D61): a name and how many seconds the countdown runs. */
+    data class Move(val name: String, val seconds: Int)
+
+    /** Mirror of parsePauseMove / pauseMovesOf (lib/domain/pause_moves.dart); the Dart side holds the tested reference. */
+    fun parseMoves(stored: String?): List<Move> {
+        val out = mutableListOf<Move>()
+        for (line in (stored ?: "").split('\n')) {
+            val bar = line.lastIndexOf('|')
+            if (bar <= 0) continue
+            val name = line.substring(0, bar).replace(Regex("[ \\t\\r\\n\\u000C\\u000B]+"), " ").trim()
+            val seconds = line.substring(bar + 1).trim().toIntOrNull() ?: continue
+            if (name.isEmpty() || name.length > 40 || name.contains('|') || name.any { it.isISOControl() || it == '\u2028' || it == '\u2029' }) continue
+            if (seconds < 10 || seconds > 300) continue
+            if (out.none { it.name.equals(name, ignoreCase = true) }) out += Move(name, seconds)
+            if (out.size >= 12) break
+        }
+        return out
+    }
 
     data class Pending(val key: String, val label: String, val pkg: String, val atMs: Long)
 
@@ -51,7 +73,7 @@ object PauseStore {
 
     fun writeConfig(
         ctx: Context, apps: List<String>, whole: List<String>, rules: String, freeMinutes: Int,
-        rising: Boolean, openLimit: Int, showNext: Boolean, rolloverHour: Int,
+        rising: Boolean, openLimit: Int, showNext: Boolean, rolloverHour: Int, moves: String,
     ) {
         prefs(ctx).edit()
             .putStringSet(KEY_APPS, apps.toSet())
@@ -62,6 +84,7 @@ object PauseStore {
             .putInt(KEY_LIMIT, openLimit.coerceIn(0, 50))
             .putBoolean(KEY_SHOW_NEXT, showNext)
             .putInt(KEY_ROLLOVER, rolloverHour.coerceIn(0, 23))
+            .putString(KEY_MOVES, moves)
             .apply()
     }
 
@@ -76,6 +99,7 @@ object PauseStore {
             openLimit = p.getInt(KEY_LIMIT, 0).coerceIn(0, 50),
             showNext = p.getBoolean(KEY_SHOW_NEXT, true),
             rolloverHour = p.getInt(KEY_ROLLOVER, 4).coerceIn(0, 23),
+            moves = parseMoves(p.getString(KEY_MOVES, "")),
         )
     }
 

@@ -70,6 +70,7 @@ class MainActivity : FlutterActivity() {
                     call.argument<Int>("openLimit") ?: 0,
                     call.argument<Boolean>("showNext") ?: true,
                     call.argument<Int>("rolloverHour") ?: 4,
+                    call.argument<String>("moves") ?: "",
                 )
                 result.success(null)
             }

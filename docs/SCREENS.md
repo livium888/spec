@@ -424,3 +424,15 @@ Opened from the review ⋮ menu, from "About this card" (a button under the foun
 | Partial | Subject or topic missing: the prompt is built from the card's words alone. |
 | Success | As above; Share hands the text to Android's share sheet; Copy shows "Copied. Paste it into your AI app." Both tag the note `talked_through`. |
 From a review: opening it before the answer is shown reveals the card first. The nudge is a second button in the undo bar, with a Dismiss button; unlike the plain undo bar it has no timer and stays until the next answer, Undo or Dismiss. A cloze card with several gaps opens on its first gap when reached from Library or Edit (the whole sentence is sent either way).
+
+## Move first (D61)
+- **Pause screen:** a "Move first, then open" button below Breathe, shown only when the learner has at least one exercise and the daily open limit is not reached. It opens: the app or site name (heading), "Pick one. The open button appears when its time is up.", one button per exercise ("10 push-ups (40 s)", read as "10 push-ups, 40 seconds"), Back (to the three choices), Not now. Picking one: the name and "Start now: N seconds." announced once, a large countdown (not announced every second), Not now; the screen stays on. At zero: "Done. Ready when you are." and "Open X for N minutes" (that one app or site).
+- **Settings > Pause before apps > Move first:** a paragraph saying nothing checks the exercise; the list (name and seconds, a remove button each); "Add an exercise" (dialog: name, countdown seconds, errors in words: "Between 10 and 300 seconds", "That one is in the list already"); "Use the suggestions" (only when the list differs from them); at 12 the add button is disabled and says the list is full.
+| State | What shows |
+|---|---|
+| No exercises | The settings say so; the pause shows no "Move first" button. |
+| Daily limit reached | No Move first and no Breathe: the limit line, Do 5 cards, Not now. |
+| Countdown running | Large seconds left, Not now only; the screen is kept on. |
+| Countdown done | "Done." and the open button. |
+| Leaving mid-way | Not now, or the pause closes: nothing is logged, no time is granted. |
+- **Progress:** today's line gains "You moved first N times." only when N > 0.

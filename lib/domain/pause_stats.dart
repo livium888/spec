@@ -7,8 +7,8 @@ import 'day_clock.dart';
 
 /// What happened at a pause. `shown`: an attempt to open a paused app or site (the pause came up). `again`: the
 /// pause came back because free time ran out while the app was still in front; not an attempt, so it is not counted
-/// as one and does not grow the wait.
-enum PauseKind { shown, again, back, open, cards }
+/// as one and does not grow the wait. `move`: the app was opened after an exercise (D61); it counts as an opening.
+enum PauseKind { shown, again, back, open, move, cards }
 
 class PauseEvent {
   const PauseEvent(this.atMs, this.kind, this.key);
@@ -33,7 +33,7 @@ class PauseEvent {
 class PauseDay {
   PauseDay(this.dayIndex);
   final int dayIndex;
-  int shown = 0, again = 0, back = 0, open = 0, cards = 0;
+  int shown = 0, again = 0, back = 0, open = 0, move = 0, cards = 0;
 
   /// Pauses that ended without opening the app: turned back, or went to the cards instead. Capped at the attempts:
   /// a pause that came back after free time can also end in "not now".
@@ -59,6 +59,8 @@ List<PauseDay> pauseDays(Iterable<PauseEvent> events, DayClock clock, DateTime n
         day.back++;
       case PauseKind.open:
         day.open++;
+      case PauseKind.move:
+        day.move++;
       case PauseKind.cards:
         day.cards++;
     }

@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart';
 
 import 'pause_bridge.dart';
+import '../domain/pause_moves.dart';
 import '../domain/pause_stats.dart';
 import '../domain/site_rule.dart';
 import 'db/database.dart';
@@ -17,8 +18,12 @@ class PauseChoices {
     this.risingWait = true,
     this.openLimit = 0,
     this.showNext = true,
+    this.moves = kStarterMoves,
     this.saved = false,
   });
+
+  /// D61: the exercises offered as "Move first" (none: the button is not shown).
+  final List<PauseMove> moves;
 
   /// D59: the breathing wait grows with each pause of the same app today; a daily open limit (0 = off); the next
   /// card's question on the pause.
@@ -41,6 +46,7 @@ class PauseChoices {
     bool? risingWait,
     int? openLimit,
     bool? showNext,
+    List<PauseMove>? moves,
   }) =>
       PauseChoices(
         apps: apps ?? this.apps,
@@ -50,6 +56,7 @@ class PauseChoices {
         risingWait: risingWait ?? this.risingWait,
         openLimit: openLimit ?? this.openLimit,
         showNext: showNext ?? this.showNext,
+        moves: moves ?? this.moves,
         saved: true,
       );
 }
@@ -70,6 +77,7 @@ class PauseSettings {
   static const risingKey = 'pause_rising_wait';
   static const limitKey = 'pause_open_limit';
   static const showNextKey = 'pause_show_next';
+  static const movesKey = 'pause_moves';
 
   /// A package name as Android writes it; anything else (a restored backup is external input) is dropped.
   static final _pkg = RegExp(r'^[a-zA-Z][a-zA-Z0-9_]*(\.[a-zA-Z0-9_]+)+$');
@@ -89,6 +97,7 @@ class PauseSettings {
       risingWait: await settings.get(risingKey) != '0',
       openLimit: kPauseOpenLimitChoices.contains(limit) ? limit : 0,
       showNext: await settings.get(showNextKey) != '0',
+      moves: pauseMovesOf(await settings.get(movesKey)),
       saved: apps != null,
     );
   }
@@ -101,6 +110,7 @@ class PauseSettings {
     await settings.set(risingKey, c.risingWait ? '1' : '0');
     await settings.set(limitKey, '${c.openLimit}');
     await settings.set(showNextKey, c.showNext ? '1' : '0');
+    await settings.set(movesKey, storePauseMoves(c.moves));
     await push(c);
   }
 
@@ -116,6 +126,7 @@ class PauseSettings {
       risingWait: v.risingWait,
       openLimit: v.openLimit,
       showNext: v.showNext,
+      moves: storePauseMoves(v.moves),
       rolloverHour: (await settings.dayClock()).rolloverHour,
     );
   }

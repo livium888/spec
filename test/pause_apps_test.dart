@@ -6,6 +6,7 @@ import 'package:daily_learning/data/db/database.dart';
 import 'package:daily_learning/data/pause_bridge.dart';
 import 'package:daily_learning/data/pause_settings.dart';
 import 'package:daily_learning/data/settings_repo.dart';
+import 'package:daily_learning/domain/pause_moves.dart';
 import 'package:daily_learning/presentation/pause_apps_screen.dart';
 import 'package:daily_learning/presentation/pause_summary.dart';
 import 'package:drift/native.dart';
@@ -36,9 +37,10 @@ class FakePauseBridge implements PauseBridge {
     required bool risingWait,
     required int openLimit,
     required bool showNext,
+    required String moves,
     required int rolloverHour,
   }) async =>
-      config = {'apps': apps, 'whole': wholeBrowsers, 'rules': rules, 'free': freeMinutes, 'rising': risingWait, 'limit': openLimit, 'next': showNext, 'rollover': rolloverHour};
+      config = {'apps': apps, 'whole': wholeBrowsers, 'rules': rules, 'free': freeMinutes, 'rising': risingWait, 'limit': openLimit, 'next': showNext, 'moves': moves, 'rollover': rolloverHour};
   @override
   Future<String> log() async => logText;
   @override
@@ -93,6 +95,7 @@ void main() {
         'rising': true,
         'limit': 0,
         'next': true,
+        'moves': storePauseMoves(kStarterMoves),
         'rollover': 4,
       });
       await e.db.close();
@@ -153,6 +156,52 @@ void main() {
     t.widget<SwitchListTile>(find.widgetWithText(SwitchListTile, 'Chrome')).onChanged!(true);
     await settle(t, rounds: 3);
     expect(bridge.config?['whole'], ['com.android.chrome']);
+  });
+
+  testWidgets('Move first: the suggestions are there, one can be removed, one added, bad input is refused, the list can be reset', (t) async {
+    t.view.physicalSize = const Size(411, 900);
+    t.view.devicePixelRatio = 1.0;
+    addTearDown(t.view.reset);
+    final db = AppDatabase(NativeDatabase.memory());
+    addTearDown(() async => t.runAsync(db.close));
+    final bridge = FakePauseBridge();
+    await t.pumpWidget(ProviderScope(
+      overrides: [
+        bootstrapProvider.overrideWithValue(Bootstrap(File('x'), Directory.systemTemp, db)),
+        pauseBridgeProvider.overrideWithValue(bridge),
+      ],
+      child: const MaterialApp(home: PauseAppsScreen()),
+    ));
+    await settle(t, rounds: 4);
+
+    final list = find.byType(Scrollable).first;
+    await t.scrollUntilVisible(find.text('Move first'), 300, scrollable: list);
+    expect(find.text('10 push-ups'), findsOneWidget);
+    expect(find.text('Use the suggestions'), findsNothing, reason: 'nothing to reset yet');
+
+    await t.tap(find.byTooltip('Remove 10 push-ups'));
+    await settle(t, rounds: 3);
+    expect(find.text('10 push-ups'), findsNothing);
+    expect((bridge.config!['moves'] as String).contains('10 push-ups'), isFalse);
+    expect(find.text('Use the suggestions'), findsOneWidget);
+
+    await t.scrollUntilVisible(find.text('Add an exercise'), 200, scrollable: list);
+    await t.tap(find.text('Add an exercise'));
+    await settle(t, rounds: 3);
+    await t.enterText(find.widgetWithText(TextField, 'Name'), 'Jumping jacks');
+    await t.enterText(find.byType(TextField).last, '5');
+    await t.tap(find.text('Add'));
+    await t.pump();
+    expect(find.text('Between 10 and 300 seconds'), findsOneWidget, reason: 'too short is refused with a reason');
+    await t.enterText(find.byType(TextField).last, '25');
+    await t.tap(find.text('Add'));
+    await settle(t, rounds: 3);
+    expect((bridge.config!['moves'] as String).contains('Jumping jacks|25'), isTrue);
+
+    await t.scrollUntilVisible(find.text('Use the suggestions'), 200, scrollable: list);
+    await t.tap(find.text('Use the suggestions'));
+    await settle(t, rounds: 3);
+    expect(bridge.config!['moves'], storePauseMoves(kStarterMoves));
   });
 
   testWidgets('Today and Progress: the week\'s line, the bars, and a warning when the pause is off (D59)', (t) async {

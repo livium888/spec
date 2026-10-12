@@ -60,7 +60,8 @@ class PauseWeekCard extends StatelessWidget {
       Text(
         s.shownWeek == 0
             ? (s.on ? 'The pause has not come up in the last 7 days.' : 'The pause is off, so nothing is counted.')
-            : 'Today: ${today.shown} ${today.shown == 1 ? 'attempt' : 'attempts'} to open, ${today.turnedAway} turned away.',
+            : 'Today: ${today.shown} ${today.shown == 1 ? 'attempt' : 'attempts'} to open, ${today.turnedAway} turned away.'
+                '${today.move > 0 ? ' You moved first ${today.move} ${today.move == 1 ? 'time' : 'times'}.' : ''}',
         style: t.bodyMedium,
       ),
       const SizedBox(height: Sp.m),

@@ -33,6 +33,7 @@ abstract class PauseBridge {
     required bool risingWait,
     required int openLimit,
     required bool showNext,
+    required String moves,
     required int rolloverHour,
   });
   Future<List<InstalledApp>> apps();
@@ -75,6 +76,7 @@ class ChannelPauseBridge implements PauseBridge {
     required bool risingWait,
     required int openLimit,
     required bool showNext,
+    required String moves,
     required int rolloverHour,
   }) =>
       _call<void>('setConfig', {
@@ -85,6 +87,7 @@ class ChannelPauseBridge implements PauseBridge {
         'rising': risingWait,
         'openLimit': openLimit,
         'showNext': showNext,
+        'moves': moves,
         'rolloverHour': rolloverHour,
       });
 

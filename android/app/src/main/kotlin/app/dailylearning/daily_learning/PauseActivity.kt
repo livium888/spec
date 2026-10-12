@@ -10,6 +10,7 @@ import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.GradientDrawable
 import android.os.Build
 import android.os.Bundle
+import android.os.SystemClock
 import android.os.Handler
 import android.os.Looper
 import android.provider.Settings
@@ -17,6 +18,7 @@ import android.util.TypedValue
 import android.view.Gravity
 import android.view.KeyEvent
 import android.view.View
+import android.view.WindowManager
 import android.view.ViewGroup
 import android.view.animation.AccelerateDecelerateInterpolator
 import android.widget.Button
@@ -143,7 +145,8 @@ class PauseActivity : Activity() {
         val now = System.currentTimeMillis()
         // D59: the wait grows with each pause of this app today, and a daily open limit leaves only the cards.
         val wait = PauseStore.waitSeconds(PauseStore.countToday(this, PauseStore.KIND_SHOWN, key, now), cfg.rising)
-        val opens = PauseStore.countToday(this, PauseStore.CHOICE_OPEN, key, now)
+        // An exercise is an opening too (D61): it must not be a way round the daily limit.
+        val opens = PauseStore.countToday(this, PauseStore.CHOICE_OPEN, key, now) + PauseStore.countToday(this, PauseStore.CHOICE_MOVE, key, now)
         val limitReached = cfg.openLimit > 0 && opens >= cfg.openLimit
         column = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -188,6 +191,9 @@ class PauseActivity : Activity() {
             ))
         } else {
             column.addView(button(if (wait > 10) "Breathe ($wait s), then open" else "Breathe, then open", primary = due == 0) { breathe(free, wait) })
+            if (cfg.moves.isNotEmpty()) {
+                column.addView(button("Move first, then open", primary = false) { chooseMove(cfg.moves, free) })
+            }
         }
         column.addView(button("Not now", primary = false) { notNow() })
 
@@ -285,7 +291,67 @@ class PauseActivity : Activity() {
         }
     }
 
+    // ---- move first (D61) -----------------------------------------------------------------------------------------
+
+    /** The list of the learner's exercises: pick one. */
+    private fun chooseMove(moves: List<PauseStore.Move>, free: Int) {
+        column.removeAllViews()
+        column.addView(text(label, 26f, ink, bold = true).apply { accessibilityHeading() })
+        column.addView(text("Pick one. The open button appears when its time is up.", 18f, inkSoft))
+        for (m in moves) {
+            column.addView(button("${m.name} (${m.seconds} s)", primary = false) { doMove(m, free) }.apply {
+                contentDescription = "${m.name}, ${m.seconds} seconds"
+            })
+        }
+        column.addView(button("Back", primary = false) { build() })
+        column.addView(button("Not now", primary = false) { notNow() })
+    }
+
+    /**
+     * The countdown for one exercise. It runs on the elapsed-time clock, not on counted ticks, so a delayed callback can
+     * never shorten or stretch it; the screen stays on while it runs (a plank with the phone on the floor outlasts the
+     * usual screen timeout). Nothing checks the exercise was done: the timer only stops the tap-through.
+     */
+    private fun doMove(m: PauseStore.Move, free: Int) {
+        column.removeAllViews()
+        column.addView(text(label, 26f, ink, bold = true).apply { accessibilityHeading() })
+        val words = text("${m.name}. Start now: ${m.seconds} seconds.", 24f, ink, bold = true).apply {
+            accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE
+        }
+        column.addView(words)
+        val left = text("${m.seconds}", 48f, accent, bold = true).apply { importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO }
+        column.addView(left)
+        column.addView(button("Not now", primary = false) { notNow() })
+        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+
+        val end = SystemClock.elapsedRealtime() + m.seconds * 1000L
+        val tick = object : Runnable {
+            override fun run() {
+                val remaining = end - SystemClock.elapsedRealtime()
+                if (remaining > 0) {
+                    left.text = "${(remaining + 999) / 1000}"
+                    main.postDelayed(this, 200L)
+                } else {
+                    window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                    words.text = "Done. Ready when you are."
+                    left.visibility = View.GONE
+                    column.addView(button("Open $label for $free ${minutesWord(free)}", primary = true) { openAfterMove(free) }, 3)
+                }
+            }
+        }
+        main.postDelayed(tick, 200L)
+    }
+
+    private fun openAfterMove(free: Int) {
+        val now = System.currentTimeMillis()
+        PauseStore.log(this, PauseStore.CHOICE_MOVE, key, now)
+        PauseStore.grant(this, key, now + free * 60_000L)
+        launchTarget(this, pkg)
+        finish()
+    }
+
     private fun stopBreathing() {
+        window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         main.removeCallbacksAndMessages(null)
         animator?.cancel()
         animator = null
