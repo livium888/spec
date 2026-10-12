@@ -162,7 +162,8 @@ class _TalkSheetState extends ConsumerState<TalkSheet> {
                 d.card!.isProblem
                     ? 'The chat stays outside this app and does not change your schedule.'
                     : 'If the AI offers a clearer version of the card, share its reply back to this app: it opens as an import preview and is added as a new card. '
-                        'Then pause or delete this one. The chat does not change your schedule.',
+                        'If your AI app will not share just that message, copy it and use Library > Paste an answer. '
+                        'Then pause or delete this card. The chat does not change your schedule.',
                 style: t.bodySmall?.copyWith(color: c.inkSoft),
               ),
             ]),

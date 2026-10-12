@@ -242,6 +242,9 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
   void _showUndoBar(int rating) {
     _undoTimer?.cancel();
     if (mounted) setState(() => _lastRating = rating);
+    // The nudge to talk a forgotten card through has no timer (WCAG 2.2.1): it stays until the next answer, Undo, or its
+    // own dismiss button, because a few seconds is too short to decide, and a screen reader needs longer still.
+    if (_talkNudge != null) return;
     _undoTimer = Timer(const Duration(seconds: 6), () {
       if (mounted) {
         setState(() {
@@ -562,6 +565,14 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
               onPressed: _busy ? null : _undo,
               child: const Text('Undo'),
             ),
+            if (_talkNudge != null)
+              IconButton(
+                key: const Key('talk-nudge-dismiss'),
+                tooltip: 'Dismiss',
+                color: c.surface,
+                icon: const Icon(Icons.close),
+                onPressed: _hideUndoBar,
+              ),
           ]),
         ),
       ),

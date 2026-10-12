@@ -102,6 +102,9 @@ void main() {
 
     expect(find.byKey(const Key('talk-nudge')), findsOneWidget);
     expect(find.textContaining('Second question about enzymes?'), findsOneWidget, reason: 'the next card is already on screen');
+    // No timer on the nudge: it is still there long after the usual 6 seconds.
+    await t.pump(const Duration(seconds: 20));
+    expect(find.byKey(const Key('talk-nudge')), findsOneWidget);
     await t.tap(find.byKey(const Key('talk-nudge')));
     await settle(t, rounds: 3);
 
@@ -109,6 +112,21 @@ void main() {
     await t.pump(const Duration(milliseconds: 400));
     expect(find.textContaining('Question: First question about membranes?', findRichText: true), findsOneWidget);
     expect(find.textContaining('Question: Second question', findRichText: true), findsNothing, reason: 'the sheet holds the answered card, not the next one');
+  });
+
+  testWidgets('the nudge can be dismissed, and goes with the next answer', (t) async {
+    final db = (await t.runAsync(() => library(lapsesOfFirst: 1)))!;
+    addTearDown(() async => t.runAsync(db.close));
+    await boot(t, db);
+    await t.tap(find.textContaining('First question about membranes?'));
+    await t.pump(const Duration(milliseconds: 400));
+    await t.tap(find.text('Again'));
+    await settle(t);
+    expect(find.byKey(const Key('talk-nudge')), findsOneWidget);
+    await t.tap(find.byKey(const Key('talk-nudge-dismiss')));
+    await settle(t, rounds: 2);
+    expect(find.byKey(const Key('undo-bar')), findsNothing);
+    expect(find.byKey(const Key('talk-nudge')), findsNothing);
   });
 
   testWidgets('no nudge on a first lapse, or after a Good', (t) async {
