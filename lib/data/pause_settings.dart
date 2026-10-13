@@ -19,11 +19,16 @@ class PauseChoices {
     this.openLimit = 0,
     this.showNext = true,
     this.moves = kStarterMoves,
+    this.cardsEvery = kDefaultPauseCardsEvery,
     this.saved = false,
   });
 
   /// D61: the exercises offered as "Move first" (none: the button is not shown).
   final List<PauseMove> moves;
+
+  /// D62: after this many openings by breathing or an exercise since the last real cards session, only the cards are
+  /// offered (0 = off).
+  final int cardsEvery;
 
   /// D59: the breathing wait grows with each pause of the same app today; a daily open limit (0 = off); the next
   /// card's question on the pause.
@@ -47,6 +52,7 @@ class PauseChoices {
     int? openLimit,
     bool? showNext,
     List<PauseMove>? moves,
+    int? cardsEvery,
   }) =>
       PauseChoices(
         apps: apps ?? this.apps,
@@ -57,6 +63,7 @@ class PauseChoices {
         openLimit: openLimit ?? this.openLimit,
         showNext: showNext ?? this.showNext,
         moves: moves ?? this.moves,
+        cardsEvery: cardsEvery ?? this.cardsEvery,
         saved: true,
       );
 }
@@ -78,6 +85,7 @@ class PauseSettings {
   static const limitKey = 'pause_open_limit';
   static const showNextKey = 'pause_show_next';
   static const movesKey = 'pause_moves';
+  static const cardsEveryKey = 'pause_cards_every';
 
   /// A package name as Android writes it; anything else (a restored backup is external input) is dropped.
   static final _pkg = RegExp(r'^[a-zA-Z][a-zA-Z0-9_]*(\.[a-zA-Z0-9_]+)+$');
@@ -89,6 +97,7 @@ class PauseSettings {
     final apps = await settings.get(appsKey);
     final free = await settings.getInt(freeKey, kDefaultPauseFreeMinutes);
     final limit = await settings.getInt(limitKey, 0);
+    final every = await settings.getInt(cardsEveryKey, kDefaultPauseCardsEvery);
     return PauseChoices(
       apps: _packages(apps),
       wholeBrowsers: _packages(await settings.get(browsersKey)),
@@ -98,6 +107,7 @@ class PauseSettings {
       openLimit: kPauseOpenLimitChoices.contains(limit) ? limit : 0,
       showNext: await settings.get(showNextKey) != '0',
       moves: pauseMovesOf(await settings.get(movesKey)),
+      cardsEvery: kPauseCardsEveryChoices.contains(every) ? every : kDefaultPauseCardsEvery,
       saved: apps != null,
     );
   }
@@ -111,6 +121,7 @@ class PauseSettings {
     await settings.set(limitKey, '${c.openLimit}');
     await settings.set(showNextKey, c.showNext ? '1' : '0');
     await settings.set(movesKey, storePauseMoves(c.moves));
+    await settings.set(cardsEveryKey, '${c.cardsEvery}');
     await push(c);
   }
 
@@ -127,6 +138,7 @@ class PauseSettings {
       openLimit: v.openLimit,
       showNext: v.showNext,
       moves: storePauseMoves(v.moves),
+      cardsEvery: v.cardsEvery,
       rolloverHour: (await settings.dayClock()).rolloverHour,
     );
   }

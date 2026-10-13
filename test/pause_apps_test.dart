@@ -38,9 +38,10 @@ class FakePauseBridge implements PauseBridge {
     required int openLimit,
     required bool showNext,
     required String moves,
+    required int cardsEvery,
     required int rolloverHour,
   }) async =>
-      config = {'apps': apps, 'whole': wholeBrowsers, 'rules': rules, 'free': freeMinutes, 'rising': risingWait, 'limit': openLimit, 'next': showNext, 'moves': moves, 'rollover': rolloverHour};
+      config = {'apps': apps, 'whole': wholeBrowsers, 'rules': rules, 'free': freeMinutes, 'rising': risingWait, 'limit': openLimit, 'next': showNext, 'moves': moves, 'cardsEvery': cardsEvery, 'rollover': rolloverHour};
   @override
   Future<String> log() async => logText;
   @override
@@ -96,6 +97,7 @@ void main() {
         'limit': 0,
         'next': true,
         'moves': storePauseMoves(kStarterMoves),
+        'cardsEvery': 2,
         'rollover': 4,
       });
       await e.db.close();
@@ -134,6 +136,7 @@ void main() {
 
     expect(find.text('The pause is off'), findsOneWidget);
     expect(find.text('Open accessibility settings'), findsOneWidget);
+    await t.scrollUntilVisible(find.text('LinkedIn'), 200, scrollable: find.byType(Scrollable).first);
     expect(find.text('LinkedIn'), findsOneWidget);
     expect(bridge.config?['apps'], ['com.linkedin.android'], reason: 'the suggestion is saved and handed over at once');
     expect(bridge.config?['rules'], '*.linkedin.com');
@@ -179,6 +182,8 @@ void main() {
     expect(find.text('10 push-ups'), findsOneWidget);
     expect(find.text('Use the suggestions'), findsNothing, reason: 'nothing to reset yet');
 
+    await t.ensureVisible(find.byTooltip('Remove 10 push-ups'));
+    await t.pump();
     await t.tap(find.byTooltip('Remove 10 push-ups'));
     await settle(t, rounds: 3);
     expect(find.text('10 push-ups'), findsNothing);
@@ -188,13 +193,14 @@ void main() {
     await t.scrollUntilVisible(find.text('Add an exercise'), 200, scrollable: list);
     await t.tap(find.text('Add an exercise'));
     await settle(t, rounds: 3);
+    final dialog = find.byType(AlertDialog);
     await t.enterText(find.widgetWithText(TextField, 'Name'), 'Jumping jacks');
     await t.enterText(find.byType(TextField).last, '5');
-    await t.tap(find.text('Add'));
+    await t.tap(find.descendant(of: dialog, matching: find.text('Add')));
     await t.pump();
     expect(find.text('Between 10 and 300 seconds'), findsOneWidget, reason: 'too short is refused with a reason');
     await t.enterText(find.byType(TextField).last, '25');
-    await t.tap(find.text('Add'));
+    await t.tap(find.descendant(of: dialog, matching: find.text('Add')));
     await settle(t, rounds: 3);
     expect((bridge.config!['moves'] as String).contains('Jumping jacks|25'), isTrue);
 

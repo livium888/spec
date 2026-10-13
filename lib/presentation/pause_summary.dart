@@ -36,10 +36,89 @@ final pauseSummaryProvider = FutureProvider.autoDispose<PauseSummary?>((ref) asy
   );
 });
 
-/// Progress: attempts to open the paused apps over the last 7 days, and how many were turned away.
+/// What Settings says about Focus before apps in one line (D62): on or off, and what is chosen.
+class FocusOverview {
+  const FocusOverview({required this.saved, required this.on, required this.apps, required this.browsers, required this.sites, required this.moves});
+  final bool saved, on;
+  final int apps, browsers, sites, moves;
+
+  bool get watching => apps + browsers + sites > 0;
+
+  /// "On. 2 apps, 1 site, 6 exercises", "Off. ...", or "Not set up yet".
+  String get line {
+    if (!saved) return 'Not set up yet';
+    String n(int k, String one, String many) => '$k ${k == 1 ? one : many}';
+    final parts = [
+      if (apps > 0) n(apps, 'app', 'apps'),
+      if (browsers > 0) n(browsers, 'browser', 'browsers'),
+      if (sites > 0) n(sites, 'site', 'sites'),
+      if (moves > 0) n(moves, 'exercise', 'exercises'),
+    ];
+    return '${on ? 'On' : 'Off'}. ${parts.isEmpty ? 'Nothing chosen yet' : parts.join(', ')}';
+  }
+}
+
+final focusOverviewProvider = FutureProvider.autoDispose<FocusOverview>((ref) async {
+  ref.watch(refreshProvider);
+  final c = await ref.watch(pauseSettingsProvider).load();
+  final status = await ref.watch(pauseBridgeProvider).status();
+  return FocusOverview(
+    saved: c.saved,
+    on: status.on,
+    apps: c.apps.length,
+    browsers: c.wholeBrowsers.length,
+    sites: c.sites.length,
+    moves: c.moves.length,
+  );
+});
+
+/// Settings: Focus before apps as a section of its own, with its state at a glance (D62). It was one small button.
+class FocusSettingsSection extends ConsumerWidget {
+  const FocusSettingsSection({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final t = Theme.of(context).textTheme;
+    final c = AppColors.of(context);
+    final o = ref.watch(focusOverviewProvider).value;
+    final line = o?.line ?? 'Loading';
+    final off = o != null && o.saved && !o.on && o.watching;
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Semantics(header: true, child: Text('Focus before apps', style: t.titleLarge)),
+      const SizedBox(height: 8),
+      SoftCard(
+        onTap: () => Navigator.of(context)
+            .push(MaterialPageRoute<void>(builder: (_) => const PauseAppsScreen()))
+            .then((_) => ref.invalidate(focusOverviewProvider)),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+        child: Row(children: [
+          Icon(off ? Icons.warning_amber_outlined : Icons.pause_circle_outline, color: off ? c.warn : c.accent),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(line, style: t.titleSmall),
+              const SizedBox(height: 2),
+              Text(
+                off
+                    ? 'The pause is off in Android\'s settings. Tap to switch it on.'
+                    : 'A short pause before LinkedIn, browsers and sites: do 5 cards, breathe, or move first.',
+                style: t.bodySmall,
+              ),
+            ]),
+          ),
+          const Icon(Icons.chevron_right),
+        ]),
+      ),
+    ]);
+  }
+}
+
+/// Progress: attempts to open the paused apps over the last 7 days, how many were turned away, and by which way the
+/// rest got in. With [tappable] it says it opens the settings.
 class PauseWeekCard extends StatelessWidget {
-  const PauseWeekCard(this.s, {super.key});
+  const PauseWeekCard(this.s, {super.key, this.tappable = false});
   final PauseSummary s;
+  final bool tappable;
 
   @override
   Widget build(BuildContext context) {
@@ -55,13 +134,13 @@ class PauseWeekCard extends StatelessWidget {
     }
 
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text('Pause before apps', style: t.titleMedium),
+      Text('Focus before apps', style: t.titleMedium),
       const SizedBox(height: 4),
       Text(
         s.shownWeek == 0
             ? (s.on ? 'The pause has not come up in the last 7 days.' : 'The pause is off, so nothing is counted.')
             : 'Today: ${today.shown} ${today.shown == 1 ? 'attempt' : 'attempts'} to open, ${today.turnedAway} turned away.'
-                '${today.move > 0 ? ' You moved first ${today.move} ${today.move == 1 ? 'time' : 'times'}.' : ''}',
+                '${today.earned + today.move + today.open > 0 ? ' Ways in today: ${today.earned} by cards, ${today.move} by exercise, ${today.open} by breathing.' : ''}',
         style: t.bodyMedium,
       ),
       const SizedBox(height: Sp.m),
@@ -103,6 +182,10 @@ class PauseWeekCard extends StatelessWidget {
       const SizedBox(height: Sp.s),
       Text('Each bar is every attempt to open a paused app or site; the filled part is the ones you turned away from '
           '(not now, or the cards). The fewer attempts over time, the better it is working.', style: t.bodySmall),
+      if (tappable) ...[
+        const SizedBox(height: Sp.s),
+        Text('Tap to change these settings.', style: t.bodySmall),
+      ],
     ]);
   }
 }

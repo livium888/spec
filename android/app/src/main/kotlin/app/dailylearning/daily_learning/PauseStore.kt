@@ -21,6 +21,7 @@ object PauseStore {
     const val KEY_SHOW_NEXT = "show_next"
     const val KEY_ROLLOVER = "rollover_hour"
     const val KEY_MOVES = "moves"
+    const val KEY_CARDS_EVERY = "cards_every"
     const val KEY_ALL_UNTIL = "all_until"
     private const val PASS = "pass:"
     private const val PENDING_KEY = "pending_key"
@@ -46,6 +47,7 @@ object PauseStore {
         val showNext: Boolean = true,
         val rolloverHour: Int = 4,
         val moves: List<Move> = emptyList(),
+        val cardsEvery: Int = 2,
     )
 
     /** An exercise offered as "Move first" (D61): a name and how many seconds the countdown runs. */
@@ -73,7 +75,7 @@ object PauseStore {
 
     fun writeConfig(
         ctx: Context, apps: List<String>, whole: List<String>, rules: String, freeMinutes: Int,
-        rising: Boolean, openLimit: Int, showNext: Boolean, rolloverHour: Int, moves: String,
+        rising: Boolean, openLimit: Int, showNext: Boolean, rolloverHour: Int, moves: String, cardsEvery: Int,
     ) {
         prefs(ctx).edit()
             .putStringSet(KEY_APPS, apps.toSet())
@@ -85,6 +87,7 @@ object PauseStore {
             .putBoolean(KEY_SHOW_NEXT, showNext)
             .putInt(KEY_ROLLOVER, rolloverHour.coerceIn(0, 23))
             .putString(KEY_MOVES, moves)
+            .putInt(KEY_CARDS_EVERY, cardsEvery.coerceIn(0, 3))
             .apply()
     }
 
@@ -100,6 +103,7 @@ object PauseStore {
             showNext = p.getBoolean(KEY_SHOW_NEXT, true),
             rolloverHour = p.getInt(KEY_ROLLOVER, 4).coerceIn(0, 23),
             moves = parseMoves(p.getString(KEY_MOVES, "")),
+            cardsEvery = p.getInt(KEY_CARDS_EVERY, 2).coerceIn(0, 3),
         )
     }
 
@@ -162,6 +166,7 @@ object PauseStore {
 
     const val KIND_SHOWN = "shown"
     const val KIND_AGAIN = "again"
+    const val KIND_EARNED = "earned"
 
     fun log(ctx: Context, kind: String, key: String, now: Long) {
         val p = prefs(ctx)
@@ -185,6 +190,29 @@ object PauseStore {
             val p = l.split('\t')
             p.size == 3 && p[1] == kind && p[2] == key && (p[0].toLongOrNull() ?: 0L) >= start
         }
+    }
+
+    /**
+     * Cards come first (D62). Openings by breathing or an exercise since the last real cards session (`earned`), over
+     * every app and site, from the start of the app day; the test pause is ignored. Mirror of pauseOpeningsSinceCards
+     * (lib/domain/pause_stats.dart), which reads the same lines: a damaged line is skipped.
+     */
+    fun openingsSinceCards(ctx: Context, now: Long): Int = openingsSinceCards(logText(ctx), dayStartMs(now, config(ctx).rolloverHour))
+
+    fun openingsSinceCards(log: String, dayStart: Long): Int {
+        var n = 0
+        for (l in log.split('\n')) {
+            val p = l.split('\t')
+            if (p.size != 3 || p[2].isEmpty() || p[2].length > 300) continue
+            if (p[0].isEmpty() || p[0].length > 18 || !p[0].all { it in '0'..'9' }) continue // plain digits, as the Dart reader
+            val at = p[0].toLong()
+            if (at < dayStart || p[2].startsWith("test:")) continue
+            when (p[1]) {
+                KIND_EARNED -> n = 0
+                CHOICE_OPEN, CHOICE_MOVE -> n++
+            }
+        }
+        return n
     }
 
     /** Mirror of DayClock.dayStartMs (lib/domain/day_clock.dart): the day turns at [rolloverHour] local time. */

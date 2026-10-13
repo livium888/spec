@@ -8,8 +8,8 @@ import '../domain/pause_moves.dart';
 import '../domain/pause_stats.dart';
 import '../domain/site_rule.dart';
 
-/// "Pause before apps" (D58): which apps and sites bring up the pause, the free time, and the Android switch.
-/// Every change is saved at once and handed to the phone side.
+/// "Focus before apps" (D58, named and grouped in D62): which apps and sites bring up the pause, the ways out of it, how
+/// hard it is to open, and the Android switch. Every change is saved at once and handed to the phone side.
 class PauseAppsScreen extends ConsumerStatefulWidget {
   const PauseAppsScreen({super.key});
   @override
@@ -23,6 +23,8 @@ class _PauseAppsScreenState extends ConsumerState<PauseAppsScreen> with WidgetsB
   String? _weekLine;
   String? _error;
   final _site = TextEditingController();
+  // The Undo bar belongs to this screen (a bar that waits for a tap would follow the learner over Settings and Today).
+  final _messenger = GlobalKey<ScaffoldMessengerState>();
   String? _siteError;
 
   @override
@@ -122,8 +124,10 @@ class _PauseAppsScreenState extends ConsumerState<PauseAppsScreen> with WidgetsB
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
     final c = _c;
-    return Scaffold(
-      appBar: AppBar(title: const Text('Pause before apps')),
+    return ScaffoldMessenger(
+      key: _messenger,
+      child: Scaffold(
+      appBar: AppBar(title: const Text('Focus before apps')),
       body: SafeArea(
         child: _error != null
             ? Center(
@@ -140,31 +144,58 @@ class _PauseAppsScreenState extends ConsumerState<PauseAppsScreen> with WidgetsB
                 ? const Center(child: CircularProgressIndicator(semanticsLabel: 'Loading'))
                 : ListView(padding: const EdgeInsets.all(16), children: [
                     Text(
-                      'When you open one of these apps or sites, a short pause comes first: do 5 cards (then everything here is '
-                      'free for ${c.freeMinutes} min), breathe then open, or not now.',
+                      'When you open one of these apps or sites, a short pause comes first. Do 5 cards, breathe, or move: '
+                      'each gets you in.',
                       style: t.bodyLarge,
                     ),
                     const SizedBox(height: 16),
                     _StatusCard(status: _status, weekLine: _weekLine),
-                    const Divider(height: 32),
+                    const SizedBox(height: 12),
+                    OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(52)),
+                      onPressed: () => ref.read(pauseBridgeProvider).test(),
+                      icon: const Icon(Icons.play_arrow),
+                      label: const Text('Test the pause'),
+                    ),
+                    const SizedBox(height: 4),
+                    Text('Shows the pause now, as it will look. A test is not counted.', style: t.bodySmall),
+                    const Divider(height: 40),
+                    _heading('What to pause', t),
+                    const SizedBox(height: 12),
                     _apps(c, t),
-                    const Divider(height: 32),
+                    const SizedBox(height: 24),
                     _browsers(c, t),
-                    const Divider(height: 32),
+                    const SizedBox(height: 24),
                     _sites(c, t),
-                    const Divider(height: 32),
-                    _moves(c, t),
-                    const Divider(height: 32),
-                    Text('Free time', style: t.titleLarge),
-                    const SizedBox(height: 8),
+                    const Divider(height: 40),
+                    _heading('Ways out', t),
+                    const SizedBox(height: 4),
+                    Text('Three ways to get into a paused app. Each frees that app or site, or everything for the cards, for a few minutes.', style: t.bodyMedium),
+                    const SizedBox(height: 16),
                     DropdownButtonFormField<int>(
                       initialValue: c.freeMinutes,
-                      decoration: const InputDecoration(labelText: 'After the cards or the breathing pause'),
+                      decoration: const InputDecoration(labelText: 'Free time after the cards, the breathing or the exercise'),
+                      isExpanded: true,
                       items: [for (final m in kPauseFreeMinutesChoices) DropdownMenuItem(value: m, child: Text('$m ${m == 1 ? 'minute' : 'minutes'}'))],
                       onChanged: (m) => m == null ? null : _save(c.copyWith(freeMinutes: m)),
                     ),
-                    const Divider(height: 32),
-                    Text('Harder to open', style: t.titleLarge),
+                    const SizedBox(height: 16),
+                    DropdownButtonFormField<int>(
+                      initialValue: c.cardsEvery,
+                      decoration: const InputDecoration(
+                        labelText: 'Cards come first, after this many openings',
+                        helperText: 'After this many openings by breathing or an exercise since your last cards, the pause offers only the cards (or not now). '
+                            'Nothing changes when no cards are due.',
+                        helperMaxLines: 4,
+                      ),
+                      isExpanded: true,
+                      items: [for (final n in kPauseCardsEveryChoices) DropdownMenuItem(value: n, child: Text(n == 0 ? 'Off' : '$n ${n == 1 ? 'opening' : 'openings'}'))],
+                      onChanged: (n) => n == null ? null : _save(c.copyWith(cardsEvery: n)),
+                    ),
+                    const SizedBox(height: 24),
+                    _moves(c, t),
+                    const Divider(height: 40),
+                    _heading('Harder to open', t),
                     SwitchListTile(
                       contentPadding: EdgeInsets.zero,
                       title: const Text('The wait grows each time'),
@@ -177,7 +208,7 @@ class _PauseAppsScreenState extends ConsumerState<PauseAppsScreen> with WidgetsB
                       initialValue: c.openLimit,
                       decoration: const InputDecoration(
                         labelText: 'Daily open limit, per app or site',
-                        helperText: 'After this many openings by breathing, only the cards (or not now) remain until tomorrow.',
+                        helperText: 'After this many openings by breathing or an exercise, only the cards (or not now) remain until tomorrow.',
                         helperMaxLines: 3,
                       ),
                       items: [for (final n in kPauseOpenLimitChoices) DropdownMenuItem(value: n, child: Text(n == 0 ? 'No limit' : '$n ${n == 1 ? 'opening' : 'openings'} a day'))],
@@ -191,42 +222,53 @@ class _PauseAppsScreenState extends ConsumerState<PauseAppsScreen> with WidgetsB
                       value: c.showNext,
                       onChanged: (v) => _save(c.copyWith(showNext: v)),
                     ),
-                    const SizedBox(height: 12),
-                    OutlinedButton.icon(
-                      style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(52)),
-                      onPressed: () => ref.read(pauseBridgeProvider).test(),
-                      icon: const Icon(Icons.play_arrow),
-                      label: const Text('Test the pause'),
-                    ),
-                    const SizedBox(height: 4),
-                    Text('Shows the pause now, as it will look. A test is not counted.', style: t.bodySmall),
                     const SizedBox(height: 24),
                   ]),
       ),
-    );
+    ));
   }
 
+  /// A group heading: bigger than the sections inside it, and a heading for screen readers.
+  Widget _heading(String text, TextTheme t) => Semantics(header: true, child: Text(text, style: t.headlineSmall));
+
   /// "Move first" (D61): the exercises offered on the pause as a third way to earn free time for one app or site.
+  /// Tap one to change it; the arrows set the order the pause lists them in (the arrows, not dragging, so it works
+  /// without a gesture); remove has an Undo (D62).
   Widget _moves(PauseChoices c, TextTheme t) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text('Move first', style: t.titleLarge),
+        Text('Move first', style: t.titleMedium),
         const SizedBox(height: 4),
         Text(
-          'A third way to earn free time for the one app or site: do an exercise for its time, then open it. '
+          'Do an exercise for its time, then open the one app or site. '
           'Nothing checks that you did it. The countdown only stops you tapping through, and if you skip it, you have only fooled yourself.',
           style: t.bodyMedium,
         ),
         if (c.moves.isEmpty)
-          const Padding(padding: EdgeInsets.only(top: 8), child: Text('No exercises, so the pause shows no "Move first" button.')),
-        for (final m in c.moves)
+          const Padding(padding: EdgeInsets.only(top: 8), child: Text('No exercises, so the pause shows no "Move first" button.'))
+        else
+          Padding(padding: const EdgeInsets.only(top: 8), child: Text('Tap an exercise to change its name or time.', style: t.bodySmall)),
+        for (var i = 0; i < c.moves.length; i++)
           ListTile(
             contentPadding: EdgeInsets.zero,
-            title: Text(m.name),
-            subtitle: Text('${m.seconds} seconds'),
-            trailing: IconButton(
-              tooltip: 'Remove ${m.name}',
-              icon: const Icon(Icons.close),
-              onPressed: () => _save(c.copyWith(moves: [for (final x in c.moves) if (x != m) x])),
-            ),
+            title: Text(c.moves[i].name),
+            subtitle: Text('${c.moves[i].seconds} seconds'),
+            onTap: () => _editMove(c, i),
+            trailing: Row(mainAxisSize: MainAxisSize.min, children: [
+              IconButton(
+                tooltip: 'Move ${c.moves[i].name} up',
+                icon: const Icon(Icons.arrow_upward),
+                onPressed: i == 0 ? null : () => _shiftMove(c, i, -1),
+              ),
+              IconButton(
+                tooltip: 'Move ${c.moves[i].name} down',
+                icon: const Icon(Icons.arrow_downward),
+                onPressed: i == c.moves.length - 1 ? null : () => _shiftMove(c, i, 1),
+              ),
+              IconButton(
+                tooltip: 'Remove ${c.moves[i].name}',
+                icon: const Icon(Icons.close),
+                onPressed: () => _removeMove(c, i),
+              ),
+            ]),
           ),
         const SizedBox(height: 8),
         Wrap(spacing: 8, runSpacing: 8, children: [
@@ -246,12 +288,52 @@ class _PauseAppsScreenState extends ConsumerState<PauseAppsScreen> with WidgetsB
       ]);
 
   Future<void> _addMove(PauseChoices c) async {
-    final made = await showDialog<PauseMove>(context: context, builder: (_) => _AddMoveDialog(taken: [for (final m in c.moves) m.name.toLowerCase()]));
+    final made = await showDialog<PauseMove>(context: context, builder: (_) => _MoveDialog(taken: [for (final m in c.moves) m.name.toLowerCase()]));
     if (made != null && mounted) await _save(c.copyWith(moves: [...c.moves, made]));
   }
 
+  /// Change one exercise in place: its place in the list stays. Its own name does not count as a repeat.
+  Future<void> _editMove(PauseChoices c, int i) async {
+    final made = await showDialog<PauseMove>(
+      context: context,
+      builder: (_) => _MoveDialog(initial: c.moves[i], taken: [for (var j = 0; j < c.moves.length; j++) if (j != i) c.moves[j].name.toLowerCase()]),
+    );
+    if (made != null && mounted) await _save(c.copyWith(moves: [for (var j = 0; j < c.moves.length; j++) j == i ? made : c.moves[j]]));
+  }
+
+  Future<void> _shiftMove(PauseChoices c, int i, int by) {
+    final list = [...c.moves];
+    final m = list.removeAt(i);
+    list.insert(i + by, m);
+    return _save(c.copyWith(moves: list));
+  }
+
+  /// Remove, with an Undo that puts it back where it was. The bar waits until it is closed (no timer, WCAG 2.2.1) and
+  /// goes with this screen: it is shown by this screen's own messenger, not the app's.
+  void _removeMove(PauseChoices c, int i) {
+    final gone = c.moves[i];
+    final settings = ref.read(pauseSettingsProvider);
+    _save(c.copyWith(moves: [for (var j = 0; j < c.moves.length; j++) if (j != i) c.moves[j]]));
+    _messenger.currentState!
+      ..clearSnackBars()
+      ..showSnackBar(SnackBar(
+        content: Text('Removed ${gone.name}'),
+        showCloseIcon: true,
+        action: SnackBarAction(
+          label: 'Undo',
+          onPressed: () async {
+            final now = await settings.load();
+            if (now.moves.any((m) => m.name.toLowerCase() == gone.name.toLowerCase()) || now.moves.length >= kMaxPauseMoves) return;
+            final back = now.copyWith(moves: [...now.moves]..insert(i.clamp(0, now.moves.length), gone));
+            await settings.save(back);
+            if (mounted) setState(() => _c = back);
+          },
+        ),
+      ));
+  }
+
   Widget _apps(PauseChoices c, TextTheme t) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text('Apps', style: t.titleLarge),
+        Text('Apps', style: t.titleMedium),
         if (c.apps.isEmpty)
           const Padding(padding: EdgeInsets.only(top: 8), child: Text('No apps yet.'))
         else
@@ -272,7 +354,7 @@ class _PauseAppsScreenState extends ConsumerState<PauseAppsScreen> with WidgetsB
   Widget _browsers(PauseChoices c, TextTheme t) {
     final browsers = [for (final a in _installed ?? <InstalledApp>[]) if (a.browser) a];
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text('Browsers', style: t.titleLarge),
+      Text('Browsers', style: t.titleMedium),
       const SizedBox(height: 4),
       Text(
         browsers.isEmpty
@@ -294,7 +376,7 @@ class _PauseAppsScreenState extends ConsumerState<PauseAppsScreen> with WidgetsB
   }
 
   Widget _sites(PauseChoices c, TextTheme t) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text('Sites', style: t.titleLarge),
+        Text('Sites', style: t.titleMedium),
         const SizedBox(height: 4),
         Text('linkedin.com is that site (with or without www). *.linkedin.com adds every subdomain. reddit.com/r/all is that page and the pages under it.',
             style: t.bodyMedium),
@@ -335,17 +417,18 @@ class _PauseAppsScreenState extends ConsumerState<PauseAppsScreen> with WidgetsB
       ]);
 }
 
-/// A name and a number of seconds for one exercise.
-class _AddMoveDialog extends StatefulWidget {
-  const _AddMoveDialog({required this.taken});
+/// A name and a number of seconds for one exercise: to add one, or (with [initial]) to change one.
+class _MoveDialog extends StatefulWidget {
+  const _MoveDialog({required this.taken, this.initial});
   final List<String> taken;
+  final PauseMove? initial;
   @override
-  State<_AddMoveDialog> createState() => _AddMoveDialogState();
+  State<_MoveDialog> createState() => _MoveDialogState();
 }
 
-class _AddMoveDialogState extends State<_AddMoveDialog> {
-  final _name = TextEditingController();
-  final _seconds = TextEditingController(text: '30');
+class _MoveDialogState extends State<_MoveDialog> {
+  late final _name = TextEditingController(text: widget.initial?.name ?? '');
+  late final _seconds = TextEditingController(text: '${widget.initial?.seconds ?? 30}');
   String? _error;
 
   @override
@@ -355,7 +438,7 @@ class _AddMoveDialogState extends State<_AddMoveDialog> {
     super.dispose();
   }
 
-  void _add() {
+  void _save() {
     final name = _name.text.replaceAll(RegExp(r'[ \t\r\n]+'), ' ').trim();
     final secs = int.tryParse(_seconds.text.trim());
     final err = pauseMoveError(name, secs) ?? (widget.taken.contains(name.toLowerCase()) ? 'That one is in the list already' : null);
@@ -367,30 +450,33 @@ class _AddMoveDialogState extends State<_AddMoveDialog> {
   }
 
   @override
-  Widget build(BuildContext context) => AlertDialog(
-        title: const Text('Add an exercise'),
-        content: Column(mainAxisSize: MainAxisSize.min, children: [
-          TextField(
-            controller: _name,
-            autofocus: true,
-            maxLength: kMaxPauseMoveName,
-            textCapitalization: TextCapitalization.sentences,
-            decoration: const InputDecoration(labelText: 'Name', hintText: 'e.g. 20 jumping jacks'),
-            onChanged: (_) => setState(() => _error = null),
-          ),
-          TextField(
-            controller: _seconds,
-            keyboardType: TextInputType.number,
-            decoration: InputDecoration(labelText: 'Countdown in seconds ($kPauseMoveMinSeconds to $kPauseMoveMaxSeconds)', errorText: _error, errorMaxLines: 2),
-            onChanged: (_) => setState(() => _error = null),
-            onSubmitted: (_) => _add(),
-          ),
-        ]),
-        actions: [
-          TextButton(style: TextButton.styleFrom(minimumSize: const Size(64, 48)), onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
-          FilledButton(style: FilledButton.styleFrom(minimumSize: const Size(64, 48)), onPressed: _add, child: const Text('Add')),
-        ],
-      );
+  Widget build(BuildContext context) {
+    final editing = widget.initial != null;
+    return AlertDialog(
+      title: Text(editing ? 'Edit exercise' : 'Add an exercise'),
+      content: Column(mainAxisSize: MainAxisSize.min, children: [
+        TextField(
+          controller: _name,
+          autofocus: true,
+          maxLength: kMaxPauseMoveName,
+          textCapitalization: TextCapitalization.sentences,
+          decoration: const InputDecoration(labelText: 'Name', hintText: 'e.g. 20 jumping jacks'),
+          onChanged: (_) => setState(() => _error = null),
+        ),
+        TextField(
+          controller: _seconds,
+          keyboardType: TextInputType.number,
+          decoration: InputDecoration(labelText: 'Countdown in seconds ($kPauseMoveMinSeconds to $kPauseMoveMaxSeconds)', errorText: _error, errorMaxLines: 2),
+          onChanged: (_) => setState(() => _error = null),
+          onSubmitted: (_) => _save(),
+        ),
+      ]),
+      actions: [
+        TextButton(style: TextButton.styleFrom(minimumSize: const Size(64, 48)), onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
+        FilledButton(style: FilledButton.styleFrom(minimumSize: const Size(64, 48)), onPressed: _save, child: Text(editing ? 'Save' : 'Add')),
+      ],
+    );
+  }
 }
 
 /// Whether Android has the pause switched on, how to switch it on, and what it can see.

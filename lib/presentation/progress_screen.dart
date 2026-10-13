@@ -7,6 +7,7 @@ import '../domain/memory_summary.dart';
 import '../domain/tomorrow_plan.dart';
 import '../domain/milestones.dart';
 import 'plan_ahead_screen.dart';
+import 'pause_apps_screen.dart';
 import 'pause_summary.dart';
 import 'theme/app_theme.dart';
 import 'theme/tokens.dart';
@@ -305,7 +306,15 @@ class _PauseSection extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final s = ref.watch(pauseSummaryProvider).value;
     if (s == null) return const SizedBox.shrink();
-    return Padding(padding: const EdgeInsets.only(top: Sp.m), child: SoftCard(child: PauseWeekCard(s)));
+    return Padding(
+      padding: const EdgeInsets.only(top: Sp.m),
+      child: SoftCard(
+        onTap: () => Navigator.of(context)
+            .push(MaterialPageRoute<void>(builder: (_) => const PauseAppsScreen()))
+            .then((_) => ref.invalidate(pauseSummaryProvider)),
+        child: PauseWeekCard(s, tappable: true),
+      ),
+    );
   }
 }
 

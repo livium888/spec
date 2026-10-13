@@ -8,7 +8,11 @@ import 'day_clock.dart';
 /// What happened at a pause. `shown`: an attempt to open a paused app or site (the pause came up). `again`: the
 /// pause came back because free time ran out while the app was still in front; not an attempt, so it is not counted
 /// as one and does not grow the wait. `move`: the app was opened after an exercise (D61); it counts as an opening.
-enum PauseKind { shown, again, back, open, move, cards }
+/// `cards`: the learner tapped "Do 5 cards" (a choice, not a result). `earned`: the five cards were answered and the
+/// free time was granted (D62): the only line that counts as a real cards session.
+enum PauseKind { shown, again, back, open, move, cards, earned }
+
+final _digits = RegExp(r'^[0-9]{1,18}$');
 
 class PauseEvent {
   const PauseEvent(this.atMs, this.kind, this.key);
@@ -23,7 +27,8 @@ class PauseEvent {
   static PauseEvent? parse(String line) {
     final p = line.split('\t');
     if (p.length != 3) return null;
-    final at = int.tryParse(p[0]);
+    // Plain digits only: the Kotlin mirror (PauseStore.openingsSinceCards) reads the same way, with no sign or spaces.
+    final at = _digits.hasMatch(p[0]) ? int.tryParse(p[0]) : null;
     final kind = PauseKind.values.where((k) => k.name == p[1]).firstOrNull;
     if (at == null || kind == null || p[2].isEmpty || p[2].length > 300) return null;
     return PauseEvent(at, kind, p[2]);
@@ -33,7 +38,7 @@ class PauseEvent {
 class PauseDay {
   PauseDay(this.dayIndex);
   final int dayIndex;
-  int shown = 0, again = 0, back = 0, open = 0, move = 0, cards = 0;
+  int shown = 0, again = 0, back = 0, open = 0, move = 0, cards = 0, earned = 0;
 
   /// Pauses that ended without opening the app: turned back, or went to the cards instead. Capped at the attempts:
   /// a pause that came back after free time can also end in "not now".
@@ -63,6 +68,8 @@ List<PauseDay> pauseDays(Iterable<PauseEvent> events, DayClock clock, DateTime n
         day.move++;
       case PauseKind.cards:
         day.cards++;
+      case PauseKind.earned:
+        day.earned++;
     }
   }
   return out;
@@ -94,6 +101,34 @@ int pauseWaitSeconds({required int shownToday, required bool rising}) {
 /// (or not now) remain.
 const kPauseOpenLimitChoices = [0, 1, 2, 3, 5, 8, 10];
 bool pauseOpenLimitReached({required int opensToday, required int limit}) => limit > 0 && opensToday >= limit;
+
+/// Cards come first (D62). After [every] openings by breathing or an exercise since the last real cards session, the
+/// pause offers only the cards (or not now). 0 = off. The count is over every app and site (cards free all of them, so
+/// a second key such as a browser cannot dodge it), starts again at the turn of the day, and ignores the test pause.
+/// PauseStore.openingsSinceCards mirrors [pauseOpeningsSinceCards]; keep them in step.
+const kPauseCardsEveryChoices = [0, 1, 2, 3];
+const kDefaultPauseCardsEvery = 2;
+
+/// Openings (`open` or `move`) since the last `earned`, among [events] in log order, from the day that began at
+/// [dayStartMs].
+int pauseOpeningsSinceCards(Iterable<PauseEvent> events, int dayStartMs) {
+  var n = 0;
+  for (final e in events) {
+    if (e.atMs < dayStartMs || e.key.startsWith('test:')) continue;
+    switch (e.kind) {
+      case PauseKind.earned:
+        n = 0;
+      case PauseKind.open || PauseKind.move:
+        n++;
+      default:
+    }
+  }
+  return n;
+}
+
+/// It is cards' turn. Never when cards cannot be offered: nothing is due, or the app has not said (a cards-only pause
+/// with no cards would lock the learner out).
+bool pauseCardsTurn({required int openings, required int every, required int? due}) => every > 0 && (due ?? 0) > 0 && openings >= every;
 
 /// The next card's question, as plain short text for the pause screen: markup marks dropped, one line, at most
 /// [kPausePreviewChars] characters. Empty when there is nothing readable (a picture-only card).

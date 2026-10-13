@@ -436,3 +436,18 @@ From a review: opening it before the answer is shown reveals the card first. The
 | Countdown done | "Done." and the open button. |
 | Leaving mid-way | Not now, or the pause closes: nothing is logged, no time is granted. |
 - **Progress:** today's line gains "You moved first N times." only when N > 0.
+
+## Focus before apps (D62; the screens of D58, D59 and D61, regrouped)
+- **Settings:** under "How the app works", a heading "Focus before apps" and one full-width card: a line of state ("Not set up yet", "On. 2 apps, 1 site, 6 exercises", "Off. ..." or "On. Nothing chosen yet"), a sentence of what it does, a chevron. When chosen things exist but Android has the pause off, the icon is a warning and the sentence says to tap and switch it on. Tapping opens the screen; coming back refreshes the line.
+- **The screen (reading order):** a sentence ("Do 5 cards, breathe, or move: each gets you in."); the status card (on/off, how to switch on, what it sees); "Test the pause"; then three headings: **What to pause** (Apps, Browsers, Sites), **Ways out** (Free time; Cards come first, after this many openings: Off/1/2/3 with a helper sentence; Move first with its list), **Harder to open** (the wait grows; daily open limit; show my next card's question). Group headings are headings for screen readers.
+- **Move first list:** each row is a button that opens "Edit exercise" (dialog prefilled, Save/Cancel, the same errors in words as Add); trailing, three buttons each 48 dp high with tooltips: move up, move down (disabled at the ends), remove. Removing shows "Removed <name>" with Undo and a close icon, with no timer; the bar belongs to this screen and goes when it is left.
+- **Pause screen when it is cards' turn:** name, "You were about to open X", the cards line, the next question, **Do 5 cards** (filled), then "You opened apps by breathing or exercise N times since your last cards. This time it's cards.", then Not now. No Breathe and no Move first.
+| State | What shows |
+|---|---|
+| Cards' turn, cards due | As above. |
+| Cards' turn reached but nothing due, or the count unknown | The ordinary pause (Breathe, Move first): no lock-out. |
+| Cards' turn and the daily limit reached | The limit line (it says the same way out), Do 5 cards, Not now. |
+| "Cards come first" Off | The ordinary pause, always. |
+| Not set up / loading / error | Settings: "Not set up yet"; the screen: spinner, or the message with Try again. |
+| Success | Choices save at once and reach the phone side. |
+- **Progress:** the Focus before apps card is tappable ("Tap to change these settings."); today's line adds "Ways in today: A by cards, B by exercise, C by breathing." when any.

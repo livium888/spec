@@ -71,6 +71,7 @@ class MainActivity : FlutterActivity() {
                     call.argument<Boolean>("showNext") ?: true,
                     call.argument<Int>("rolloverHour") ?: 4,
                     call.argument<String>("moves") ?: "",
+                    call.argument<Int>("cardsEvery") ?: 2,
                 )
                 result.success(null)
             }
@@ -110,6 +111,7 @@ class MainActivity : FlutterActivity() {
                     result.success(false)
                 } else {
                     PauseStore.grantAll(ctx, now + PauseStore.config(ctx).freeMinutes * 60_000L)
+                    PauseStore.log(ctx, PauseStore.KIND_EARNED, p.key, now) // a real cards session: "cards come first" counts from here (D62)
                     PauseStore.clearPending(ctx)
                     result.success(PauseActivity.launchTarget(this, p.pkg))
                 }

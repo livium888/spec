@@ -148,6 +148,10 @@ class PauseActivity : Activity() {
         // An exercise is an opening too (D61): it must not be a way round the daily limit.
         val opens = PauseStore.countToday(this, PauseStore.CHOICE_OPEN, key, now) + PauseStore.countToday(this, PauseStore.CHOICE_MOVE, key, now)
         val limitReached = cfg.openLimit > 0 && opens >= cfg.openLimit
+        // Cards come first (D62): after a few openings by breathing or exercise, only the cards (or not now) are offered.
+        // Never when no cards can be offered (nothing due, or not known), or the learner would be locked out.
+        val sinceCards = PauseStore.openingsSinceCards(this, now)
+        val cardsTurn = cfg.cardsEvery > 0 && (due ?: 0) > 0 && sinceCards >= cfg.cardsEvery
         column = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER_HORIZONTAL
@@ -187,6 +191,11 @@ class PauseActivity : Activity() {
             column.addView(text(
                 "You opened $label $opens ${if (opens == 1) "time" else "times"} today, your daily limit. " +
                     (if (due == 0) "No cards are due, so it opens again tomorrow." else "Do 5 cards, or come back tomorrow."),
+                16f, ink,
+            ))
+        } else if (cardsTurn) {
+            column.addView(text(
+                "You opened apps by breathing or exercise $sinceCards ${if (sinceCards == 1) "time" else "times"} since your last cards. This time it's cards.",
                 16f, ink,
             ))
         } else {
