@@ -266,6 +266,8 @@ void editDeleteWidgetTests() {
     await until(t, find.text('Save changes'));
     await settle(t);
     await t.enterText(find.widgetWithText(TextField, 'Question'), 'What makes ATP?');
+    // The form is a long list (Read more, D64, made it longer): scroll to the button before pressing it.
+    await t.dragUntilVisible(find.text('Save changes'), find.byType(Scrollable).first, const Offset(0, -300));
     await t.tap(find.text('Save changes'));
     await until(t, find.text('What makes ATP?'));
     await settle(t);
