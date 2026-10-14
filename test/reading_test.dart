@@ -131,9 +131,9 @@ void main() {
   });
 
   group('the prompt asks for reading once per answer, with strict rules', () {
-    test('v9 carries the rules and the example key', () {
+    test('v10 carries the rules and the example key', () {
       final p = renderPrompt(domain: 'Biology', syllabusItem: 'Cells', n: 5, recentTitles: const []);
-      expect(kPromptTemplateVersion, 'v9');
+      expect(kPromptTemplateVersion, 'v10');
       for (final must in ['further_reading" (once per answer', 'Only works you are CERTAIN exist', 'NEVER a web address, DOI, ISBN', 'Never blogs, listicles', '"further_reading": [']) {
         expect(p, contains(must), reason: must);
       }

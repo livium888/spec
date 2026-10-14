@@ -45,6 +45,7 @@ List<String> validateNoteEdit({
   limit('why_it_matters', '"Why it matters"', kMaxExtraChars);
   limit('example', '"Example"', kMaxExtraChars);
   limit('memory_hook', '"Memory hook"', kMaxExtraChars);
+  limit('read_more', '"Read more"', kMaxReadMoreChars);
   limit('image_alt', 'The picture description', 300);
   limit('image_credit', 'The picture credit', 300);
   final keywords = f('image_query');

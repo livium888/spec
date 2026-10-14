@@ -30,9 +30,9 @@ Map<String, dynamic> embeddedExample(String p) {
 void main() {
   citationMarkerTests();
   group('the card prompt', () {
-    test('is version v9, fully rendered, and keeps the sentence other code relies on', () {
+    test('is version v10, fully rendered, and keeps the sentence other code relies on', () {
       final p = prompt();
-      expect(kPromptTemplateVersion, 'v9');
+      expect(kPromptTemplateVersion, 'v10');
       expect(p, contains('Create 8 flashcards for the domain "Biology", focusing on "Cell membrane".'));
       expect(p, contains('"syllabus_item": "Cell membrane"'));
       expect(p, contains('- Old card one?'));
@@ -203,7 +203,7 @@ void main() {
       expect(r.text, contains('Loves cycling and cooking'));
       final r2 = await PromptService(db).build(domainId: dom, n: 5);
       expect(r2.text, isNot(contains('Loves cycling')));
-      expect((await db.select(db.promptLogs).get()).first.templateVersion, 'v9');
+      expect((await db.select(db.promptLogs).get()).first.templateVersion, 'v10');
     });
   });
 

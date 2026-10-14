@@ -309,7 +309,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 const SizedBox(height: 16),
                 field(_newPerDay, 'New cards per day', help: 'Your number, used exactly. Any whole number you like.'),
                 field(_problems, 'New problems per day', help: 'Problems to solve (maths, physics, chemistry...). Separate from new cards; each takes a few minutes. 0 = none.'),
-                field(_perPrompt, 'Cards per prompt', help: 'How many cards one "Learn something new" asks your AI for (1-200).'),
+                field(_perPrompt, 'Cards per prompt', help: 'How many cards one "Learn something new" asks your AI for (1-200). Each card now comes with a Read more paragraph, so above about 20 the reply may be too long to finish.'),
                 SwitchListTile(
                   contentPadding: EdgeInsets.zero,
                   title: const Text('Shrink the daily limit when many reviews are due'),

@@ -1087,6 +1087,25 @@ void phase3WidgetTests() {
     await done(t, db);
   });
 
+  testWidgets('Edit card: Read more (D64) is a field of its own, long enough for a paragraph, and is saved', (t) async {
+    final db = await boot(t, settings: {'guide_seen': '1'}, prepare: (db) async {
+      await _spanishCard(db, withPicture: false);
+    });
+    await openEditCard(t);
+    final field = find.widgetWithText(TextField, 'Read more (optional): a paragraph for the curious');
+    await t.ensureVisible(field);
+    await t.pump();
+    expect(field, findsOneWidget);
+    await t.enterText(field, 'Spanish borrowed the word from a Latin root, and it still carries a trace of its first meaning.');
+    await t.drag(find.byType(Scrollable).first, const Offset(0, -2000));
+    await t.pumpAndSettle();
+    await t.tap(find.text('Save changes'));
+    await settle(t);
+    final fields = jsonDecode((await t.runAsync(() => db.select(db.notes).getSingle()))!.fieldsJson) as Map<String, dynamic>;
+    expect(fields['read_more'], startsWith('Spanish borrowed the word'));
+    await done(t, db);
+  });
+
   testWidgets('Review: a picture\'s credit (it can name the artist) appears only after the answer is shown', (t) async {
     final db = await boot(t, settings: {'guide_seen': '1'}, prepare: (db) async {
       await _spanishCard(db);

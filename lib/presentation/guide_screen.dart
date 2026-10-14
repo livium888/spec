@@ -71,7 +71,7 @@ class GuideScreen extends StatelessWidget {
 
           heading('Three kinds of prompt'),
           para('"Learn something new" gives you whichever the app needs. The prompt screen says what to expect.'),
-          kind('Cards', 'Cards for one topic: a question and a short answer, plus why it matters, an example and sometimes a memory hook.',
+          kind('Cards', 'Cards for one topic: a question and a short answer, plus why it matters, an example, sometimes a memory hook, and a Read more paragraph for when you want a bit more.',
               'The answer starts with {"domain": … "cards": […]'),
           kind('A list of topics', 'More topics for a subject you have used up. Each is a small lesson that later gets its own cards. '
               'Every batch leans a different way: deeper, practical, people and history, and so on.',

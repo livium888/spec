@@ -3,7 +3,7 @@ import 'dart:convert';
 /// Versioned LLM prompt templates. Bump the version constant on any wording change so
 /// `prompt_log.template_version` stays meaningful. Design notes and evidence for the
 /// card prompt are in docs/CARD_QUALITY.md and docs/DECISIONS.md (D19).
-const kPromptTemplateVersion = 'v9';
+const kPromptTemplateVersion = 'v10';
 
 /// The problem-family rules, added to the card prompt unless the topic is "concepts only" (D43).
 const kProblemsSection = r'''<problems>
@@ -43,6 +43,7 @@ Vary the shape (never 3 in a row alike): mechanism | predict or apply | surprisi
 - "why_it_matters": 1 to 2 sentences: the reason it is true, the story, the consequence. Include on at least 80% of cards.
 - "example": 1 to 2 sentences, concrete. Real names, places and numbers only where you are certain.
 - "memory_hook": vivid image, mnemonic or wordplay, only when it truly helps; otherwise "".
+- "read_more": 120 to 150 words, one paragraph (1,100 characters at most), for the reader who wants a bit more: the next layer of the story, a related idea, a common misconception, or where it leads. Put it on every explanatory card; use "" where nothing is worth adding (vocabulary, notation, names, dates). Only what you are highly confident of: never invent a quote, a statistic or a citation, and write "According to X, ..." for anything disputed. A complete reply beats long paragraphs: if the whole reply might be too long to finish, shorten every "read_more" first.
 - "image_query": on EVERY card, 2 to 6 plain words that would find the best picture in a free image library (Wikimedia Commons, museum collections, Openverse). Name what the card is about concretely: a work of art with its artist, a building, a species, an instrument, a place, a person, a process diagram. For an abstract idea, choose a concrete scene or object that illustrates it. NEVER a web address or file name. It may name the answer; the learner sees it only when choosing a picture. Do not invent details to be exact.
 - "image_side": "back" when the picture would give the answer away (usual), "front" only when the picture IS what the question asks about.
 </fields>
@@ -85,6 +86,7 @@ Return ONE JSON object and nothing else: no text before or after, no markdown fe
       "why_it_matters": "It is why mitochondria divide on their own schedule, and why you inherit them almost entirely from your mother.",
       "example": "Chloroplasts in plants tell the same story, with their own DNA and a bacterial look.",
       "memory_hook": "A lodger who never moved out and still keeps their own front-door key.",
+      "read_more": "Lynn Margulis argued in 1967 that mitochondria and chloroplasts began as free-living bacteria, an idea ridiculed at first and now in every textbook. Three clues persuade biologists: mitochondria have two membranes, as if swallowed whole; their ribosomes look bacterial; and their DNA is a small ring, like a bacterium's. Over more than a billion years most of their genes moved into the cell's nucleus, so they can no longer live alone. Some antibiotics that target bacterial ribosomes can also disturb mitochondria, which is behind a few of their side effects.",
       "image_query": "mitochondrion electron micrograph",
       "image_side": "back",
       "source_type": "model_memory",
@@ -100,6 +102,7 @@ Return ONE JSON object and nothing else: no text before or after, no markdown fe
       "why_it_matters": "On a piano's white keys the two half-steps are exactly where no black key sits between neighbours (E to F, B to C), which is why C major uses only white keys.",
       "example": "",
       "memory_hook": "",
+      "read_more": "",
       "image_query": "piano keyboard white and black keys",
       "image_side": "back",
       "source_type": "model_memory",

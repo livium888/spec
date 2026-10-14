@@ -111,6 +111,7 @@ class StudyCard {
           ('Why it matters', 'why_it_matters'),
           ('Example', 'example'),
           ('Memory hook', 'memory_hook'),
+          ('Read more', 'read_more'), // D64: the paragraph for the curious, last
         ])
           if ((fields[key] as String? ?? '').trim().isNotEmpty) (label, (fields[key] as String).trim()),
       ];

@@ -11,6 +11,9 @@ import 'reading.dart' show ReadingSuggestion, parseFurtherReading;
 const kMaxCardsPerImport = 200;
 const kMaxFieldChars = 2000;
 const kMaxExtraChars = 600;
+
+/// "Read more" (D64): one optional paragraph of about 150 words on the answer side. Bigger than the other extras.
+const kMaxReadMoreChars = 1200;
 const kMaxTags = 12;
 
 const _types = {'basic', 'cloze'};
@@ -39,6 +42,7 @@ class ParsedCard {
     this.whyItMatters = '',
     this.example = '',
     this.memoryHook = '',
+    this.readMore = '',
     this.imageQuery = '',
     this.imageSide = '',
     this.steps = const [],
@@ -62,6 +66,9 @@ class ParsedCard {
 
   /// Optional answer-side extras: the story / reason, a concrete example, a memory hook.
   final String whyItMatters, example, memoryHook;
+
+  /// Optional paragraph for the curious (D64), shown after the other extras. Unchecked AI text: length-capped like any field.
+  final String readMore;
 
   /// Optional hint for "Find a picture": a few words to search Wikimedia Commons for. Never a URL.
   final String imageQuery;
@@ -508,15 +515,15 @@ ParsedCard _parseCard(int i, Object? raw) {
     errors.add('source_ref must be an http(s) URL when source_type is url.');
   }
 
-  String extra(String key) {
+  String extra(String key, {int max = kMaxExtraChars, String advice = 'Keep it to a sentence or two.'}) {
     final v = raw[key];
     if (v == null) return '';
     if (v is! String) {
       errors.add('"$key" must be a string.');
       return '';
     }
-    if (v.length > kMaxExtraChars) {
-      errors.add('"$key" is too long (max $kMaxExtraChars). Keep it to a sentence or two.');
+    if (v.length > max) {
+      errors.add('"$key" is too long (max $max). $advice');
       return '';
     }
     return v.trim();
@@ -525,6 +532,7 @@ ParsedCard _parseCard(int i, Object? raw) {
   final why = extra('why_it_matters');
   final example = extra('example');
   final hook = extra('memory_hook');
+  final readMore = extra('read_more', max: kMaxReadMoreChars, advice: 'Keep it to one paragraph of about 150 words.');
   // Only a hint: a missing, odd or URL-like value is dropped quietly, never a reason to refuse the card.
   final imageQuery = cleanImageQuery(raw['image_query']) ?? '';
   final sideRaw = raw['image_side'];
@@ -564,6 +572,7 @@ ParsedCard _parseCard(int i, Object? raw) {
     whyItMatters: why,
     example: example,
     memoryHook: hook,
+    readMore: readMore,
     imageQuery: imageQuery,
     imageSide: imageSide,
   );

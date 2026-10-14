@@ -292,7 +292,7 @@ void main() {
       expect(p(''), allOf(contains('If this topic is learned by solving'), contains('<problems>\nA problem family'), contains('answer_expr')));
       expect(p('both'), allOf(contains('1 problem family'), contains('answer_value')));
       expect(p('problems'), contains('write 2 problem families'));
-      expect(kPromptTemplateVersion, 'v9');
+      expect(kPromptTemplateVersion, 'v10');
       expect(kOutlineTemplateVersion, 'outline-v4');
     });
   });

@@ -143,6 +143,7 @@ class ImportService {
           if (c.whyItMatters.isNotEmpty) 'why_it_matters': c.whyItMatters,
           if (c.example.isNotEmpty) 'example': c.example,
           if (c.memoryHook.isNotEmpty) 'memory_hook': c.memoryHook,
+          if (c.readMore.isNotEmpty) 'read_more': c.readMore,
           if (c.imageQuery.isNotEmpty) 'image_query': c.imageQuery,
           // Where a picture should go once one is added (the card has no picture yet; see EditCardScreen).
           if (c.imageSide.isNotEmpty) 'image_side': c.imageSide,

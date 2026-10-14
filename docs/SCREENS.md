@@ -451,3 +451,14 @@ From a review: opening it before the answer is shown reveals the card first. The
 | Not set up / loading / error | Settings: "Not set up yet"; the screen: spinner, or the message with Try again. |
 | Success | Choices save at once and reach the phone side. |
 - **Progress:** the Focus before apps card is tappable ("Tap to change these settings."); today's line adds "Ways in today: A by cards, B by exercise, C by breathing." when any.
+
+## Read more (D64)
+- **Review and Learn, answer side:** after the reveal, the extras stack shows Why it matters, Example, Memory hook and then **Read more** (a heading for screen readers, the paragraph selectable and rendered like the other extras, so Markdown and formulas work). Empty ones are left out; a card without Read more looks as before.
+- **Edit card:** "Read more (optional): a paragraph for the curious" after the memory hook, four lines high, up to 8 before it scrolls. Over 1,200 characters is refused with `"Read more" is too long (max 1200 characters).` Clearing it removes the key. Problem cards do not have the field.
+- **Import:** `read_more` is optional; over 1,200 characters or not text refuses that card (not the batch) with the reason; an absent value is fine.
+| State | What shows |
+|---|---|
+| No Read more | Nothing: the card is as before. |
+| Read more present | The paragraph last in the extras, always open. |
+| Too long / not text (import) | That card is listed with the reason; the others import. |
+| Too long (edit) | The error above the Save button; nothing is saved. |

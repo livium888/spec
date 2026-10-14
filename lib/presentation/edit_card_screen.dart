@@ -32,6 +32,7 @@ class _EditCardScreenState extends ConsumerState<EditCardScreen> {
     'why_it_matters': 'Why it matters (optional)',
     'example': 'Example (optional)',
     'memory_hook': 'Memory hook (optional)',
+    'read_more': 'Read more (optional): a paragraph for the curious',
   };
   final _ctl = <String, TextEditingController>{};
   NoteRow? _note;
@@ -57,10 +58,10 @@ class _EditCardScreenState extends ConsumerState<EditCardScreen> {
     if (!mounted) return;
     if (n != null) {
       final keys = n.type == 'cloze'
-          ? ['cloze', 'back', 'why_it_matters', 'example', 'memory_hook']
+          ? ['cloze', 'back', 'why_it_matters', 'example', 'memory_hook', 'read_more']
           : n.type == 'problem'
               ? ['front', 'steps', 'back', 'why_it_matters']
-              : ['front', 'back', 'why_it_matters', 'example', 'memory_hook'];
+              : ['front', 'back', 'why_it_matters', 'example', 'memory_hook', 'read_more'];
       for (final k in keys) {
         _ctl[k] = TextEditingController(text: n.fields[k] as String? ?? '');
       }
@@ -299,7 +300,7 @@ class _EditCardScreenState extends ConsumerState<EditCardScreen> {
                     for (final e in _ctl.entries) ...[
                       TextField(
                         controller: e.value,
-                        minLines: e.key == 'back' || e.key == 'front' || e.key == 'cloze' ? 2 : 1,
+                        minLines: e.key == 'back' || e.key == 'front' || e.key == 'cloze' ? 2 : e.key == 'read_more' ? 4 : 1,
                         maxLines: 8,
                         textCapitalization: TextCapitalization.sentences,
                         decoration: InputDecoration(labelText: _labels[e.key]),
