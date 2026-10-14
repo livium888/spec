@@ -12,6 +12,16 @@ version-sensitive facts, and a self-critique before presenting.
 Decisions go in `docs/DECISIONS.md` (chosen, rejected, revisit-if). Screen specs and state
 tables go in `docs/SCREENS.md`. Update them in the same commit as the code they describe.
 
+## Also apply the `architect` skill (D63)
+`.claude/skills/architect/SKILL.md` runs alongside `principal-architect`: load both (Skill tool) at
+the start of any session. It adds the decision interview before any non-trivial design or code (one
+numbered round, every question with a recommended answer, then wait for the answers), a glossary,
+the commands `to spec`, `to tickets`, `implement`, `review` and `retro`, and the Dependency Rule
+that `lib/domain`, `lib/data` and `lib/presentation` already follow. It skips itself for trivial work
+(a one-line fix, a status or build check, a question). Where the two skills overlap, keep
+`principal-architect`'s artifacts (decision records, state tables, WCAG, threat-model notes) and use
+the interview as the way to reach them. The rules in this file win over both skills.
+
 ## Architecture rules (from the build spec)
 - Clean Architecture: `lib/domain` (no Flutter/Drift imports), `lib/data`, `lib/presentation`.
 - `review_log` is the source of truth; card scheduling fields are a rebuildable cache.
