@@ -7,6 +7,7 @@ import 'package:daily_learning/domain/card_markup.dart';
 import 'package:daily_learning/domain/expr_eval.dart';
 import 'package:daily_learning/domain/import_parser.dart';
 import 'package:daily_learning/domain/keywords_prompt.dart';
+import 'package:daily_learning/domain/read_more_prompt.dart';
 import 'package:daily_learning/domain/outline_parser.dart';
 import 'package:daily_learning/domain/plan_parser.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -126,6 +127,7 @@ void main() {
       parseOutlineJson(raw);
       parsePlanJson(raw);
       parseKeywordsJson(raw);
+      parseReadMoreJson(raw);
     }
     for (var i = 0; i < 2000; i++) {
       final raw = junk(r, r'{}[]":, \\ $ n t u 0 a' '\n', 100);
@@ -133,6 +135,7 @@ void main() {
       parseOutlineJson(raw);
       parsePlanJson(raw);
       parseKeywordsJson(raw);
+      parseReadMoreJson(raw);
     }
   });
 }

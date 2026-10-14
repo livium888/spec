@@ -8,6 +8,7 @@ import 'browse_cards_screen.dart';
 import 'home_screen.dart';
 import 'import_screen.dart';
 import 'keywords_screen.dart';
+import 'read_more_screen.dart';
 import 'new_subject_screen.dart';
 import 'plan_ahead_screen.dart';
 import 'prompt_screen.dart';
@@ -88,6 +89,7 @@ class LibraryScreen extends ConsumerWidget {
         action(Icons.search, 'Browse, edit or delete cards', 'Find any card you have', const BrowseCardsScreen()),
         action(Icons.menu_book_outlined, 'Go deeper: reading list', 'Books and articles your AI suggested for your topics', const ReadingScreen()),
         action(Icons.image_search, 'Image keywords for older cards', 'Ask your AI for the words Find a picture searches with', const KeywordsScreen()),
+        action(Icons.auto_stories_outlined, 'Read more for older cards', 'Ask your AI for a paragraph under the answer', const ReadMoreScreen()),
         action(Icons.tune, 'Subjects and topics', 'Choose what is offered, and how well to remember each subject', const SubjectsScreen()),
         Theme(
           data: Theme.of(context).copyWith(dividerColor: Colors.transparent),

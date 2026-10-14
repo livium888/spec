@@ -9,6 +9,7 @@ import '../domain/study_card.dart' show kProblemLevels;
 import '../domain/outline_parser.dart';
 import '../domain/plan_parser.dart';
 import 'keywords_screen.dart';
+import 'read_more_screen.dart';
 import 'topics_screen.dart';
 
 class ImportScreen extends ConsumerStatefulWidget {
@@ -78,6 +79,12 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
         // Picture-search words for older cards have their own screen (and preview).
         if (!mounted) return;
         await Navigator.of(context).pushReplacement(MaterialPageRoute<void>(builder: (_) => KeywordsScreen(initialText: text)));
+        return;
+      }
+      if (kind == 'readmore') {
+        // Paragraphs for older cards (D64) have their own screen (and preview).
+        if (!mounted) return;
+        await Navigator.of(context).pushReplacement(MaterialPageRoute<void>(builder: (_) => ReadMoreScreen(initialText: text)));
         return;
       }
       if (kind == 'plan') {

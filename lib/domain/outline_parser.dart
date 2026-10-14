@@ -52,12 +52,13 @@ class OutlinePreview {
       items.where((i) => i.valid && !alreadyExists.contains(i.index));
 }
 
-/// 'keywords' (picture-search words for older cards), 'plan' (several subjects), 'outline' (one
+/// 'keywords' (picture-search words for older cards), 'readmore' (paragraphs for older cards, D64), 'plan' (several subjects), 'outline' (one
 /// subject's topics) or 'cards'.
 String detectPayloadKind(String raw) {
   try {
     final d = jsonDecode(stripCitationMarkers(stripCodeFence(raw)));
     if (d is Map && d.containsKey('image_keywords') && !d.containsKey('cards')) return 'keywords';
+    if (d is Map && d['read_more'] is List && !d.containsKey('cards')) return 'readmore';
     if (d is Map && d.containsKey('subjects') && !d.containsKey('cards')) return 'plan';
     if (d is Map && d.containsKey('items') && !d.containsKey('cards')) return 'outline';
   } catch (_) {}

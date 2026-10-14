@@ -453,7 +453,7 @@ From a review: opening it before the answer is shown reveals the card first. The
 - **Progress:** the Focus before apps card is tappable ("Tap to change these settings."); today's line adds "Ways in today: A by cards, B by exercise, C by breathing." when any.
 
 ## Read more (D64)
-- **Review and Learn, answer side:** after the reveal, the extras stack shows Why it matters, Example, Memory hook and then **Read more** (a heading for screen readers, the paragraph selectable and rendered like the other extras, so Markdown and formulas work). Empty ones are left out; a card without Read more looks as before.
+- **Review, answer side:** after the reveal, the extras stack shows Why it matters, Example, Memory hook and then **Read more** (a heading for screen readers, the paragraph selectable and rendered like the other extras, so Markdown and formulas work). Empty ones are left out; a card without Read more looks as before.
 - **Edit card:** "Read more (optional): a paragraph for the curious" after the memory hook, four lines high, up to 8 before it scrolls. Over 1,200 characters is refused with `"Read more" is too long (max 1200 characters).` Clearing it removes the key. Problem cards do not have the field.
 - **Import:** `read_more` is optional; over 1,200 characters or not text refuses that card (not the batch) with the reason; an absent value is fine.
 | State | What shows |
@@ -462,3 +462,16 @@ From a review: opening it before the answer is shown reveals the card first. The
 | Read more present | The paragraph last in the extras, always open. |
 | Too long / not text (import) | That card is listed with the reason; the others import. |
 | Too long (edit) | The error above the Save button; nothing is saved. |
+
+## Read more for older cards (D65)
+Library > Manage > "Read more for older cards". Same shape as "Image keywords for older cards".
+- **Start:** how many cards have none ("N cards have no Read more yet..."), a note that AI-written text is not checked by anyone, a batch of 10, 20 (default) or 30, "Send to my AI app", "Copy prompt", then "Paste the answer". An answer shared into the app, or pasted on "Paste an answer", opens this screen's preview by itself.
+- **Preview:** one row per entry, ticked by default: the card's question and the whole paragraph, so it can be read before it is saved (or "Nothing to add: this card will not be asked about again."). Rows that cannot be applied are listed with the reason (no such card, already has one, problem card, repeated, not usable). The bottom button says "Add Read more to N cards" (or "Mark N cards as nothing to add" when only those are ticked) and nothing is saved before it.
+| State | What shows |
+|---|---|
+| Loading | A spinner. |
+| None left | "Every card already has a Read more, or your AI found nothing to add. Nothing to do here." |
+| Answer unusable (not JSON, wrong shape, empty, over 60 entries) | The reasons, and Back. |
+| Some rows unusable | Those rows with reasons; the rest can still be applied. |
+| Saved | "Added Read more to N cards." plus how many had nothing to add and how many still have none (live region). |
+| Error while saving | "Nothing was saved: ..." (one transaction). |
