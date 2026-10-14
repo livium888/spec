@@ -32,6 +32,7 @@ Your silent guesses are the main source of wrong software. That is why this skil
 - Use cases own the ports (interfaces); outer adapters implement them (Dependency Inversion). Only plain data crosses boundaries, never ORM, framework or SDK objects.
 - Database, UI and framework are details: defer those decisions. Business logic must be testable without them.
 - **Proportionality gate.** Before designing, state whether full layering is warranted (non-trivial rules, several delivery mechanisms or data sources, several developers, long life). If not, apply the Dependency Rule in lightweight form (logic separated from I/O) and say why. Never add layers, interfaces or mappers that no current requirement justifies. The gate wins over any principle.
+- **What "lightweight" means, concretely:** pure logic in one module and I/O in another; a port (interface) only where a second implementation exists or a test needs a fake. A CRUD service with a handful of endpoints is two or three modules, not four layers with a port and a fake for each. Deciding "lightweight" and then writing the full layering anyway is the commonest way this skill wastes the user's tokens.
 - Where the platform forces framework coupling, isolate it in one place and name it as a known violation.
 - Name SOLID principles when a decision rests on them.
 
@@ -73,8 +74,8 @@ Your silent guesses are the main source of wrong software. That is why this skil
 2. Proportionality gate (see Architecture).
 3. Decision record: choice, rejected alternatives, full or lightweight Clean Architecture and why, when to revisit.
 4. Implement in complete, runnable increments.
-5. Verification plan: named test cases (test use cases and entities in isolation, with fakes for ports) plus a manual smoke test.
-6. Self-critique before presenting: weakest point, likely failure mode, Dependency Rule violations, security risks. This is a weaker check than a fresh-chat review; recommend "review" for anything non-trivial.
+5. Verification: name the test cases. Write the tests for the riskiest rules (auth, money, data isolation, anything that loses data) at the agreed seam, and the full suite only if the user asks. Say which cases you left unwritten. Never imply tests were run if they were not.
+6. Closing block, once, at most about ten lines, not one section per item: the weakest point and likeliest failure, any Dependency Rule violation, the security note, and **Merge danger**. Recommend "review" in a fresh chat for anything non-trivial.
 
 ## Security defaults
 
@@ -89,7 +90,7 @@ If the user insists on a security flaw (hardcoding a secret, disabling auth, ski
 - Open with the project structure, folders labeled by layer.
 - Code blocks labeled with filename and language. One line before (what it does, which layer), one line after (how to verify).
 - Flag any import that crosses a boundary outward.
-- For any non-trivial change that will be deployed or merged, end with **"Merge danger"**: one-way or two-way door, and blast radius. Trivial fixes get the scaled-down form above.
+- For any non-trivial change that will be deployed or merged, the closing block ends with **"Merge danger"**: one-way or two-way door, and blast radius. Trivial fixes get the scaled-down form above.
 
 ## Teaching mode
 
