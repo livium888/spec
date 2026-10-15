@@ -6,6 +6,7 @@ import '../domain/pause_stats.dart';
 import '../domain/site_rule.dart';
 import 'db/database.dart';
 import 'settings_repo.dart';
+import 'socratic_service.dart' show socraticHasCandidate;
 
 /// The learner's "Pause before apps" choices (D58). Kept in the app's settings, so they are in the backup, and
 /// copied to the phone side on every change and at start (the service runs without the app).
@@ -20,13 +21,17 @@ class PauseChoices {
     this.showNext = true,
     this.moves = kStarterMoves,
     this.cardsEvery = kDefaultPauseCardsEvery,
+    this.talkMinutes = kDefaultTalkMinutes,
     this.saved = false,
   });
 
   /// D61: the exercises offered as "Move first" (none: the button is not shown).
   final List<PauseMove> moves;
 
-  /// D62: after this many openings by breathing or an exercise since the last real cards session, only the cards are
+  /// D66: free time for the one app after a Socratic conversation.
+  final int talkMinutes;
+
+  /// D62: after this many openings by breathing, an exercise or a conversation since the last real cards session, only the cards are
   /// offered (0 = off).
   final int cardsEvery;
 
@@ -53,6 +58,7 @@ class PauseChoices {
     bool? showNext,
     List<PauseMove>? moves,
     int? cardsEvery,
+    int? talkMinutes,
   }) =>
       PauseChoices(
         apps: apps ?? this.apps,
@@ -64,9 +70,13 @@ class PauseChoices {
         showNext: showNext ?? this.showNext,
         moves: moves ?? this.moves,
         cardsEvery: cardsEvery ?? this.cardsEvery,
+        talkMinutes: talkMinutes ?? this.talkMinutes,
         saved: true,
       );
 }
+
+/// The Socratic way (D66) frees the one app for longer than the others: it asks for a real conversation.
+const kDefaultTalkMinutes = 5;
 
 const kLinkedInPackage = 'com.linkedin.android'; // verify against the installed app on the phone
 const _maxPackages = 100;
@@ -86,6 +96,7 @@ class PauseSettings {
   static const showNextKey = 'pause_show_next';
   static const movesKey = 'pause_moves';
   static const cardsEveryKey = 'pause_cards_every';
+  static const talkMinKey = 'pause_talk_min';
 
   /// A package name as Android writes it; anything else (a restored backup is external input) is dropped.
   static final _pkg = RegExp(r'^[a-zA-Z][a-zA-Z0-9_]*(\.[a-zA-Z0-9_]+)+$');
@@ -98,6 +109,7 @@ class PauseSettings {
     final free = await settings.getInt(freeKey, kDefaultPauseFreeMinutes);
     final limit = await settings.getInt(limitKey, 0);
     final every = await settings.getInt(cardsEveryKey, kDefaultPauseCardsEvery);
+    final talk = await settings.getInt(talkMinKey, kDefaultTalkMinutes);
     return PauseChoices(
       apps: _packages(apps),
       wholeBrowsers: _packages(await settings.get(browsersKey)),
@@ -108,6 +120,7 @@ class PauseSettings {
       showNext: await settings.get(showNextKey) != '0',
       moves: pauseMovesOf(await settings.get(movesKey)),
       cardsEvery: kPauseCardsEveryChoices.contains(every) ? every : kDefaultPauseCardsEvery,
+      talkMinutes: kPauseFreeMinutesChoices.contains(talk) ? talk : kDefaultTalkMinutes,
       saved: apps != null,
     );
   }
@@ -122,6 +135,7 @@ class PauseSettings {
     await settings.set(showNextKey, c.showNext ? '1' : '0');
     await settings.set(movesKey, storePauseMoves(c.moves));
     await settings.set(cardsEveryKey, '${c.cardsEvery}');
+    await settings.set(talkMinKey, '${c.talkMinutes}');
     await push(c);
   }
 
@@ -139,6 +153,8 @@ class PauseSettings {
       showNext: v.showNext,
       moves: storePauseMoves(v.moves),
       cardsEvery: v.cardsEvery,
+      talkMinutes: v.talkMinutes,
+      talkOffered: await socraticHasCandidate(db), // the button is hidden until there is a reviewed card to talk about
       rolloverHour: (await settings.dayClock()).rolloverHour,
     );
   }

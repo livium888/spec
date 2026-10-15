@@ -249,7 +249,7 @@ String moves(FakePauseBridge b) => b.config!['moves'] as String;
     Widget card({bool tappable = false}) => MaterialApp(
         home: Scaffold(body: ListView(children: [PauseWeekCard(PauseSummary(days: [today], on: true, watching: true), tappable: tappable)])));
     await t.pumpWidget(card());
-    expect(find.textContaining('Ways in today: 1 by cards, 1 by exercise, 2 by breathing.'), findsOneWidget);
+    expect(find.textContaining('Ways in today: 1 by cards, 1 by exercise, 0 by conversation, 2 by breathing.'), findsOneWidget);
     expect(find.text('Tap to change these settings.'), findsNothing);
     await t.pumpWidget(card(tappable: true));
     expect(find.text('Tap to change these settings.'), findsOneWidget);

@@ -9,8 +9,9 @@ import 'day_clock.dart';
 /// pause came back because free time ran out while the app was still in front; not an attempt, so it is not counted
 /// as one and does not grow the wait. `move`: the app was opened after an exercise (D61); it counts as an opening.
 /// `cards`: the learner tapped "Do 5 cards" (a choice, not a result). `earned`: the five cards were answered and the
-/// free time was granted (D62): the only line that counts as a real cards session.
-enum PauseKind { shown, again, back, open, move, cards, earned }
+/// free time was granted (D62): the only line that counts as a real cards session. `talk`: the app was opened after a
+/// Socratic conversation (D66); it counts as an opening, like `open` and `move`.
+enum PauseKind { shown, again, back, open, move, cards, earned, talk }
 
 final _digits = RegExp(r'^[0-9]{1,18}$');
 
@@ -38,7 +39,7 @@ class PauseEvent {
 class PauseDay {
   PauseDay(this.dayIndex);
   final int dayIndex;
-  int shown = 0, again = 0, back = 0, open = 0, move = 0, cards = 0, earned = 0;
+  int shown = 0, again = 0, back = 0, open = 0, move = 0, cards = 0, earned = 0, talk = 0;
 
   /// Pauses that ended without opening the app: turned back, or went to the cards instead. Capped at the attempts:
   /// a pause that came back after free time can also end in "not now".
@@ -70,6 +71,8 @@ List<PauseDay> pauseDays(Iterable<PauseEvent> events, DayClock clock, DateTime n
         day.cards++;
       case PauseKind.earned:
         day.earned++;
+      case PauseKind.talk:
+        day.talk++;
     }
   }
   return out;
@@ -102,14 +105,14 @@ int pauseWaitSeconds({required int shownToday, required bool rising}) {
 const kPauseOpenLimitChoices = [0, 1, 2, 3, 5, 8, 10];
 bool pauseOpenLimitReached({required int opensToday, required int limit}) => limit > 0 && opensToday >= limit;
 
-/// Cards come first (D62). After [every] openings by breathing or an exercise since the last real cards session, the
+/// Cards come first (D62). After [every] openings by breathing, an exercise or a conversation since the last real cards session, the
 /// pause offers only the cards (or not now). 0 = off. The count is over every app and site (cards free all of them, so
 /// a second key such as a browser cannot dodge it), starts again at the turn of the day, and ignores the test pause.
 /// PauseStore.openingsSinceCards mirrors [pauseOpeningsSinceCards]; keep them in step.
 const kPauseCardsEveryChoices = [0, 1, 2, 3];
 const kDefaultPauseCardsEvery = 2;
 
-/// Openings (`open` or `move`) since the last `earned`, among [events] in log order, from the day that began at
+/// Openings (`open`, `move` or `talk`) since the last `earned`, among [events] in log order, from the day that began at
 /// [dayStartMs].
 int pauseOpeningsSinceCards(Iterable<PauseEvent> events, int dayStartMs) {
   var n = 0;
@@ -118,7 +121,7 @@ int pauseOpeningsSinceCards(Iterable<PauseEvent> events, int dayStartMs) {
     switch (e.kind) {
       case PauseKind.earned:
         n = 0;
-      case PauseKind.open || PauseKind.move:
+      case PauseKind.open || PauseKind.move || PauseKind.talk:
         n++;
       default:
     }

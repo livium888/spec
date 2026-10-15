@@ -10,6 +10,7 @@ import 'import_screen.dart';
 import 'library_screen.dart';
 import 'progress_screen.dart';
 import 'review_screen.dart';
+import 'socratic_pause_screen.dart';
 
 /// Three places: Today, Progress, Library. Settings lives in the Today header.
 /// Also the one place that notices text shared into the app (an AI's answer) and opens the
@@ -33,6 +34,7 @@ class _AppShellState extends ConsumerState<AppShell> with WidgetsBindingObserver
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       ref.read(pauseSettingsProvider).push().ignore(); // the pause service runs without the app (D58)
       await _checkLaunch(coldStart: true);
+      await _checkTalk();
       await _checkShared();
     });
   }
@@ -48,7 +50,8 @@ class _AppShellState extends ConsumerState<AppShell> with WidgetsBindingObserver
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       ref.invalidate(pauseSummaryProvider); // back from LinkedIn or Android's settings: fresh counts and status (D59)
-      _checkLaunch();
+      ref.read(pauseSettingsProvider).push().ignore(); // reviewed cards since last time may make the conversation available (D66)
+      _checkLaunch().then((_) => _checkTalk());
       _checkShared();
     }
   }
@@ -68,10 +71,25 @@ class _AppShellState extends ConsumerState<AppShell> with WidgetsBindingObserver
     } finally {
       _launching = false; // not held while the review is open: the route is already taken
     }
+    if (route == LaunchRoute.pauseTalk) {
+      if (mounted && SocraticPauseScreen.open == 0 && ReviewScreen.open == 0) {
+        await Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const SocraticPauseScreen()));
+      }
+      return;
+    }
     if (route == null || !mounted || ReviewScreen.open > 0) return;
     final quick = route == LaunchRoute.review ? null : kQuickSessionCards;
     await Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => ReviewScreen(quick: quick, fromPause: route == LaunchRoute.pause)));
     if (mounted) ref.read(refreshProvider.notifier).bump();
+  }
+
+  /// The learner left for an AI app in the middle of a Socratic pause (D66) and the app was closed meanwhile, or they
+  /// opened this app by hand: if a conversation has been started, bring its screen back so the time earned is not lost.
+  Future<void> _checkTalk() async {
+    if (!mounted || SocraticPauseScreen.open > 0 || ReviewScreen.open > 0) return;
+    final v = await ref.read(pauseBridgeProvider).visit();
+    if (v == null || v.kind != 'talk' || !v.started || !mounted || SocraticPauseScreen.open > 0) return;
+    await Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const SocraticPauseScreen()));
   }
 
   Future<void> _checkShared() async {

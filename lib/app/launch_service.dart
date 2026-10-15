@@ -6,13 +6,14 @@ import '../data/reminder_service.dart' show kReminderPayload;
 
 /// Where an entry point outside the app (the reminder notification, the launcher shortcuts, the home-screen
 /// widget, the Quick Settings tile) wants the app to open (D51).
-enum LaunchRoute { review, quick, pause }
+enum LaunchRoute { review, quick, pause, pauseTalk }
 
 /// The few values the native side may ask for. Anything else is ignored: the app only ever opens the review.
 LaunchRoute? launchRouteOf(String? s) => switch (s) {
       'review' => LaunchRoute.review,
       'quick5' => LaunchRoute.quick,
       'pause5' => LaunchRoute.pause, // five cards from the pause before an app (D58); grants nothing by itself
+      'pausetalk' => LaunchRoute.pauseTalk, // a Socratic conversation from the pause (D66); grants nothing by itself
       _ => null,
     };
 

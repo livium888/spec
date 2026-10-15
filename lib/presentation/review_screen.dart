@@ -174,7 +174,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
   /// "Do 5 cards" from the pause (D58): free time only for answers really given since the pause opened.
   Future<void> _checkPause(DailyQueue q) async {
     final visit = await ref.read(pauseBridgeProvider).visit();
-    if (visit == null) return;
+    if (visit == null || visit.kind != 'cards') return;
     final n = await ref.read(pauseSettingsProvider).answersSince(visit.atMs);
     _visit = visit;
     _earned = pauseEarned(answersSincePause: n, quota: kQuickSessionCards, nothingLeft: q.ordered.isEmpty);

@@ -39,9 +39,11 @@ class FakePauseBridge implements PauseBridge {
     required bool showNext,
     required String moves,
     required int cardsEvery,
+    required int talkMinutes,
+    required bool talkOffered,
     required int rolloverHour,
   }) async =>
-      config = {'apps': apps, 'whole': wholeBrowsers, 'rules': rules, 'free': freeMinutes, 'rising': risingWait, 'limit': openLimit, 'next': showNext, 'moves': moves, 'cardsEvery': cardsEvery, 'rollover': rolloverHour};
+      config = {'apps': apps, 'whole': wholeBrowsers, 'rules': rules, 'free': freeMinutes, 'rising': risingWait, 'limit': openLimit, 'next': showNext, 'moves': moves, 'cardsEvery': cardsEvery, 'talkMinutes': talkMinutes, 'talkOffered': talkOffered, 'rollover': rolloverHour};
   @override
   Future<String> log() async => logText;
   @override
@@ -68,6 +70,29 @@ class FakePauseBridge implements PauseBridge {
 
   @override
   Future<void> dropVisit() async => pending = null;
+
+  /// The Socratic way (D66): the phone side keeps the card and the clock; this fake does the same in memory.
+  int talkLeft = 180;
+  final talkCalls = <(int, int)>[];
+  int grants = 0;
+  TalkGrant grant = const TalkGrant(ok: true);
+
+  @override
+  Future<int> talkStart(int noteId, int ord) async {
+    talkCalls.add((noteId, ord));
+    final p = pending;
+    if (p != null && p.kind == 'talk' && !p.started) {
+      pending = PauseVisit(label: p.label, atMs: p.atMs, freeMinutes: p.freeMinutes, kind: 'talk', noteId: noteId, ord: ord, started: true, secondsLeft: talkLeft);
+    }
+    return talkLeft;
+  }
+
+  @override
+  Future<TalkGrant> grantTalk() async {
+    grants++;
+    if (grant.ok) pending = null;
+    return grant;
+  }
 }
 
 void main() {
@@ -98,6 +123,8 @@ void main() {
         'next': true,
         'moves': storePauseMoves(kStarterMoves),
         'cardsEvery': 2,
+        'talkMinutes': 5,
+        'talkOffered': false,
         'rollover': 4,
       });
       await e.db.close();

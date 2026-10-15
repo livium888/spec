@@ -16,6 +16,7 @@ import '../data/card_edit_service.dart';
 import '../data/import_service.dart';
 import '../data/keywords_service.dart';
 import '../data/read_more_service.dart';
+import '../data/socratic_service.dart';
 import '../data/knowledge_service.dart';
 import '../data/learn_service.dart';
 import '../data/media_service.dart';
@@ -107,6 +108,7 @@ final knowledgeServiceProvider = Provider((ref) => KnowledgeService(ref.watch(db
 final foundationServiceProvider =
     Provider((ref) => FoundationService(ref.watch(dbProvider), ref.watch(settingsRepoProvider)));
 final talkServiceProvider = Provider((ref) => TalkService(ref.watch(dbProvider), ref.watch(settingsRepoProvider)));
+final socraticServiceProvider = Provider((ref) => SocraticService(ref.watch(dbProvider), ref.watch(talkServiceProvider)));
 final interestServiceProvider = Provider((ref) => InterestService(ref.watch(dbProvider)));
 final featuresServiceProvider = Provider(
     (ref) => EngineFeaturesService(ref.watch(dbProvider), ref.watch(settingsRepoProvider)));

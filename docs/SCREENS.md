@@ -475,3 +475,19 @@ Library > Manage > "Read more for older cards". Same shape as "Image keywords fo
 | Some rows unusable | Those rows with reasons; the rest can still be applied. |
 | Saved | "Added Read more to N cards." plus how many had nothing to add and how many still have none (live region). |
 | Error while saving | "Nothing was saved: ..." (one transaction). |
+
+## Talk it through, then open (D66)
+- **Pause screen:** a "Talk it through, then open" button below Breathe and Move first, only when a reviewed card exists, the daily limit is not reached, and it is not cards' turn. Its description for screen readers says it is a Socratic conversation about one card, then the app is free for N minutes.
+- **The screen (reading order):** a heading "Before you open X"; one paragraph (your AI asks questions one at a time, will not explain or give the answer, then X is free for N minutes); a card with the subject and the question only; "Share to an AI app"; "Copy prompt"; once shared or copied: "Talk for at least 3 minutes, then come back here. You can open X in m:ss", and a disabled button "Open X (in m:ss)" that becomes "I talked it through: open X for N minutes"; a plain line that nothing checks it; "Not now". The seconds come from the phone side and are synced when the app comes back to the front.
+| State | What shows |
+|---|---|
+| Loading | A spinner labelled "Loading the card". |
+| Fresh | As above, clock not started; the card is picked by the rule (D66) and is the same after leaving and returning. |
+| Started | The countdown; Share again does not restart it. |
+| Restarted mid-chat (app was closed) | The app opens this screen on the same card with the time already counted. A pause that was never shared does not take the app over when it is opened by hand. |
+| Time up | The enabled button; tapping it frees that one app and brings it to the front. |
+| Too early (the phone side disagrees) | "A little longer: ..." and the seconds it gave. |
+| Visit ran out (an hour after the start, or 30 minutes if never started) | "This pause has run out" and Close. |
+| It was a cards pause / no reviewed card / the note is gone | "This pause asked for cards" / "No card to talk about" / the same, with Close. |
+| Error | The message and Close. |
+- **Settings > Ways out:** "Free time after a Socratic conversation" (1 to 15 minutes, default 5) with a helper sentence. The Cards-come-first and daily-limit helpers now name conversations.

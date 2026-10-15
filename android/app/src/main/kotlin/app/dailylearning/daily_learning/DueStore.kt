@@ -17,6 +17,7 @@ object DueStore {
     const val EXTRA_ROUTE = "dl_route"
     const val ROUTE_REVIEW = "review"
     const val ROUTE_QUICK = "quick5"
+    const val ROUTE_PAUSE_TALK = "pausetalk" // a Socratic conversation asked for by the pause screen (D66); grants nothing by itself
     const val ROUTE_PAUSE = "pause5" // five cards asked for by the pause screen (D58); grants nothing by itself
     private const val FILE = "daily_learning_due"
 

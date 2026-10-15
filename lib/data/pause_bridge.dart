@@ -19,9 +19,38 @@ class PauseStatus {
 
 /// A pause waiting for its five cards.
 class PauseVisit {
-  const PauseVisit({required this.label, required this.atMs, required this.freeMinutes});
+  const PauseVisit({
+    required this.label,
+    required this.atMs,
+    required this.freeMinutes,
+    this.kind = 'cards',
+    this.noteId,
+    this.ord = 0,
+    this.started = false,
+    this.secondsLeft = 0,
+  });
   final String label;
   final int atMs, freeMinutes;
+
+  /// What the pause asked for: `cards` (D58) or `talk` (D66).
+  final String kind;
+
+  /// A talk visit once the learner has shared or copied the prompt: the card they are talking about, and the seconds
+  /// before they may open the app. Both live on the phone side, so they survive the app being closed mid-chat.
+  final int? noteId;
+  final int ord;
+  final bool started;
+  final int secondsLeft;
+}
+
+/// The answer to "I talked it through": the phone side decides, the app only shows.
+class TalkGrant {
+  const TalkGrant({required this.ok, this.secondsLeft = 0, this.reason = ''});
+  final bool ok;
+  final int secondsLeft;
+
+  /// When not ok: `early` (the minimum time has not passed), `none` (no live talk visit: it ran out).
+  final String reason;
 }
 
 abstract class PauseBridge {
@@ -35,6 +64,8 @@ abstract class PauseBridge {
     required bool showNext,
     required String moves,
     required int cardsEvery,
+    required int talkMinutes,
+    required bool talkOffered,
     required int rolloverHour,
   });
   Future<List<InstalledApp>> apps();
@@ -52,6 +83,13 @@ abstract class PauseBridge {
   /// Free time for everything watched, then back to the paused app. Only after the answers were counted (D58).
   Future<bool> grantAll();
   Future<void> dropVisit();
+
+  /// The learner shared or copied the Socratic prompt for this card: the phone side keeps the card and starts the
+  /// minimum-time clock (only the first call counts). Returns the seconds left.
+  Future<int> talkStart(int noteId, int ord);
+
+  /// Free time for the one app, after the Socratic conversation, if the minimum time has passed.
+  Future<TalkGrant> grantTalk();
 }
 
 class ChannelPauseBridge implements PauseBridge {
@@ -79,6 +117,8 @@ class ChannelPauseBridge implements PauseBridge {
     required bool showNext,
     required String moves,
     required int cardsEvery,
+    required int talkMinutes,
+    required bool talkOffered,
     required int rolloverHour,
   }) =>
       _call<void>('setConfig', {
@@ -91,6 +131,8 @@ class ChannelPauseBridge implements PauseBridge {
         'showNext': showNext,
         'moves': moves,
         'cardsEvery': cardsEvery,
+        'talkMinutes': talkMinutes,
+        'talkOffered': talkOffered,
         'rolloverHour': rolloverHour,
       });
 
@@ -126,7 +168,16 @@ class ChannelPauseBridge implements PauseBridge {
   Future<PauseVisit?> visit() async {
     final r = await _call<Map<Object?, Object?>>('visit');
     if (r == null) return null;
-    return PauseVisit(label: '${r['label']}', atMs: (r['atMs'] as num?)?.toInt() ?? 0, freeMinutes: (r['freeMinutes'] as num?)?.toInt() ?? 2);
+    return PauseVisit(
+      label: '${r['label']}',
+      atMs: (r['atMs'] as num?)?.toInt() ?? 0,
+      freeMinutes: (r['freeMinutes'] as num?)?.toInt() ?? 2,
+      kind: r['kind'] == 'talk' ? 'talk' : 'cards',
+      noteId: (r['noteId'] as num?)?.toInt(),
+      ord: (r['ord'] as num?)?.toInt() ?? 0,
+      started: r['started'] == true,
+      secondsLeft: (r['secondsLeft'] as num?)?.toInt() ?? 0,
+    );
   }
 
   @override
@@ -134,4 +185,20 @@ class ChannelPauseBridge implements PauseBridge {
 
   @override
   Future<void> dropVisit() => _call<void>('dropVisit');
+
+  @override
+  Future<int> talkStart(int noteId, int ord) async {
+    final r = await _call<Map<Object?, Object?>>('talkStart', {'noteId': noteId, 'ord': ord});
+    return (r?['secondsLeft'] as num?)?.toInt() ?? kTalkMinSeconds;
+  }
+
+  @override
+  Future<TalkGrant> grantTalk() async {
+    final r = await _call<Map<Object?, Object?>>('grantTalk');
+    if (r == null) return const TalkGrant(ok: false, reason: 'none');
+    return TalkGrant(ok: r['ok'] == true, secondsLeft: (r['secondsLeft'] as num?)?.toInt() ?? 0, reason: '${r['reason'] ?? ''}');
+  }
 }
+
+/// The least time between sharing the prompt and opening the app (the phone side holds the clock; this is for the words).
+const kTalkMinSeconds = 180;

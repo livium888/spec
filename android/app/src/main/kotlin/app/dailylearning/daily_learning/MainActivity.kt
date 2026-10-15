@@ -72,6 +72,8 @@ class MainActivity : FlutterActivity() {
                     call.argument<Int>("rolloverHour") ?: 4,
                     call.argument<String>("moves") ?: "",
                     call.argument<Int>("cardsEvery") ?: 2,
+                    call.argument<Int>("talkMinutes") ?: 5,
+                    call.argument<Boolean>("talkOffered") ?: false,
                 )
                 result.success(null)
             }
@@ -102,12 +104,47 @@ class MainActivity : FlutterActivity() {
             "openAppInfo" -> result.success(start(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + ctx.packageName))))
             "visit" -> {
                 val p = PauseStore.pending(ctx, now)
-                result.success(p?.let { mapOf("label" to it.label, "atMs" to it.atMs, "freeMinutes" to PauseStore.config(ctx).freeMinutes) })
+                val cfg = PauseStore.config(ctx)
+                result.success(p?.let {
+                    mapOf(
+                        "label" to it.label, "atMs" to it.atMs, "kind" to it.kind,
+                        "freeMinutes" to (if (it.kind == PauseStore.KIND_TALK) cfg.talkMinutes else cfg.freeMinutes),
+                        "noteId" to it.noteId, "ord" to it.ord, "started" to it.started,
+                        "secondsLeft" to (if (it.started) PauseStore.talkSecondsLeft(ctx) else PauseStore.TALK_MIN_SECONDS),
+                    )
+                })
+            }
+            "talkStart" -> {
+                // The learner shared or copied the Socratic prompt (D66): keep the card here, start the clock once.
+                PauseStore.startTalk(ctx, call.argument<Int>("noteId") ?: 0, call.argument<Int>("ord") ?: 0, now)
+                val p = PauseStore.pending(ctx, now)
+                result.success(mapOf("secondsLeft" to (if (p?.started == true) PauseStore.talkSecondsLeft(ctx) else PauseStore.TALK_MIN_SECONDS)))
+            }
+            "grantTalk" -> {
+                // Free time for the ONE app, only for a live conversation visit whose minimum time has passed. The app asks;
+                // this decides, on the clock that keeps counting while the phone sleeps.
+                val p = PauseStore.pending(ctx, now)
+                if (p == null || p.kind != PauseStore.KIND_TALK) {
+                    result.success(mapOf("ok" to false, "reason" to "none", "secondsLeft" to 0))
+                } else if (!p.started) {
+                    result.success(mapOf("ok" to false, "reason" to "early", "secondsLeft" to PauseStore.TALK_MIN_SECONDS))
+                } else {
+                    val left = PauseStore.talkSecondsLeft(ctx)
+                    if (left > 0) {
+                        result.success(mapOf("ok" to false, "reason" to "early", "secondsLeft" to left))
+                    } else {
+                        PauseStore.grant(ctx, p.key, now + PauseStore.config(ctx).talkMinutes * 60_000L)
+                        PauseStore.log(ctx, PauseStore.CHOICE_TALK, p.key, now)
+                        PauseStore.clearPending(ctx)
+                        PauseActivity.launchTarget(this, p.pkg)
+                        result.success(mapOf("ok" to true, "reason" to "", "secondsLeft" to 0))
+                    }
+                }
             }
             "grantAll" -> {
                 // Asked by the review screen only after it counted the answers given since the pause (D58).
                 val p = PauseStore.pending(ctx, now)
-                if (p == null) {
+                if (p == null || p.kind != PauseStore.KIND_CARDS) { // a conversation visit cannot free everything
                     result.success(false)
                 } else {
                     PauseStore.grantAll(ctx, now + PauseStore.config(ctx).freeMinutes * 60_000L)
@@ -156,7 +193,7 @@ class MainActivity : FlutterActivity() {
 
     private fun captureRoute(intent: Intent?) {
         val r = intent?.getStringExtra(DueStore.EXTRA_ROUTE)
-        if (r == DueStore.ROUTE_REVIEW || r == DueStore.ROUTE_QUICK || r == DueStore.ROUTE_PAUSE) {
+        if (r == DueStore.ROUTE_REVIEW || r == DueStore.ROUTE_QUICK || r == DueStore.ROUTE_PAUSE || r == DueStore.ROUTE_PAUSE_TALK) {
             route = r
             intent?.removeExtra(DueStore.EXTRA_ROUTE) // so recreating the activity does not open it twice
         }

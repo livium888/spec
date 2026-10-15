@@ -144,7 +144,7 @@ class _PauseAppsScreenState extends ConsumerState<PauseAppsScreen> with WidgetsB
                 ? const Center(child: CircularProgressIndicator(semanticsLabel: 'Loading'))
                 : ListView(padding: const EdgeInsets.all(16), children: [
                     Text(
-                      'When you open one of these apps or sites, a short pause comes first. Do 5 cards, breathe, or move: '
+                      'When you open one of these apps or sites, a short pause comes first. Do 5 cards, breathe, move, or talk a card through: '
                       'each gets you in.',
                       style: t.bodyLarge,
                     ),
@@ -170,7 +170,7 @@ class _PauseAppsScreenState extends ConsumerState<PauseAppsScreen> with WidgetsB
                     const Divider(height: 40),
                     _heading('Ways out', t),
                     const SizedBox(height: 4),
-                    Text('Three ways to get into a paused app. Each frees that app or site, or everything for the cards, for a few minutes.', style: t.bodyMedium),
+                    Text('Four ways to get into a paused app. Each frees that app or site, or everything for the cards, for a few minutes.', style: t.bodyMedium),
                     const SizedBox(height: 16),
                     DropdownButtonFormField<int>(
                       initialValue: c.freeMinutes,
@@ -181,10 +181,23 @@ class _PauseAppsScreenState extends ConsumerState<PauseAppsScreen> with WidgetsB
                     ),
                     const SizedBox(height: 16),
                     DropdownButtonFormField<int>(
+                      initialValue: c.talkMinutes,
+                      decoration: const InputDecoration(
+                        labelText: 'Free time after a Socratic conversation',
+                        helperText: 'Your AI asks questions about one card you struggled with, you talk for at least 3 minutes, then this one app or site is free. '
+                            'Nothing checks that you did it.',
+                        helperMaxLines: 4,
+                      ),
+                      isExpanded: true,
+                      items: [for (final m in kPauseFreeMinutesChoices) DropdownMenuItem(value: m, child: Text('$m ${m == 1 ? 'minute' : 'minutes'}'))],
+                      onChanged: (m) => m == null ? null : _save(c.copyWith(talkMinutes: m)),
+                    ),
+                    const SizedBox(height: 16),
+                    DropdownButtonFormField<int>(
                       initialValue: c.cardsEvery,
                       decoration: const InputDecoration(
                         labelText: 'Cards come first, after this many openings',
-                        helperText: 'After this many openings by breathing or an exercise since your last cards, the pause offers only the cards (or not now). '
+                        helperText: 'After this many openings by breathing, an exercise or a conversation since your last cards, the pause offers only the cards (or not now). '
                             'Nothing changes when no cards are due.',
                         helperMaxLines: 4,
                       ),
@@ -208,7 +221,7 @@ class _PauseAppsScreenState extends ConsumerState<PauseAppsScreen> with WidgetsB
                       initialValue: c.openLimit,
                       decoration: const InputDecoration(
                         labelText: 'Daily open limit, per app or site',
-                        helperText: 'After this many openings by breathing or an exercise, only the cards (or not now) remain until tomorrow.',
+                        helperText: 'After this many openings by breathing, an exercise or a conversation, only the cards (or not now) remain until tomorrow.',
                         helperMaxLines: 3,
                       ),
                       items: [for (final n in kPauseOpenLimitChoices) DropdownMenuItem(value: n, child: Text(n == 0 ? 'No limit' : '$n ${n == 1 ? 'opening' : 'openings'} a day'))],
