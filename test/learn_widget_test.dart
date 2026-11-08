@@ -259,6 +259,8 @@ void editDeleteWidgetTests() {
     await t.tap(find.text('Library'));
     await settle(t);
     await t.dragUntilVisible(find.text('Browse, edit or delete cards'), find.byType(ListView).first, const Offset(0, -200));
+    await t.ensureVisible(find.text('Browse, edit or delete cards')); // fully inside the list, clear of the bottom bar
+    await settle(t, rounds: 2);
     await t.tap(find.text('Browse, edit or delete cards'));
     await until(t, find.text('What powers the cell?'));
     await settle(t);

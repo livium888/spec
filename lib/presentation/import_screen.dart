@@ -4,10 +4,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../app/providers.dart';
 import '../data/outline_service.dart' show OutlineException;
+import '../data/primer_service.dart';
 import '../domain/import_parser.dart';
 import '../domain/study_card.dart' show kProblemLevels;
 import '../domain/outline_parser.dart';
 import '../domain/plan_parser.dart';
+import '../domain/transcript.dart' show QuoteCheck;
+import 'add_lecture_screen.dart';
 import 'keywords_screen.dart';
 import 'read_more_screen.dart';
 import 'topics_screen.dart';
@@ -25,6 +28,8 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
   ImportPreview? _preview;
   OutlinePreview? _outline;
   PlanPreview? _plan;
+  PrimerPlan? _primers;
+  final _primerSel = <int>{};
   final _planSel = <int>{};
   final _selected = <int>{};
   bool _busy = false;
@@ -87,10 +92,30 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
         await Navigator.of(context).pushReplacement(MaterialPageRoute<void>(builder: (_) => ReadMoreScreen(initialText: text)));
         return;
       }
+      if (kind == 'transcript') {
+        // A lecture's text (D67): its own screen, with a preview before anything is kept.
+        if (!mounted) return;
+        await Navigator.of(context).pushReplacement(MaterialPageRoute<void>(builder: (_) => AddLectureScreen(initialText: text)));
+        return;
+      }
+      if (kind == 'primer') {
+        final pp = await ref.read(primerServiceProvider).preview(text);
+        setState(() {
+          _primers = pp;
+          _outline = null;
+          _preview = null;
+          _plan = null;
+          _primerSel
+            ..clear()
+            ..addAll(pp.applicable.map((r) => r.primer.index));
+        });
+        return;
+      }
       if (kind == 'plan') {
         final pl = await ref.read(outlineServiceProvider).previewPlan(text);
         setState(() {
           _plan = pl;
+          _primers = null;
           _outline = null;
           _preview = null;
           _planSel
@@ -105,6 +130,7 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
           _outline = o;
           _preview = null;
           _plan = null;
+          _primers = null;
         });
         return;
       }
@@ -113,9 +139,10 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
         _preview = p;
         _outline = null;
         _plan = null;
+        _primers = null;
         _selected
           ..clear()
-          ..addAll(p.importable.map((c) => c.index));
+          ..addAll(p.importable.where((c) => p.quote[c.index] != QuoteCheck.notFound).map((c) => c.index)); // a quote not in the lecture starts unticked
       });
     }
   }
@@ -161,6 +188,73 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
     } finally {
       if (mounted) setState(() => _busy = false);
     }
+  }
+
+  Future<void> _commitPrimers() async {
+    final pp = _primers!;
+    setState(() => _busy = true);
+    try {
+      final r = await ref.read(primerServiceProvider).commit(pp, Set.of(_primerSel));
+      ref.read(refreshProvider.notifier).bump();
+      if (!mounted) return;
+      setState(() {
+        _primers = null;
+        _backToLibrary = true;
+        _message = 'Saved ${r.added + r.replaced} primer${r.added + r.replaced == 1 ? '' : 's'}'
+            '${r.replaced > 0 ? ' (${r.replaced} replaced an older one)' : ''}'
+            '${r.topicsCreated > 0 ? ', and made ${r.topicsCreated} new topic${r.topicsCreated == 1 ? '' : 's'}' : ''}. '
+            'Open the topic (a book icon marks it) to read it before the cards.';
+      });
+    } catch (e) {
+      setState(() => _message = 'Nothing was saved: $e');
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Widget _primerList(BuildContext context, PrimerPlan pp) {
+    final t = Theme.of(context).textTheme;
+    if (pp.hasFatal) {
+      return ListView(padding: const EdgeInsets.all(16), children: [
+        Text('This can\'t be imported:', style: t.titleMedium),
+        const SizedBox(height: 8),
+        for (final e in pp.fatalErrors) ListTile(leading: const Icon(Icons.error_outline), title: Text(e)),
+      ]);
+    }
+    String why(PrimerStatus st) => switch (st) {
+          PrimerStatus.ok => 'For the topic you have: it will be added.',
+          PrimerStatus.replaces => 'This topic already has a primer: it will be replaced, and shown as unread again.',
+          PrimerStatus.newTopic => 'No topic has this title: a new one is added at the end of the subject.',
+          PrimerStatus.noSubject => 'You have no subject with this name: skipped. Make the outline first, or check the name.',
+          PrimerStatus.invalid => 'Not usable: skipped.',
+        };
+    return ListView(padding: const EdgeInsets.symmetric(horizontal: 16), children: [
+      Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: Text('Readings to go before the cards. They are written by an AI and not checked by anyone. Nothing is saved until you tap the button.',
+            style: t.bodyMedium),
+      ),
+      for (final r in pp.rows)
+        Card(
+          child: r.applicable
+              ? CheckboxListTile(
+                  value: _primerSel.contains(r.primer.index),
+                  onChanged: (v) => setState(() => v == true ? _primerSel.add(r.primer.index) : _primerSel.remove(r.primer.index)),
+                  title: Text(r.primer.title.isEmpty ? r.primer.topic : r.primer.title),
+                  subtitle: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text('${r.primer.domain} · ${r.primer.topic}'),
+                    Text('About ${r.primer.minutes} min · ${r.primer.sections.length} section${r.primer.sections.length == 1 ? '' : 's'}'
+                        '${r.primer.pretest.isEmpty ? '' : ' · ${r.primer.pretest.length} questions to try first'}'),
+                    Text(why(r.status), style: t.bodySmall),
+                  ]),
+                )
+              : ListTile(
+                  leading: const Icon(Icons.info_outline),
+                  title: Text(r.primer.topic.isEmpty ? 'Primer ${r.primer.index + 1}' : r.primer.topic),
+                  subtitle: Text([why(r.status), ...r.primer.errors.map((e) => '• $e')].join('\n')),
+                ),
+        ),
+    ]);
   }
 
   Future<void> _commitPlan() async {
@@ -301,10 +395,10 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
                     onPressed: () => Navigator.of(context).pop(),
                   ),
                 ),
-              if (p == null && o == null && _plan == null && _message == null)
+              if (p == null && o == null && _plan == null && _primers == null && _message == null)
                 const Padding(
                   padding: EdgeInsets.only(top: 12),
-                  child: Text('Copy the JSON your LLM returned (cards, a list of topics, or several new subjects), then tap the button. '
+                  child: Text('Copy what your AI returned (cards, a list of topics, several new subjects or a primer) or a lecture transcript, then tap the button. '
                       'You will see a preview before anything is saved.'),
                 ),
             ]),
@@ -312,9 +406,21 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
           if (p != null) Expanded(child: _previewList(context, p)),
           if (o != null) Expanded(child: _outlineList(context, o)),
           if (_plan != null) Expanded(child: _planList(context, _plan!)),
+          if (_primers != null) Expanded(child: _primerList(context, _primers!)),
         ]),
       ),
-      bottomNavigationBar: _plan != null && !_plan!.hasFatal
+      bottomNavigationBar: _primers != null && !_primers!.hasFatal
+          ? SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: FilledButton(
+                  style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(56)),
+                  onPressed: _busy || _primerSel.isEmpty ? null : _commitPrimers,
+                  child: Text('Save ${_primerSel.length} primer${_primerSel.length == 1 ? '' : 's'}'),
+                ),
+              ),
+            )
+          : _plan != null && !_plan!.hasFatal
           ? SafeArea(
               child: Padding(
                 padding: const EdgeInsets.all(12),
@@ -415,6 +521,12 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
                 'Problem with ${c.steps.length} steps in $kProblemLevels levels'
                 '${c.variants.isEmpty ? '' : ', plus ${c.variants.length} more to practise'}'
                 '${c.arithmetic == 'checked' ? '. Arithmetic checked by the app.' : '. Arithmetic not checked.'}'),
+          if (importable && p.quote[c.index] == QuoteCheck.notFound)
+            Row(children: [
+              Icon(Icons.search_off, size: 16, color: Theme.of(context).colorScheme.error),
+              const SizedBox(width: 4),
+              const Expanded(child: Text('Quote not found in your lecture transcripts. Check it before you tick this card.')),
+            ]),
           if (importable && c.unverified && c.type != 'problem')
             const Row(children: [
               Icon(Icons.help_outline, size: 16),

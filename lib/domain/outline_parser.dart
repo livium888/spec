@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'import_parser.dart' show normalizeText, stripCitationMarkers, stripCodeFence;
+import 'transcript.dart' show looksLikeTranscript;
 
 /// Outline = ordered list of topics (syllabus items) with prerequisites.
 /// UNTRUSTED LLM output: strictly validated, length-capped, never evaluated.
@@ -53,7 +54,7 @@ class OutlinePreview {
 }
 
 /// 'keywords' (picture-search words for older cards), 'readmore' (paragraphs for older cards, D64), 'primer' (a reading for a topic, D68), 'plan' (several subjects), 'outline' (one
-/// subject's topics) or 'cards'.
+/// subject's topics), 'transcript' (a lecture's text, D67) or 'cards'.
 String detectPayloadKind(String raw) {
   try {
     final d = jsonDecode(stripCitationMarkers(stripCodeFence(raw)));
@@ -63,6 +64,7 @@ String detectPayloadKind(String raw) {
     if (d is Map && d.containsKey('subjects') && !d.containsKey('cards')) return 'plan';
     if (d is Map && d.containsKey('items') && !d.containsKey('cards')) return 'outline';
   } catch (_) {}
+  if (looksLikeTranscript(raw)) return 'transcript';
   return 'cards';
 }
 

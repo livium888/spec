@@ -6,10 +6,11 @@ import '../app/providers.dart';
 import '../data/db/database.dart';
 import '../domain/learn_planner.dart';
 import 'knowledge_map_screen.dart';
+import 'primer_reader_screen.dart';
 import 'prompt_result_screen.dart';
 
 class _Row {
-  const _Row(this.item, this.domain, this.cards, this.prereqs, this.returnsIn);
+  const _Row(this.item, this.domain, this.cards, this.prereqs, this.returnsIn, {this.primerRead});
   final SyllabusItem item;
 
   /// Days until a finished topic comes back (<= 0: due now); null if it will not.
@@ -17,6 +18,9 @@ class _Row {
   final String domain;
   final int cards;
   final List<String> prereqs;
+
+  /// The topic's primer (D68): null when it has none, else whether the learner has read it.
+  final bool? primerRead;
 }
 
 /// What is covered and what is not. With [pickMode], tapping a topic builds a prompt for it.
@@ -49,6 +53,7 @@ class _TopicsScreenState extends ConsumerState<TopicsScreen> {
         edges.putIfAbsent(e.itemId, () => []).add(titles[e.prereqId] ?? '?');
       }
       final returns = await learn.returnsInDays();
+      final primers = {for (final p in await db.select(db.primers).get()) p.syllabusItemId: p.readAt != null};
       final out = <String, List<_Row>>{};
       final q = db.select(db.syllabusItems).join([
         innerJoin(db.domains, db.domains.id.equalsExp(db.syllabusItems.domainId)),
@@ -62,7 +67,7 @@ class _TopicsScreenState extends ConsumerState<TopicsScreen> {
             'SELECT COUNT(*) AS n FROM card c JOIN note n ON n.id = c.note_id WHERE n.syllabus_item_id = ?',
             variables: [Variable.withInt(it.id)]).getSingle();
         out.putIfAbsent(r.readTable(db.domains).name, () => []).add(
-            _Row(it, r.readTable(db.domains).name, c.read<int>('n'), edges[it.id] ?? const [], returns[it.id]));
+            _Row(it, r.readTable(db.domains).name, c.read<int>('n'), edges[it.id] ?? const [], returns[it.id], primerRead: primers[it.id]));
       }
       if (mounted) setState(() { _data = out; _error = null; });
     } catch (e) {
@@ -97,6 +102,11 @@ class _TopicsScreenState extends ConsumerState<TopicsScreen> {
         .pushReplacement(MaterialPageRoute<void>(builder: (_) => PromptResultScreen(prompt: g)));
   }
 
+  Future<void> _openPrimer(_Row r) async {
+    await Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => PrimerReaderScreen(topicId: r.item.id, topicTitle: r.item.title)));
+    _load();
+  }
+
   static String _returns(double days) {
     if (days <= 0) return 'Due for a deeper pass now';
     if (days < 14) return 'Comes back in about ${days.ceil()} days';
@@ -113,6 +123,12 @@ class _TopicsScreenState extends ConsumerState<TopicsScreen> {
       builder: (ctx) => SafeArea(
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           ListTile(title: Text(r.item.title), subtitle: Text(r.item.description)),
+          if (r.primerRead != null)
+            ListTile(
+              leading: const Icon(Icons.menu_book_outlined),
+              title: Text(r.primerRead! ? 'Read the primer again' : 'Read the primer first'),
+              onTap: () { Navigator.pop(ctx); _openPrimer(r); },
+            ),
           ListTile(
             leading: const Icon(Icons.auto_awesome),
             title: Text(r.item.status == 'done' && r.cards > 0 ? 'Go deeper now (new cards)' : 'Make cards for this topic'),
@@ -204,6 +220,13 @@ class _TopicsScreenState extends ConsumerState<TopicsScreen> {
                                 '${r.returnsIn == null ? '' : '\n${_returns(r.returnsIn!)}'}'
                                 '${r.prereqs.isEmpty ? '' : '\nAfter: ${r.prereqs.join(', ')}'}',
                               ),
+                              trailing: r.primerRead == null
+                                  ? null
+                                  : IconButton(
+                                      tooltip: r.primerRead! ? 'Primer, read' : 'Primer, not read yet',
+                                      icon: Icon(r.primerRead! ? Icons.menu_book : Icons.menu_book_outlined),
+                                      onPressed: () => _openPrimer(r),
+                                    ),
                               isThreeLine: r.prereqs.isNotEmpty || r.returnsIn != null,
                               onTap: () => _menu(r),
                             ),

@@ -491,3 +491,33 @@ Library > Manage > "Read more for older cards". Same shape as "Image keywords fo
 | It was a cards pause / no reviewed card / the note is gone | "This pause asked for cards" / "No card to talk about" / the same, with Close. |
 | Error | The message and Close. |
 - **Settings > Ways out:** "Free time after a Socratic conversation" (1 to 15 minutes, default 5) with a helper sentence. The Cards-come-first and daily-limit helpers now name conversations.
+
+## Courses from lectures (D67)
+Library > Add to your library > "Courses from lectures".
+- **Courses:** a line saying what it is, "Add a lecture", and one row per subject that has lectures ("N lectures"), each opening its course page.
+- **Add a lecture** (also opened by pasting or sharing a long text that is not JSON): subject (a list, or "Or a new course"), lecture title ("It will be lecture N of this course"), where it is from (optional, never opened), "Paste the transcript" (the clipboard is read only on that tap). Once pasted: a card with "N words · about M min spoken · one part / K parts for your AI app" (live region) and the first 300 characters. "Save the lecture" stays disabled until there is text; a missing title or subject gets a message, nothing is saved. From a course page it goes back there; otherwise to the new course.
+- **Course page:** the steps in one sentence, "1. The course outline" with its prompt (Share, Copy), then one expandable row per lecture ("Lecture N: title", words and parts). Opened, each part has a Primer prompt and a Cards prompt (Share and Copy, with tooltips naming them), the note if any, and "Delete this lecture" (asks first; says cards and primers already made stay). "Add another lecture" at the end.
+| State | What shows |
+|---|---|
+| Courses loading | A spinner. |
+| No courses | "No courses yet. Add the first lecture to start one." |
+| Clipboard empty / no readable text | A message in red, nothing changes. |
+| Text over 400,000 characters | The rest is left out and the card says so. |
+| Share sheet fails | "Could not open the share sheet (...). Use Copy instead." |
+| Copied | "<prompt> copied. Paste it into your AI app." (live region) |
+
+## Primer import and reader (D68)
+- **Import preview:** the Paste an answer screen shows a primer answer as one row per primer, ticked when usable: title, "subject · topic", minutes, sections, questions to try first, and what will happen. The button says "Save N primers" and is disabled at 0. Unusable rows have no tick and say why.
+- **Reader** (book icon on a topic row, or the topic menu "Read the primer first / again"): title, minutes and times read, a note that an AI wrote it and nobody checked it; "Try these first" (each question: "Show the answer", then "I knew it" / "I did not"); "Reading" (section headings are headings for screen readers; text selectable, Markdown and formulas drawn); "Keep these"; "From: ..."; "I have read it"; "Add the N questions as cards".
+| State | What shows |
+|---|---|
+| Loading | A spinner. |
+| Topic has no primer | "This topic has no primer." |
+| Questions all known (or all but one, from 3 questions) | An offer to go to the cards, and "Read it anyway". |
+| Marked read | "Marked as read. The cards for this topic are next." (live region); the book icon on the topic fills in. |
+| Questions added | "Added N cards to this topic..." or "Those questions are already among your cards." |
+| Replaced by a newer primer | Unread again; the times-read count is kept. |
+- **Topic rows:** a book icon only when a primer exists, with the tooltip "Primer, not read yet" or "Primer, read".
+
+## Card import preview: quote check (D69)
+A card whose quote is not found in the subject's lecture transcripts shows a search-off icon and "Quote not found in your lecture transcripts. Check it before you tick this card." It starts unticked, and the button counts only ticked cards. Nothing appears for subjects without lectures, for cards from model memory, or for very short quotes.

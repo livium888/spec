@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../app/providers.dart';
 import 'add_card_screen.dart';
+import 'course_screen.dart';
 import 'anki_import_screen.dart';
 import 'browse_cards_screen.dart';
 import 'home_screen.dart';
@@ -83,6 +84,7 @@ class LibraryScreen extends ConsumerWidget {
         action(Icons.content_paste, 'Paste an answer', 'Import cards or an outline from your LLM', const ImportScreen()),
         action(Icons.add_circle_outline, 'New subject or more topics', 'Get an outline prompt for anything', const NewSubjectScreen()),
         action(Icons.edit_note, 'Custom prompt', 'Make cards from your own source text', const PromptScreen()),
+        action(Icons.school_outlined, 'Courses from lectures', 'Paste lecture transcripts; get an outline, readings and cards', const CoursesScreen()),
         action(Icons.add_card, 'Add a card', 'Write a single card yourself', const AddCardScreen()),
         action(Icons.move_to_inbox_outlined, 'Import from Anki', 'Bring in a deck (.apkg) or a text export', const AnkiImportScreen()),
         const SectionTitle('Manage'),

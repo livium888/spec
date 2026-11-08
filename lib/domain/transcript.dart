@@ -199,3 +199,13 @@ class QuoteIndex {
     return hit / n >= 0.8 ? QuoteCheck.found : QuoteCheck.notFound;
   }
 }
+
+/// Pasted or shared text that looks like a lecture (D67) rather than an AI's JSON answer: long enough, not starting like
+/// JSON, and without the keys our answers carry. A wrong guess costs one tap: Add a lecture shows a preview first.
+const kMinTranscriptChars = 400;
+bool looksLikeTranscript(String raw) {
+  final t = raw.trim();
+  if (t.length < kMinTranscriptChars) return false;
+  if (t.startsWith('{') || t.startsWith('[') || t.startsWith('```')) return false;
+  return !RegExp(r'"(cards|primer|primers|items|subjects|domain|read_more|image_keywords)"\s*:').hasMatch(t);
+}
