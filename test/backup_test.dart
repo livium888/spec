@@ -198,6 +198,8 @@ void main() {
     raw.execute('ALTER TABLE domain DROP COLUMN speech_lang');
     raw.execute('ALTER TABLE domain DROP COLUMN speech_side');
     raw.execute('DROP TABLE IF EXISTS media');
+    raw.execute('DROP TABLE IF EXISTS source'); // added in v10
+    raw.execute('DROP TABLE IF EXISTS primer'); // added in v10
     raw.execute('ALTER TABLE syllabus_item DROP COLUMN practice'); // added in v9
     raw.execute('DROP TABLE IF EXISTS reading_item');
     raw.execute('ALTER TABLE card DROP COLUMN retired_at');

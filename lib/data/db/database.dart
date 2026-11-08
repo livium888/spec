@@ -4,7 +4,7 @@ part 'database.g.dart';
 
 /// Bump together with a migration step in [AppDatabase.migration].
 /// Also checked by RestoreBackup against `PRAGMA user_version` of a backup file.
-const int kSchemaVersion = 9;
+const int kSchemaVersion = 10;
 
 class Domains extends Table {
   @override
@@ -232,6 +232,48 @@ class BackupLogs extends Table {
   TextColumn get error => text().nullable()();
 }
 
+/// v10: a lecture transcript kept for a course, so prompts can be built from it and a card's quote can be checked
+/// against it (D67). The text is the learner's own copy, for study; it never leaves the phone except inside a prompt the
+/// learner shares.
+class Sources extends Table {
+  @override
+  String get tableName => 'source';
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get domainId => integer().references(Domains, #id)();
+
+  /// The lecture's place in the course (1, 2, 3 ...).
+  IntColumn get number => integer().withDefault(const Constant(0))();
+  TextColumn get title => text()();
+
+  /// Where it came from, typed by the learner (a video address or a note). Never fetched.
+  TextColumn get note => text().withDefault(const Constant(''))();
+
+  /// The cleaned transcript.
+  TextColumn get body => text()();
+  IntColumn get createdAt => integer()();
+}
+
+/// v10: a primer, the reading a learner does before the cards of one topic (D68). One per topic; importing another
+/// replaces it. `content` is JSON: pretest, sections, key points, sources.
+class Primers extends Table {
+  @override
+  String get tableName => 'primer';
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get domainId => integer().references(Domains, #id)();
+  IntColumn get syllabusItemId => integer().references(SyllabusItems, #id)();
+  TextColumn get title => text().withDefault(const Constant(''))();
+  IntColumn get level => integer().withDefault(const Constant(1))();
+  TextColumn get content => text()();
+  IntColumn get readAt => integer().nullable()();
+  IntColumn get readCount => integer().withDefault(const Constant(0))();
+  IntColumn get createdAt => integer()();
+  IntColumn get updatedAt => integer()();
+  @override
+  List<Set<Column>> get uniqueKeys => [
+        {syllabusItemId}
+      ];
+}
+
 /// Added beyond the spec so settings travel inside backups (see DECISIONS D4).
 class Settings extends Table {
   @override
@@ -258,6 +300,8 @@ class Settings extends Table {
   BackupLogs,
   Settings,
   ReadingItems,
+  Sources,
+  Primers,
 ])
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
@@ -299,6 +343,10 @@ class AppDatabase extends _$AppDatabase {
           }
           if (from < 9) {
             await m.addColumn(syllabusItems, syllabusItems.practice);
+          }
+          if (from < 10) {
+            await m.createTable(sources);
+            await m.createTable(primers);
           }
         },
         beforeOpen: (details) async {

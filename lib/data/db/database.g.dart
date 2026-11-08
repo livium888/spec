@@ -7324,6 +7324,1050 @@ class ReadingItemsCompanion extends UpdateCompanion<ReadingItem> {
   }
 }
 
+class $SourcesTable extends Sources with TableInfo<$SourcesTable, Source> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $SourcesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _domainIdMeta = const VerificationMeta(
+    'domainId',
+  );
+  @override
+  late final GeneratedColumn<int> domainId = GeneratedColumn<int>(
+    'domain_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES domain (id)',
+    ),
+  );
+  static const VerificationMeta _numberMeta = const VerificationMeta('number');
+  @override
+  late final GeneratedColumn<int> number = GeneratedColumn<int>(
+    'number',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _titleMeta = const VerificationMeta('title');
+  @override
+  late final GeneratedColumn<String> title = GeneratedColumn<String>(
+    'title',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _noteMeta = const VerificationMeta('note');
+  @override
+  late final GeneratedColumn<String> note = GeneratedColumn<String>(
+    'note',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _bodyMeta = const VerificationMeta('body');
+  @override
+  late final GeneratedColumn<String> body = GeneratedColumn<String>(
+    'body',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<int> createdAt = GeneratedColumn<int>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    domainId,
+    number,
+    title,
+    note,
+    body,
+    createdAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'source';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<Source> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('domain_id')) {
+      context.handle(
+        _domainIdMeta,
+        domainId.isAcceptableOrUnknown(data['domain_id']!, _domainIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_domainIdMeta);
+    }
+    if (data.containsKey('number')) {
+      context.handle(
+        _numberMeta,
+        number.isAcceptableOrUnknown(data['number']!, _numberMeta),
+      );
+    }
+    if (data.containsKey('title')) {
+      context.handle(
+        _titleMeta,
+        title.isAcceptableOrUnknown(data['title']!, _titleMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_titleMeta);
+    }
+    if (data.containsKey('note')) {
+      context.handle(
+        _noteMeta,
+        note.isAcceptableOrUnknown(data['note']!, _noteMeta),
+      );
+    }
+    if (data.containsKey('body')) {
+      context.handle(
+        _bodyMeta,
+        body.isAcceptableOrUnknown(data['body']!, _bodyMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_bodyMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  Source map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return Source(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      domainId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}domain_id'],
+      )!,
+      number: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}number'],
+      )!,
+      title: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}title'],
+      )!,
+      note: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}note'],
+      )!,
+      body: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}body'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}created_at'],
+      )!,
+    );
+  }
+
+  @override
+  $SourcesTable createAlias(String alias) {
+    return $SourcesTable(attachedDatabase, alias);
+  }
+}
+
+class Source extends DataClass implements Insertable<Source> {
+  final int id;
+  final int domainId;
+
+  /// The lecture's place in the course (1, 2, 3 ...).
+  final int number;
+  final String title;
+
+  /// Where it came from, typed by the learner (a video address or a note). Never fetched.
+  final String note;
+
+  /// The cleaned transcript.
+  final String body;
+  final int createdAt;
+  const Source({
+    required this.id,
+    required this.domainId,
+    required this.number,
+    required this.title,
+    required this.note,
+    required this.body,
+    required this.createdAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['domain_id'] = Variable<int>(domainId);
+    map['number'] = Variable<int>(number);
+    map['title'] = Variable<String>(title);
+    map['note'] = Variable<String>(note);
+    map['body'] = Variable<String>(body);
+    map['created_at'] = Variable<int>(createdAt);
+    return map;
+  }
+
+  SourcesCompanion toCompanion(bool nullToAbsent) {
+    return SourcesCompanion(
+      id: Value(id),
+      domainId: Value(domainId),
+      number: Value(number),
+      title: Value(title),
+      note: Value(note),
+      body: Value(body),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory Source.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return Source(
+      id: serializer.fromJson<int>(json['id']),
+      domainId: serializer.fromJson<int>(json['domainId']),
+      number: serializer.fromJson<int>(json['number']),
+      title: serializer.fromJson<String>(json['title']),
+      note: serializer.fromJson<String>(json['note']),
+      body: serializer.fromJson<String>(json['body']),
+      createdAt: serializer.fromJson<int>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'domainId': serializer.toJson<int>(domainId),
+      'number': serializer.toJson<int>(number),
+      'title': serializer.toJson<String>(title),
+      'note': serializer.toJson<String>(note),
+      'body': serializer.toJson<String>(body),
+      'createdAt': serializer.toJson<int>(createdAt),
+    };
+  }
+
+  Source copyWith({
+    int? id,
+    int? domainId,
+    int? number,
+    String? title,
+    String? note,
+    String? body,
+    int? createdAt,
+  }) => Source(
+    id: id ?? this.id,
+    domainId: domainId ?? this.domainId,
+    number: number ?? this.number,
+    title: title ?? this.title,
+    note: note ?? this.note,
+    body: body ?? this.body,
+    createdAt: createdAt ?? this.createdAt,
+  );
+  Source copyWithCompanion(SourcesCompanion data) {
+    return Source(
+      id: data.id.present ? data.id.value : this.id,
+      domainId: data.domainId.present ? data.domainId.value : this.domainId,
+      number: data.number.present ? data.number.value : this.number,
+      title: data.title.present ? data.title.value : this.title,
+      note: data.note.present ? data.note.value : this.note,
+      body: data.body.present ? data.body.value : this.body,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('Source(')
+          ..write('id: $id, ')
+          ..write('domainId: $domainId, ')
+          ..write('number: $number, ')
+          ..write('title: $title, ')
+          ..write('note: $note, ')
+          ..write('body: $body, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(id, domainId, number, title, note, body, createdAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is Source &&
+          other.id == this.id &&
+          other.domainId == this.domainId &&
+          other.number == this.number &&
+          other.title == this.title &&
+          other.note == this.note &&
+          other.body == this.body &&
+          other.createdAt == this.createdAt);
+}
+
+class SourcesCompanion extends UpdateCompanion<Source> {
+  final Value<int> id;
+  final Value<int> domainId;
+  final Value<int> number;
+  final Value<String> title;
+  final Value<String> note;
+  final Value<String> body;
+  final Value<int> createdAt;
+  const SourcesCompanion({
+    this.id = const Value.absent(),
+    this.domainId = const Value.absent(),
+    this.number = const Value.absent(),
+    this.title = const Value.absent(),
+    this.note = const Value.absent(),
+    this.body = const Value.absent(),
+    this.createdAt = const Value.absent(),
+  });
+  SourcesCompanion.insert({
+    this.id = const Value.absent(),
+    required int domainId,
+    this.number = const Value.absent(),
+    required String title,
+    this.note = const Value.absent(),
+    required String body,
+    required int createdAt,
+  }) : domainId = Value(domainId),
+       title = Value(title),
+       body = Value(body),
+       createdAt = Value(createdAt);
+  static Insertable<Source> custom({
+    Expression<int>? id,
+    Expression<int>? domainId,
+    Expression<int>? number,
+    Expression<String>? title,
+    Expression<String>? note,
+    Expression<String>? body,
+    Expression<int>? createdAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (domainId != null) 'domain_id': domainId,
+      if (number != null) 'number': number,
+      if (title != null) 'title': title,
+      if (note != null) 'note': note,
+      if (body != null) 'body': body,
+      if (createdAt != null) 'created_at': createdAt,
+    });
+  }
+
+  SourcesCompanion copyWith({
+    Value<int>? id,
+    Value<int>? domainId,
+    Value<int>? number,
+    Value<String>? title,
+    Value<String>? note,
+    Value<String>? body,
+    Value<int>? createdAt,
+  }) {
+    return SourcesCompanion(
+      id: id ?? this.id,
+      domainId: domainId ?? this.domainId,
+      number: number ?? this.number,
+      title: title ?? this.title,
+      note: note ?? this.note,
+      body: body ?? this.body,
+      createdAt: createdAt ?? this.createdAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (domainId.present) {
+      map['domain_id'] = Variable<int>(domainId.value);
+    }
+    if (number.present) {
+      map['number'] = Variable<int>(number.value);
+    }
+    if (title.present) {
+      map['title'] = Variable<String>(title.value);
+    }
+    if (note.present) {
+      map['note'] = Variable<String>(note.value);
+    }
+    if (body.present) {
+      map['body'] = Variable<String>(body.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<int>(createdAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SourcesCompanion(')
+          ..write('id: $id, ')
+          ..write('domainId: $domainId, ')
+          ..write('number: $number, ')
+          ..write('title: $title, ')
+          ..write('note: $note, ')
+          ..write('body: $body, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $PrimersTable extends Primers with TableInfo<$PrimersTable, Primer> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $PrimersTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _domainIdMeta = const VerificationMeta(
+    'domainId',
+  );
+  @override
+  late final GeneratedColumn<int> domainId = GeneratedColumn<int>(
+    'domain_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES domain (id)',
+    ),
+  );
+  static const VerificationMeta _syllabusItemIdMeta = const VerificationMeta(
+    'syllabusItemId',
+  );
+  @override
+  late final GeneratedColumn<int> syllabusItemId = GeneratedColumn<int>(
+    'syllabus_item_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES syllabus_item (id)',
+    ),
+  );
+  static const VerificationMeta _titleMeta = const VerificationMeta('title');
+  @override
+  late final GeneratedColumn<String> title = GeneratedColumn<String>(
+    'title',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _levelMeta = const VerificationMeta('level');
+  @override
+  late final GeneratedColumn<int> level = GeneratedColumn<int>(
+    'level',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(1),
+  );
+  static const VerificationMeta _contentMeta = const VerificationMeta(
+    'content',
+  );
+  @override
+  late final GeneratedColumn<String> content = GeneratedColumn<String>(
+    'content',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _readAtMeta = const VerificationMeta('readAt');
+  @override
+  late final GeneratedColumn<int> readAt = GeneratedColumn<int>(
+    'read_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _readCountMeta = const VerificationMeta(
+    'readCount',
+  );
+  @override
+  late final GeneratedColumn<int> readCount = GeneratedColumn<int>(
+    'read_count',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<int> createdAt = GeneratedColumn<int>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<int> updatedAt = GeneratedColumn<int>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    domainId,
+    syllabusItemId,
+    title,
+    level,
+    content,
+    readAt,
+    readCount,
+    createdAt,
+    updatedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'primer';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<Primer> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('domain_id')) {
+      context.handle(
+        _domainIdMeta,
+        domainId.isAcceptableOrUnknown(data['domain_id']!, _domainIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_domainIdMeta);
+    }
+    if (data.containsKey('syllabus_item_id')) {
+      context.handle(
+        _syllabusItemIdMeta,
+        syllabusItemId.isAcceptableOrUnknown(
+          data['syllabus_item_id']!,
+          _syllabusItemIdMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_syllabusItemIdMeta);
+    }
+    if (data.containsKey('title')) {
+      context.handle(
+        _titleMeta,
+        title.isAcceptableOrUnknown(data['title']!, _titleMeta),
+      );
+    }
+    if (data.containsKey('level')) {
+      context.handle(
+        _levelMeta,
+        level.isAcceptableOrUnknown(data['level']!, _levelMeta),
+      );
+    }
+    if (data.containsKey('content')) {
+      context.handle(
+        _contentMeta,
+        content.isAcceptableOrUnknown(data['content']!, _contentMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_contentMeta);
+    }
+    if (data.containsKey('read_at')) {
+      context.handle(
+        _readAtMeta,
+        readAt.isAcceptableOrUnknown(data['read_at']!, _readAtMeta),
+      );
+    }
+    if (data.containsKey('read_count')) {
+      context.handle(
+        _readCountMeta,
+        readCount.isAcceptableOrUnknown(data['read_count']!, _readCountMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  List<Set<GeneratedColumn>> get uniqueKeys => [
+    {syllabusItemId},
+  ];
+  @override
+  Primer map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return Primer(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      domainId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}domain_id'],
+      )!,
+      syllabusItemId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}syllabus_item_id'],
+      )!,
+      title: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}title'],
+      )!,
+      level: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}level'],
+      )!,
+      content: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}content'],
+      )!,
+      readAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}read_at'],
+      ),
+      readCount: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}read_count'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $PrimersTable createAlias(String alias) {
+    return $PrimersTable(attachedDatabase, alias);
+  }
+}
+
+class Primer extends DataClass implements Insertable<Primer> {
+  final int id;
+  final int domainId;
+  final int syllabusItemId;
+  final String title;
+  final int level;
+  final String content;
+  final int? readAt;
+  final int readCount;
+  final int createdAt;
+  final int updatedAt;
+  const Primer({
+    required this.id,
+    required this.domainId,
+    required this.syllabusItemId,
+    required this.title,
+    required this.level,
+    required this.content,
+    this.readAt,
+    required this.readCount,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['domain_id'] = Variable<int>(domainId);
+    map['syllabus_item_id'] = Variable<int>(syllabusItemId);
+    map['title'] = Variable<String>(title);
+    map['level'] = Variable<int>(level);
+    map['content'] = Variable<String>(content);
+    if (!nullToAbsent || readAt != null) {
+      map['read_at'] = Variable<int>(readAt);
+    }
+    map['read_count'] = Variable<int>(readCount);
+    map['created_at'] = Variable<int>(createdAt);
+    map['updated_at'] = Variable<int>(updatedAt);
+    return map;
+  }
+
+  PrimersCompanion toCompanion(bool nullToAbsent) {
+    return PrimersCompanion(
+      id: Value(id),
+      domainId: Value(domainId),
+      syllabusItemId: Value(syllabusItemId),
+      title: Value(title),
+      level: Value(level),
+      content: Value(content),
+      readAt: readAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(readAt),
+      readCount: Value(readCount),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory Primer.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return Primer(
+      id: serializer.fromJson<int>(json['id']),
+      domainId: serializer.fromJson<int>(json['domainId']),
+      syllabusItemId: serializer.fromJson<int>(json['syllabusItemId']),
+      title: serializer.fromJson<String>(json['title']),
+      level: serializer.fromJson<int>(json['level']),
+      content: serializer.fromJson<String>(json['content']),
+      readAt: serializer.fromJson<int?>(json['readAt']),
+      readCount: serializer.fromJson<int>(json['readCount']),
+      createdAt: serializer.fromJson<int>(json['createdAt']),
+      updatedAt: serializer.fromJson<int>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'domainId': serializer.toJson<int>(domainId),
+      'syllabusItemId': serializer.toJson<int>(syllabusItemId),
+      'title': serializer.toJson<String>(title),
+      'level': serializer.toJson<int>(level),
+      'content': serializer.toJson<String>(content),
+      'readAt': serializer.toJson<int?>(readAt),
+      'readCount': serializer.toJson<int>(readCount),
+      'createdAt': serializer.toJson<int>(createdAt),
+      'updatedAt': serializer.toJson<int>(updatedAt),
+    };
+  }
+
+  Primer copyWith({
+    int? id,
+    int? domainId,
+    int? syllabusItemId,
+    String? title,
+    int? level,
+    String? content,
+    Value<int?> readAt = const Value.absent(),
+    int? readCount,
+    int? createdAt,
+    int? updatedAt,
+  }) => Primer(
+    id: id ?? this.id,
+    domainId: domainId ?? this.domainId,
+    syllabusItemId: syllabusItemId ?? this.syllabusItemId,
+    title: title ?? this.title,
+    level: level ?? this.level,
+    content: content ?? this.content,
+    readAt: readAt.present ? readAt.value : this.readAt,
+    readCount: readCount ?? this.readCount,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  Primer copyWithCompanion(PrimersCompanion data) {
+    return Primer(
+      id: data.id.present ? data.id.value : this.id,
+      domainId: data.domainId.present ? data.domainId.value : this.domainId,
+      syllabusItemId: data.syllabusItemId.present
+          ? data.syllabusItemId.value
+          : this.syllabusItemId,
+      title: data.title.present ? data.title.value : this.title,
+      level: data.level.present ? data.level.value : this.level,
+      content: data.content.present ? data.content.value : this.content,
+      readAt: data.readAt.present ? data.readAt.value : this.readAt,
+      readCount: data.readCount.present ? data.readCount.value : this.readCount,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('Primer(')
+          ..write('id: $id, ')
+          ..write('domainId: $domainId, ')
+          ..write('syllabusItemId: $syllabusItemId, ')
+          ..write('title: $title, ')
+          ..write('level: $level, ')
+          ..write('content: $content, ')
+          ..write('readAt: $readAt, ')
+          ..write('readCount: $readCount, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    domainId,
+    syllabusItemId,
+    title,
+    level,
+    content,
+    readAt,
+    readCount,
+    createdAt,
+    updatedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is Primer &&
+          other.id == this.id &&
+          other.domainId == this.domainId &&
+          other.syllabusItemId == this.syllabusItemId &&
+          other.title == this.title &&
+          other.level == this.level &&
+          other.content == this.content &&
+          other.readAt == this.readAt &&
+          other.readCount == this.readCount &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt);
+}
+
+class PrimersCompanion extends UpdateCompanion<Primer> {
+  final Value<int> id;
+  final Value<int> domainId;
+  final Value<int> syllabusItemId;
+  final Value<String> title;
+  final Value<int> level;
+  final Value<String> content;
+  final Value<int?> readAt;
+  final Value<int> readCount;
+  final Value<int> createdAt;
+  final Value<int> updatedAt;
+  const PrimersCompanion({
+    this.id = const Value.absent(),
+    this.domainId = const Value.absent(),
+    this.syllabusItemId = const Value.absent(),
+    this.title = const Value.absent(),
+    this.level = const Value.absent(),
+    this.content = const Value.absent(),
+    this.readAt = const Value.absent(),
+    this.readCount = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+  });
+  PrimersCompanion.insert({
+    this.id = const Value.absent(),
+    required int domainId,
+    required int syllabusItemId,
+    this.title = const Value.absent(),
+    this.level = const Value.absent(),
+    required String content,
+    this.readAt = const Value.absent(),
+    this.readCount = const Value.absent(),
+    required int createdAt,
+    required int updatedAt,
+  }) : domainId = Value(domainId),
+       syllabusItemId = Value(syllabusItemId),
+       content = Value(content),
+       createdAt = Value(createdAt),
+       updatedAt = Value(updatedAt);
+  static Insertable<Primer> custom({
+    Expression<int>? id,
+    Expression<int>? domainId,
+    Expression<int>? syllabusItemId,
+    Expression<String>? title,
+    Expression<int>? level,
+    Expression<String>? content,
+    Expression<int>? readAt,
+    Expression<int>? readCount,
+    Expression<int>? createdAt,
+    Expression<int>? updatedAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (domainId != null) 'domain_id': domainId,
+      if (syllabusItemId != null) 'syllabus_item_id': syllabusItemId,
+      if (title != null) 'title': title,
+      if (level != null) 'level': level,
+      if (content != null) 'content': content,
+      if (readAt != null) 'read_at': readAt,
+      if (readCount != null) 'read_count': readCount,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+    });
+  }
+
+  PrimersCompanion copyWith({
+    Value<int>? id,
+    Value<int>? domainId,
+    Value<int>? syllabusItemId,
+    Value<String>? title,
+    Value<int>? level,
+    Value<String>? content,
+    Value<int?>? readAt,
+    Value<int>? readCount,
+    Value<int>? createdAt,
+    Value<int>? updatedAt,
+  }) {
+    return PrimersCompanion(
+      id: id ?? this.id,
+      domainId: domainId ?? this.domainId,
+      syllabusItemId: syllabusItemId ?? this.syllabusItemId,
+      title: title ?? this.title,
+      level: level ?? this.level,
+      content: content ?? this.content,
+      readAt: readAt ?? this.readAt,
+      readCount: readCount ?? this.readCount,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (domainId.present) {
+      map['domain_id'] = Variable<int>(domainId.value);
+    }
+    if (syllabusItemId.present) {
+      map['syllabus_item_id'] = Variable<int>(syllabusItemId.value);
+    }
+    if (title.present) {
+      map['title'] = Variable<String>(title.value);
+    }
+    if (level.present) {
+      map['level'] = Variable<int>(level.value);
+    }
+    if (content.present) {
+      map['content'] = Variable<String>(content.value);
+    }
+    if (readAt.present) {
+      map['read_at'] = Variable<int>(readAt.value);
+    }
+    if (readCount.present) {
+      map['read_count'] = Variable<int>(readCount.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<int>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<int>(updatedAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PrimersCompanion(')
+          ..write('id: $id, ')
+          ..write('domainId: $domainId, ')
+          ..write('syllabusItemId: $syllabusItemId, ')
+          ..write('title: $title, ')
+          ..write('level: $level, ')
+          ..write('content: $content, ')
+          ..write('readAt: $readAt, ')
+          ..write('readCount: $readCount, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -7350,6 +8394,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $BackupLogsTable backupLogs = $BackupLogsTable(this);
   late final $SettingsTable settings = $SettingsTable(this);
   late final $ReadingItemsTable readingItems = $ReadingItemsTable(this);
+  late final $SourcesTable sources = $SourcesTable(this);
+  late final $PrimersTable primers = $PrimersTable(this);
   late final Index cardDueIdx = Index(
     'card_due_idx',
     'CREATE INDEX card_due_idx ON card (due)',
@@ -7386,6 +8432,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     backupLogs,
     settings,
     readingItems,
+    sources,
+    primers,
     cardDueIdx,
     cardNoteIdx,
     reviewLogCardIdx,
@@ -7506,6 +8554,44 @@ final class $$DomainsTableReferences
     ).filter((f) => f.domainId.id.sqlEquals($_itemColumn<int>('id')!));
 
     final cache = $_typedResult.readTableOrNull(_readingItemsRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<$SourcesTable, List<Source>> _sourcesRefsTable(
+    _$AppDatabase db,
+  ) => MultiTypedResultKey.fromTable(
+    db.sources,
+    aliasName: 'domain__id__source__domain_id',
+  );
+
+  $$SourcesTableProcessedTableManager get sourcesRefs {
+    final manager = $$SourcesTableTableManager(
+      $_db,
+      $_db.sources,
+    ).filter((f) => f.domainId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_sourcesRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<$PrimersTable, List<Primer>> _primersRefsTable(
+    _$AppDatabase db,
+  ) => MultiTypedResultKey.fromTable(
+    db.primers,
+    aliasName: 'domain__id__primer__domain_id',
+  );
+
+  $$PrimersTableProcessedTableManager get primersRefs {
+    final manager = $$PrimersTableTableManager(
+      $_db,
+      $_db.primers,
+    ).filter((f) => f.domainId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_primersRefsTable($_db));
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: cache),
     );
@@ -7682,6 +8768,56 @@ class $$DomainsTableFilterComposer
           }) => $$ReadingItemsTableFilterComposer(
             $db: $db,
             $table: $db.readingItems,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> sourcesRefs(
+    Expression<bool> Function($$SourcesTableFilterComposer f) f,
+  ) {
+    final $$SourcesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.sources,
+      getReferencedColumn: (t) => t.domainId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SourcesTableFilterComposer(
+            $db: $db,
+            $table: $db.sources,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> primersRefs(
+    Expression<bool> Function($$PrimersTableFilterComposer f) f,
+  ) {
+    final $$PrimersTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.primers,
+      getReferencedColumn: (t) => t.domainId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$PrimersTableFilterComposer(
+            $db: $db,
+            $table: $db.primers,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -7913,6 +9049,56 @@ class $$DomainsTableAnnotationComposer
     );
     return f(composer);
   }
+
+  Expression<T> sourcesRefs<T extends Object>(
+    Expression<T> Function($$SourcesTableAnnotationComposer a) f,
+  ) {
+    final $$SourcesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.sources,
+      getReferencedColumn: (t) => t.domainId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SourcesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.sources,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<T> primersRefs<T extends Object>(
+    Expression<T> Function($$PrimersTableAnnotationComposer a) f,
+  ) {
+    final $$PrimersTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.primers,
+      getReferencedColumn: (t) => t.domainId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$PrimersTableAnnotationComposer(
+            $db: $db,
+            $table: $db.primers,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$DomainsTableTableManager
@@ -7934,6 +9120,8 @@ class $$DomainsTableTableManager
             bool promptLogsRefs,
             bool interestLogsRefs,
             bool readingItemsRefs,
+            bool sourcesRefs,
+            bool primersRefs,
           })
         > {
   $$DomainsTableTableManager(_$AppDatabase db, $DomainsTable table)
@@ -8006,6 +9194,8 @@ class $$DomainsTableTableManager
                 promptLogsRefs = false,
                 interestLogsRefs = false,
                 readingItemsRefs = false,
+                sourcesRefs = false,
+                primersRefs = false,
               }) {
                 return PrefetchHooks(
                   db: db,
@@ -8015,6 +9205,8 @@ class $$DomainsTableTableManager
                     if (promptLogsRefs) db.promptLogs,
                     if (interestLogsRefs) db.interestLogs,
                     if (readingItemsRefs) db.readingItems,
+                    if (sourcesRefs) db.sources,
+                    if (primersRefs) db.primers,
                   ],
                   addJoins: null,
                   getPrefetchedDataCallback: (items) async {
@@ -8116,6 +9308,48 @@ class $$DomainsTableTableManager
                               ),
                           typedResults: items,
                         ),
+                      if (sourcesRefs)
+                        await $_getPrefetchedData<
+                          Domain,
+                          $DomainsTable,
+                          Source
+                        >(
+                          currentTable: table,
+                          referencedTable: $$DomainsTableReferences
+                              ._sourcesRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$DomainsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).sourcesRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.domainId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                      if (primersRefs)
+                        await $_getPrefetchedData<
+                          Domain,
+                          $DomainsTable,
+                          Primer
+                        >(
+                          currentTable: table,
+                          referencedTable: $$DomainsTableReferences
+                              ._primersRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$DomainsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).primersRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.domainId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
                     ];
                   },
                 );
@@ -8142,6 +9376,8 @@ typedef $$DomainsTableProcessedTableManager =
         bool promptLogsRefs,
         bool interestLogsRefs,
         bool readingItemsRefs,
+        bool sourcesRefs,
+        bool primersRefs,
       })
     >;
 typedef $$SyllabusItemsTableCreateCompanionBuilder =
@@ -8246,6 +9482,25 @@ final class $$SyllabusItemsTableReferences
     ).filter((f) => f.syllabusItemId.id.sqlEquals($_itemColumn<int>('id')!));
 
     final cache = $_typedResult.readTableOrNull(_readingItemsRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<$PrimersTable, List<Primer>> _primersRefsTable(
+    _$AppDatabase db,
+  ) => MultiTypedResultKey.fromTable(
+    db.primers,
+    aliasName: 'syllabus_item__id__primer__syllabus_item_id',
+  );
+
+  $$PrimersTableProcessedTableManager get primersRefs {
+    final manager = $$PrimersTableTableManager(
+      $_db,
+      $_db.primers,
+    ).filter((f) => f.syllabusItemId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_primersRefsTable($_db));
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: cache),
     );
@@ -8395,6 +9650,31 @@ class $$SyllabusItemsTableFilterComposer
           }) => $$ReadingItemsTableFilterComposer(
             $db: $db,
             $table: $db.readingItems,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> primersRefs(
+    Expression<bool> Function($$PrimersTableFilterComposer f) f,
+  ) {
+    final $$PrimersTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.primers,
+      getReferencedColumn: (t) => t.syllabusItemId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$PrimersTableFilterComposer(
+            $db: $db,
+            $table: $db.primers,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -8620,6 +9900,31 @@ class $$SyllabusItemsTableAnnotationComposer
     );
     return f(composer);
   }
+
+  Expression<T> primersRefs<T extends Object>(
+    Expression<T> Function($$PrimersTableAnnotationComposer a) f,
+  ) {
+    final $$PrimersTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.primers,
+      getReferencedColumn: (t) => t.syllabusItemId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$PrimersTableAnnotationComposer(
+            $db: $db,
+            $table: $db.primers,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$SyllabusItemsTableTableManager
@@ -8640,6 +9945,7 @@ class $$SyllabusItemsTableTableManager
             bool notesRefs,
             bool promptLogsRefs,
             bool readingItemsRefs,
+            bool primersRefs,
           })
         > {
   $$SyllabusItemsTableTableManager(_$AppDatabase db, $SyllabusItemsTable table)
@@ -8715,6 +10021,7 @@ class $$SyllabusItemsTableTableManager
                 notesRefs = false,
                 promptLogsRefs = false,
                 readingItemsRefs = false,
+                primersRefs = false,
               }) {
                 return PrefetchHooks(
                   db: db,
@@ -8722,6 +10029,7 @@ class $$SyllabusItemsTableTableManager
                     if (notesRefs) db.notes,
                     if (promptLogsRefs) db.promptLogs,
                     if (readingItemsRefs) db.readingItems,
+                    if (primersRefs) db.primers,
                   ],
                   addJoins:
                       <
@@ -8818,6 +10126,27 @@ class $$SyllabusItemsTableTableManager
                               ),
                           typedResults: items,
                         ),
+                      if (primersRefs)
+                        await $_getPrefetchedData<
+                          SyllabusItem,
+                          $SyllabusItemsTable,
+                          Primer
+                        >(
+                          currentTable: table,
+                          referencedTable: $$SyllabusItemsTableReferences
+                              ._primersRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$SyllabusItemsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).primersRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.syllabusItemId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
                     ];
                   },
                 );
@@ -8843,6 +10172,7 @@ typedef $$SyllabusItemsTableProcessedTableManager =
         bool notesRefs,
         bool promptLogsRefs,
         bool readingItemsRefs,
+        bool primersRefs,
       })
     >;
 typedef $$SyllabusPrereqsTableCreateCompanionBuilder =
@@ -13549,6 +14879,838 @@ typedef $$ReadingItemsTableProcessedTableManager =
       ReadingItem,
       PrefetchHooks Function({bool domainId, bool syllabusItemId})
     >;
+typedef $$SourcesTableCreateCompanionBuilder = SourcesCompanion Function({
+  Value<int> id,
+  required int domainId,
+  Value<int> number,
+  required String title,
+  Value<String> note,
+  required String body,
+  required int createdAt,
+});
+typedef $$SourcesTableUpdateCompanionBuilder = SourcesCompanion Function({
+  Value<int> id,
+  Value<int> domainId,
+  Value<int> number,
+  Value<String> title,
+  Value<String> note,
+  Value<String> body,
+  Value<int> createdAt,
+});
+
+final class $$SourcesTableReferences
+    extends BaseReferences<_$AppDatabase, $SourcesTable, Source> {
+  $$SourcesTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static $DomainsTable _domainIdTable(_$AppDatabase db) =>
+      db.domains.createAlias('source__domain_id__domain__id');
+
+  $$DomainsTableProcessedTableManager get domainId {
+    final $_column = $_itemColumn<int>('domain_id')!;
+
+    final manager = $$DomainsTableTableManager(
+      $_db,
+      $_db.domains,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_domainIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$SourcesTableFilterComposer
+    extends Composer<_$AppDatabase, $SourcesTable> {
+  $$SourcesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get number => $composableBuilder(
+    column: $table.number,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get note => $composableBuilder(
+    column: $table.note,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get body => $composableBuilder(
+    column: $table.body,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$DomainsTableFilterComposer get domainId {
+    final $$DomainsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.domainId,
+      referencedTable: $db.domains,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DomainsTableFilterComposer(
+            $db: $db,
+            $table: $db.domains,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$SourcesTableOrderingComposer
+    extends Composer<_$AppDatabase, $SourcesTable> {
+  $$SourcesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get number => $composableBuilder(
+    column: $table.number,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get note => $composableBuilder(
+    column: $table.note,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get body => $composableBuilder(
+    column: $table.body,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$DomainsTableOrderingComposer get domainId {
+    final $$DomainsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.domainId,
+      referencedTable: $db.domains,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DomainsTableOrderingComposer(
+            $db: $db,
+            $table: $db.domains,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$SourcesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $SourcesTable> {
+  $$SourcesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<int> get number =>
+      $composableBuilder(column: $table.number, builder: (column) => column);
+
+  GeneratedColumn<String> get title =>
+      $composableBuilder(column: $table.title, builder: (column) => column);
+
+  GeneratedColumn<String> get note =>
+      $composableBuilder(column: $table.note, builder: (column) => column);
+
+  GeneratedColumn<String> get body =>
+      $composableBuilder(column: $table.body, builder: (column) => column);
+
+  GeneratedColumn<int> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  $$DomainsTableAnnotationComposer get domainId {
+    final $$DomainsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.domainId,
+      referencedTable: $db.domains,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DomainsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.domains,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$SourcesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $SourcesTable,
+          Source,
+          $$SourcesTableFilterComposer,
+          $$SourcesTableOrderingComposer,
+          $$SourcesTableAnnotationComposer,
+          $$SourcesTableCreateCompanionBuilder,
+          $$SourcesTableUpdateCompanionBuilder,
+          (Source, $$SourcesTableReferences),
+          Source,
+          PrefetchHooks Function({bool domainId})
+        > {
+  $$SourcesTableTableManager(_$AppDatabase db, $SourcesTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$SourcesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$SourcesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$SourcesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<int> domainId = const Value.absent(),
+                Value<int> number = const Value.absent(),
+                Value<String> title = const Value.absent(),
+                Value<String> note = const Value.absent(),
+                Value<String> body = const Value.absent(),
+                Value<int> createdAt = const Value.absent(),
+              }) => SourcesCompanion(
+                id: id,
+                domainId: domainId,
+                number: number,
+                title: title,
+                note: note,
+                body: body,
+                createdAt: createdAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required int domainId,
+                Value<int> number = const Value.absent(),
+                required String title,
+                Value<String> note = const Value.absent(),
+                required String body,
+                required int createdAt,
+              }) => SourcesCompanion.insert(
+                id: id,
+                domainId: domainId,
+                number: number,
+                title: title,
+                note: note,
+                body: body,
+                createdAt: createdAt,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$SourcesTable, Source>(table),
+                  $$SourcesTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({domainId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (domainId) {
+                      state = state.withJoin(
+                        currentTable: table,
+                        currentColumn: table.domainId,
+                        referencedTable: $$SourcesTableReferences
+                            ._domainIdTable(db),
+                        referencedColumn: $$SourcesTableReferences
+                            ._domainIdTable(db)
+                            .id,
+                      ) as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$SourcesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $SourcesTable,
+      Source,
+      $$SourcesTableFilterComposer,
+      $$SourcesTableOrderingComposer,
+      $$SourcesTableAnnotationComposer,
+      $$SourcesTableCreateCompanionBuilder,
+      $$SourcesTableUpdateCompanionBuilder,
+      (Source, $$SourcesTableReferences),
+      Source,
+      PrefetchHooks Function({bool domainId})
+    >;
+typedef $$PrimersTableCreateCompanionBuilder = PrimersCompanion Function({
+  Value<int> id,
+  required int domainId,
+  required int syllabusItemId,
+  Value<String> title,
+  Value<int> level,
+  required String content,
+  Value<int?> readAt,
+  Value<int> readCount,
+  required int createdAt,
+  required int updatedAt,
+});
+typedef $$PrimersTableUpdateCompanionBuilder = PrimersCompanion Function({
+  Value<int> id,
+  Value<int> domainId,
+  Value<int> syllabusItemId,
+  Value<String> title,
+  Value<int> level,
+  Value<String> content,
+  Value<int?> readAt,
+  Value<int> readCount,
+  Value<int> createdAt,
+  Value<int> updatedAt,
+});
+
+final class $$PrimersTableReferences
+    extends BaseReferences<_$AppDatabase, $PrimersTable, Primer> {
+  $$PrimersTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static $DomainsTable _domainIdTable(_$AppDatabase db) =>
+      db.domains.createAlias('primer__domain_id__domain__id');
+
+  $$DomainsTableProcessedTableManager get domainId {
+    final $_column = $_itemColumn<int>('domain_id')!;
+
+    final manager = $$DomainsTableTableManager(
+      $_db,
+      $_db.domains,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_domainIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static $SyllabusItemsTable _syllabusItemIdTable(_$AppDatabase db) => db
+      .syllabusItems
+      .createAlias('primer__syllabus_item_id__syllabus_item__id');
+
+  $$SyllabusItemsTableProcessedTableManager get syllabusItemId {
+    final $_column = $_itemColumn<int>('syllabus_item_id')!;
+
+    final manager = $$SyllabusItemsTableTableManager(
+      $_db,
+      $_db.syllabusItems,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_syllabusItemIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$PrimersTableFilterComposer
+    extends Composer<_$AppDatabase, $PrimersTable> {
+  $$PrimersTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get level => $composableBuilder(
+    column: $table.level,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get content => $composableBuilder(
+    column: $table.content,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get readAt => $composableBuilder(
+    column: $table.readAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get readCount => $composableBuilder(
+    column: $table.readCount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$DomainsTableFilterComposer get domainId {
+    final $$DomainsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.domainId,
+      referencedTable: $db.domains,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DomainsTableFilterComposer(
+            $db: $db,
+            $table: $db.domains,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$SyllabusItemsTableFilterComposer get syllabusItemId {
+    final $$SyllabusItemsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.syllabusItemId,
+      referencedTable: $db.syllabusItems,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SyllabusItemsTableFilterComposer(
+            $db: $db,
+            $table: $db.syllabusItems,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$PrimersTableOrderingComposer
+    extends Composer<_$AppDatabase, $PrimersTable> {
+  $$PrimersTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get level => $composableBuilder(
+    column: $table.level,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get content => $composableBuilder(
+    column: $table.content,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get readAt => $composableBuilder(
+    column: $table.readAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get readCount => $composableBuilder(
+    column: $table.readCount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$DomainsTableOrderingComposer get domainId {
+    final $$DomainsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.domainId,
+      referencedTable: $db.domains,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DomainsTableOrderingComposer(
+            $db: $db,
+            $table: $db.domains,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$SyllabusItemsTableOrderingComposer get syllabusItemId {
+    final $$SyllabusItemsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.syllabusItemId,
+      referencedTable: $db.syllabusItems,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SyllabusItemsTableOrderingComposer(
+            $db: $db,
+            $table: $db.syllabusItems,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$PrimersTableAnnotationComposer
+    extends Composer<_$AppDatabase, $PrimersTable> {
+  $$PrimersTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get title =>
+      $composableBuilder(column: $table.title, builder: (column) => column);
+
+  GeneratedColumn<int> get level =>
+      $composableBuilder(column: $table.level, builder: (column) => column);
+
+  GeneratedColumn<String> get content =>
+      $composableBuilder(column: $table.content, builder: (column) => column);
+
+  GeneratedColumn<int> get readAt =>
+      $composableBuilder(column: $table.readAt, builder: (column) => column);
+
+  GeneratedColumn<int> get readCount =>
+      $composableBuilder(column: $table.readCount, builder: (column) => column);
+
+  GeneratedColumn<int> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<int> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  $$DomainsTableAnnotationComposer get domainId {
+    final $$DomainsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.domainId,
+      referencedTable: $db.domains,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DomainsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.domains,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$SyllabusItemsTableAnnotationComposer get syllabusItemId {
+    final $$SyllabusItemsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.syllabusItemId,
+      referencedTable: $db.syllabusItems,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SyllabusItemsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.syllabusItems,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$PrimersTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $PrimersTable,
+          Primer,
+          $$PrimersTableFilterComposer,
+          $$PrimersTableOrderingComposer,
+          $$PrimersTableAnnotationComposer,
+          $$PrimersTableCreateCompanionBuilder,
+          $$PrimersTableUpdateCompanionBuilder,
+          (Primer, $$PrimersTableReferences),
+          Primer,
+          PrefetchHooks Function({bool domainId, bool syllabusItemId})
+        > {
+  $$PrimersTableTableManager(_$AppDatabase db, $PrimersTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$PrimersTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$PrimersTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$PrimersTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<int> domainId = const Value.absent(),
+                Value<int> syllabusItemId = const Value.absent(),
+                Value<String> title = const Value.absent(),
+                Value<int> level = const Value.absent(),
+                Value<String> content = const Value.absent(),
+                Value<int?> readAt = const Value.absent(),
+                Value<int> readCount = const Value.absent(),
+                Value<int> createdAt = const Value.absent(),
+                Value<int> updatedAt = const Value.absent(),
+              }) => PrimersCompanion(
+                id: id,
+                domainId: domainId,
+                syllabusItemId: syllabusItemId,
+                title: title,
+                level: level,
+                content: content,
+                readAt: readAt,
+                readCount: readCount,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required int domainId,
+                required int syllabusItemId,
+                Value<String> title = const Value.absent(),
+                Value<int> level = const Value.absent(),
+                required String content,
+                Value<int?> readAt = const Value.absent(),
+                Value<int> readCount = const Value.absent(),
+                required int createdAt,
+                required int updatedAt,
+              }) => PrimersCompanion.insert(
+                id: id,
+                domainId: domainId,
+                syllabusItemId: syllabusItemId,
+                title: title,
+                level: level,
+                content: content,
+                readAt: readAt,
+                readCount: readCount,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$PrimersTable, Primer>(table),
+                  $$PrimersTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({domainId = false, syllabusItemId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (domainId) {
+                      state = state.withJoin(
+                        currentTable: table,
+                        currentColumn: table.domainId,
+                        referencedTable: $$PrimersTableReferences
+                            ._domainIdTable(db),
+                        referencedColumn: $$PrimersTableReferences
+                            ._domainIdTable(db)
+                            .id,
+                      ) as T;
+                    }
+                    if (syllabusItemId) {
+                      state = state.withJoin(
+                        currentTable: table,
+                        currentColumn: table.syllabusItemId,
+                        referencedTable: $$PrimersTableReferences
+                            ._syllabusItemIdTable(db),
+                        referencedColumn: $$PrimersTableReferences
+                            ._syllabusItemIdTable(db)
+                            .id,
+                      ) as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$PrimersTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $PrimersTable,
+      Primer,
+      $$PrimersTableFilterComposer,
+      $$PrimersTableOrderingComposer,
+      $$PrimersTableAnnotationComposer,
+      $$PrimersTableCreateCompanionBuilder,
+      $$PrimersTableUpdateCompanionBuilder,
+      (Primer, $$PrimersTableReferences),
+      Primer,
+      PrefetchHooks Function({bool domainId, bool syllabusItemId})
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -13583,4 +15745,8 @@ class $AppDatabaseManager {
       $$SettingsTableTableManager(_db, _db.settings);
   $$ReadingItemsTableTableManager get readingItems =>
       $$ReadingItemsTableTableManager(_db, _db.readingItems);
+  $$SourcesTableTableManager get sources =>
+      $$SourcesTableTableManager(_db, _db.sources);
+  $$PrimersTableTableManager get primers =>
+      $$PrimersTableTableManager(_db, _db.primers);
 }

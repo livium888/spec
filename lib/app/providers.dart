@@ -15,7 +15,9 @@ import '../data/foundation_service.dart';
 import '../data/card_edit_service.dart';
 import '../data/import_service.dart';
 import '../data/keywords_service.dart';
+import '../data/primer_service.dart';
 import '../data/read_more_service.dart';
+import '../data/source_service.dart';
 import '../data/socratic_service.dart';
 import '../data/knowledge_service.dart';
 import '../data/learn_service.dart';
@@ -87,6 +89,8 @@ final reminderServiceProvider =
     Provider((ref) => ReminderService(ref.watch(settingsRepoProvider), ref.watch(reminderBackendProvider)));
 final keywordsServiceProvider = Provider((ref) => KeywordsService(ref.watch(dbProvider)));
 final readMoreServiceProvider = Provider((ref) => ReadMoreService(ref.watch(dbProvider)));
+final sourceServiceProvider = Provider((ref) => SourceService(ref.watch(dbProvider)));
+final primerServiceProvider = Provider((ref) => PrimerService(ref.watch(dbProvider)));
 final readingServiceProvider = Provider((ref) => ReadingService(ref.watch(dbProvider)));
 final readingVerifierProvider = Provider<ReadingVerifier>((_) => CatalogueVerifier());
 final mediaServiceProvider = Provider((ref) => MediaService(ref.watch(dbProvider)));

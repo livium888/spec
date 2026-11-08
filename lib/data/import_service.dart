@@ -8,6 +8,7 @@ import '../domain/import_parser.dart';
 import '../domain/learn_planner.dart' show LearnPlanner;
 import '../domain/prompt_template.dart' show kFoundationsTemplateVersion, kMaxFoundationCards;
 import '../domain/study_card.dart' show kProblemLevels;
+import '../domain/transcript.dart' show QuoteCheck, QuoteIndex;
 import 'db/database.dart';
 
 class ImportSummary {
@@ -60,11 +61,22 @@ class ImportService {
       final rows = await (db.select(db.notes)..where((n) => n.domainId.equals(found.id))).get();
       existing.addAll(rows.map((n) => n.guid));
     }
+    // D67: when the subject has lecture transcripts, check each card's quote against them. This proves the quote is in
+    // the transcript, not that the transcript is right.
+    QuoteIndex? quotes;
+    if (found != null) {
+      final srcs = await (db.select(db.sources)..where((s) => s.domainId.equals(found.id))).get();
+      if (srcs.isNotEmpty) quotes = QuoteIndex(srcs.map((s) => s.body).join('\n\n'));
+    }
     final seen = <String>{};
     for (final c in p.cards) {
       if (!c.valid) {
         p.status[c.index] = PreviewStatus.invalid;
         continue;
+      }
+      if (quotes != null && c.sourceType != 'model_memory' && c.supportingQuote.isNotEmpty) {
+        final q = quotes.check(c.supportingQuote);
+        if (q != QuoteCheck.tooShort) p.quote[c.index] = q;
       }
       final g = guidFor(p.domain, c.dedupeText);
       if (existing.contains(g)) {

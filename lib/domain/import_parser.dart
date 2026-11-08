@@ -4,6 +4,7 @@ import 'cloze.dart';
 import 'commons.dart' show cleanImageQuery;
 import 'expr_eval.dart';
 import 'reading.dart' show ReadingSuggestion, parseFurtherReading;
+import 'transcript.dart' show QuoteCheck;
 
 /// Strict, pure validation of LLM-produced JSON. UNTRUSTED input: every field
 /// is type-checked and length-capped; nothing is ever evaluated or rendered as
@@ -132,6 +133,10 @@ class ImportPreview {
 
   /// Filled by the data layer (DB dedupe).
   final Map<int, PreviewStatus> status = {};
+
+  /// Filled by the data layer when the subject has lecture transcripts (D67): does each card's quote appear in them?
+  /// A card with no entry was not checked (no transcripts, no quote, or a quote too short to judge).
+  final Map<int, QuoteCheck> quote = {};
   bool newDomain = false;
 
   bool get hasFatal => fatalErrors.isNotEmpty;

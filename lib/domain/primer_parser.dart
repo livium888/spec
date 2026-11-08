@@ -225,3 +225,44 @@ ParsedPrimer _parsePrimer(int i, Object? raw) {
   }
   return p;
 }
+
+/// What is stored for a primer: only the parts the reader shows. (The subject, topic, title and level are columns.)
+String primerContentJson(ParsedPrimer p) => jsonEncode({
+      'pretest': [for (final t in p.pretest) {'question': t.question, 'answer': t.answer}],
+      'sections': [for (final x in p.sections) {'heading': x.heading, 'text': x.text}],
+      'key_points': p.keyPoints,
+      'sources': p.sources,
+    });
+
+/// A stored primer read back. A restored backup is outside input, so this never throws and never trusts a size: anything
+/// that is not text, or is over the limits, is dropped.
+ParsedPrimer primerFromStored({required String domain, required String topic, required String title, required int level, required String content}) {
+  Object? d;
+  try {
+    d = jsonDecode(content);
+  } catch (_) {
+    d = null;
+  }
+  final m = d is Map ? d : const {};
+  List<Map> maps(String key, int max) => m[key] is List ? [for (final e in (m[key] as List).take(max)) if (e is Map) e] : const [];
+  String t(Object? v, int max) => v is String ? (v.length > max ? v.substring(0, max) : v) : '';
+  List<String> strs(String key, int max, int len) =>
+      m[key] is List ? [for (final e in (m[key] as List).take(max)) if (e is String && e.trim().isNotEmpty) t(e.trim(), len)] : const [];
+  return ParsedPrimer(
+    index: 0,
+    domain: domain,
+    topic: topic,
+    title: title,
+    level: level.clamp(1, 3),
+    pretest: [
+      for (final e in maps('pretest', kMaxPretest))
+        if (t(e['question'], kMaxPretestChars).isNotEmpty) PretestItem(t(e['question'], kMaxPretestChars), t(e['answer'], kMaxPretestChars)),
+    ],
+    sections: [
+      for (final e in maps('sections', kMaxSections))
+        if (t(e['text'], kMaxSectionChars).isNotEmpty) PrimerSection(t(e['heading'], kMaxHeadingChars), t(e['text'], kMaxSectionChars)),
+    ],
+    keyPoints: strs('key_points', kMaxKeyPoints, kMaxKeyPointChars),
+    sources: strs('sources', kMaxSources, kMaxSourceChars),
+  );
+}
